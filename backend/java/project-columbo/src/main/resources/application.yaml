@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: project-columbo
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/columbo
+    username: columbo
+    password: columbo
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+#  docker:
+#    compose:
+#      file: ../../../../compose.yaml
+
+logging:
+  level:
+    org.springframework.jdbc: INFO
+
+
