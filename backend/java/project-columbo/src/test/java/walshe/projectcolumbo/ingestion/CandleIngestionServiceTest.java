@@ -10,9 +10,11 @@ import walshe.projectcolumbo.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -57,10 +59,7 @@ class CandleIngestionServiceTest {
         candleIngestionService.ingestDaily();
 
         // Then
-        verify(candleRepository, times(1)).saveAll(argThat(list -> {
-            List<Candle> candles = (List<Candle>) list;
-            return candles.size() == 2; // only old and finalized
-        }));
+        verify(candleRepository, times(2)).save(any(Candle.class));
     }
 
     @Test
@@ -76,6 +75,40 @@ class CandleIngestionServiceTest {
         serviceNoProviders.ingestDaily();
 
         // Then
-        verify(candleRepository, never()).saveAll(anyList());
+        verify(candleRepository, never()).save(any(Candle.class));
+    }
+
+    @Test
+    void ingestDaily_shouldDetectRevisions() {
+        // Given
+        Asset btc = new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true);
+        when(assetRepository.findByActiveTrue()).thenReturn(List.of(btc));
+
+        Instant yesterday = Instant.now().atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).toInstant().minus(1, ChronoUnit.DAYS);
+        OffsetDateTime yesterdayOd = OffsetDateTime.ofInstant(yesterday, ZoneOffset.UTC);
+
+        CandleDto dto = new CandleDto(BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ONE, new BigDecimal("6"), BigDecimal.valueOf(100), yesterday.minus(1, ChronoUnit.DAYS), yesterday);
+        
+        Candle existing = new Candle();
+        existing.setAsset(btc);
+        existing.setTimeframe(Timeframe.D1);
+        existing.setCloseTime(yesterdayOd);
+        existing.setClose(new BigDecimal("5")); // Different from DTO
+        existing.setOpen(BigDecimal.ONE);
+        existing.setHigh(BigDecimal.TEN);
+        existing.setLow(BigDecimal.ONE);
+        existing.setVolume(BigDecimal.valueOf(100));
+        existing.setSource(MarketProvider.BINANCE);
+
+        when(binanceProvider.fetchDailyCandles("BTCUSDT")).thenReturn(List.of(dto));
+        when(candleRepository.findByAssetAndTimeframeAndCloseTime(eq(btc), eq(Timeframe.D1), eq(yesterdayOd)))
+                .thenReturn(Optional.of(existing));
+
+        // When
+        candleIngestionService.ingestDaily();
+
+        // Then
+        verify(candleRepository, times(1)).save(existing);
+        assert existing.getClose().compareTo(new BigDecimal("6")) == 0;
     }
 }

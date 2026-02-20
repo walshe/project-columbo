@@ -46,13 +46,13 @@
 
 ## Phase 4 — Upsert Logic
 
-- [ ] Implement INSERT ON CONFLICT
-- [ ] Compare fields excluding raw_payload & created_at
-- [ ] Log warning on revision
-- [ ] Track inserted_count
-- [ ] Track updated_count
-- [ ] Track skipped_count
-- [ ] Log summary
+- [x] Implement INSERT ON CONFLICT
+- [x] Compare fields excluding raw_payload & created_at
+- [x] Log warning on revision
+- [x] Track inserted_count
+- [x] Track updated_count
+- [x] Track skipped_count
+- [x] Log summary
 
 ---
 
@@ -67,7 +67,7 @@
 ## Phase 6 — Testing
 
 - [x] Unit test finalized filtering
-- [ ] Unit test revision detection
+- [x] Unit test revision detection
 - [ ] Provider parsing test
 - [ ] Testcontainers integration test
 - [ ] Run full test suite

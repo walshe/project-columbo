@@ -36,21 +36,28 @@ public class CandleIngestionService {
         List<Asset> activeAssets = assetRepository.findByActiveTrue();
         logger.info("Starting daily ingestion for {} active assets", activeAssets.size());
 
+        IngestionStats totalStats = new IngestionStats();
+
         for (Asset asset : activeAssets) {
             try {
-                ingestForAsset(asset);
+                IngestionStats assetStats = ingestForAsset(asset);
+                totalStats.add(assetStats);
             } catch (Exception e) {
                 logger.error("Failed to ingest data for asset: {}", asset.getSymbol(), e);
             }
         }
+
+        logger.info("Daily ingestion summary: {} inserted, {} updated, {} skipped across {} assets",
+                totalStats.insertedCount, totalStats.updatedCount, totalStats.skippedCount, activeAssets.size());
     }
 
     @Transactional
-    public void ingestForAsset(Asset asset) {
+    public IngestionStats ingestForAsset(Asset asset) {
+        IngestionStats stats = new IngestionStats();
         MarketDataProvider provider = findProvider(asset.getProvider());
         if (provider == null) {
             logger.warn("No provider found for {}", asset.getProvider());
-            return;
+            return stats;
         }
 
         List<CandleDto> dtos = provider.fetchDailyCandles(asset.getSymbol());
@@ -63,10 +70,64 @@ public class CandleIngestionService {
                 .map(dto -> mapToEntity(asset, dto))
                 .toList();
 
-        logger.info("Ingesting {} finalized candles for {}", finalizedCandles.size(), asset.getSymbol());
+        logger.info("Processing {} finalized candles for {}", finalizedCandles.size(), asset.getSymbol());
 
-        // For Phase 3, we just save. Phase 4 will introduce ON CONFLICT.
-        candleRepository.saveAll(finalizedCandles);
+        for (Candle incoming : finalizedCandles) {
+            candleRepository.findByAssetAndTimeframeAndCloseTime(asset, Timeframe.D1, incoming.getCloseTime())
+                    .ifPresentOrElse(
+                            existing -> {
+                                if (hasChanged(existing, incoming)) {
+                                    logger.warn("Revision detected for {} at {}. Updating fields.",
+                                            asset.getSymbol(), incoming.getCloseTime());
+                                    updateFields(existing, incoming);
+                                    candleRepository.save(existing);
+                                    stats.updatedCount++;
+                                } else {
+                                    stats.skippedCount++;
+                                }
+                            },
+                            () -> {
+                                candleRepository.save(incoming);
+                                stats.insertedCount++;
+                            }
+                    );
+        }
+
+        return stats;
+    }
+
+    private boolean hasChanged(Candle existing, Candle incoming) {
+        return existing.getOpen().compareTo(incoming.getOpen()) != 0 ||
+                existing.getHigh().compareTo(incoming.getHigh()) != 0 ||
+                existing.getLow().compareTo(incoming.getLow()) != 0 ||
+                existing.getClose().compareTo(incoming.getClose()) != 0 ||
+                existing.getVolume().compareTo(incoming.getVolume()) != 0 ||
+                existing.getSource() != incoming.getSource();
+    }
+
+    private void updateFields(Candle existing, Candle incoming) {
+        existing.setOpen(incoming.getOpen());
+        existing.setHigh(incoming.getHigh());
+        existing.setLow(incoming.getLow());
+        existing.setClose(incoming.getClose());
+        existing.setVolume(incoming.getVolume());
+        existing.setSource(incoming.getSource());
+        existing.setOpenTime(incoming.getOpenTime());
+        if (incoming.getRawPayload() != null) {
+            existing.setRawPayload(incoming.getRawPayload());
+        }
+    }
+
+    private static class IngestionStats {
+        int insertedCount = 0;
+        int updatedCount = 0;
+        int skippedCount = 0;
+
+        void add(IngestionStats other) {
+            this.insertedCount += other.insertedCount;
+            this.updatedCount += other.updatedCount;
+            this.skippedCount += other.skippedCount;
+        }
     }
 
     private MarketDataProvider findProvider(MarketProvider providerType) {
