@@ -61,26 +61,26 @@
 
 ## Phase 6 — Persistence / Upsert Logic
 
-- [ ] Implement INSERT ON CONFLICT logic
-- [ ] Compare fields excluding created_at
-- [ ] Log WARNING on revision
-- [ ] Track inserted_count
-- [ ] Track updated_count
-- [ ] Track skipped_count
-- [ ] Log per-asset summary
+- [x] Implement INSERT ON CONFLICT logic
+- [x] Compare fields excluding created_at
+- [x] Log WARNING on revision
+- [x] Track inserted_count
+- [x] Track updated_count
+- [x] Track skipped_count
+- [x] Log per-asset summary
 
 ---
 
 ## Phase 7 — Service Layer
 
-- [ ] Create SuperTrendService
-- [ ] Inject repository + calculator
-- [ ] Fetch active assets
-- [ ] Fetch finalized candles
-- [ ] Call calculator
-- [ ] Persist results
-- [ ] Wrap per-asset calculation in transaction
-- [ ] Log summary
+- [x] Create SuperTrendService
+- [x] Inject repository + calculator
+- [x] Fetch active assets
+- [x] Fetch finalized candles
+- [x] Call calculator
+- [x] Persist results
+- [x] Wrap per-asset calculation in transaction
+- [x] Log summary
 
 ---
 
@@ -104,13 +104,13 @@
 
 ## Phase 10 — Integration Testing
 
-- [ ] Seed 30+ finalized candles (Testcontainers)
-- [ ] Run SuperTrend calculation
-- [ ] Assert rows created
-- [ ] Run again
-- [ ] Assert idempotency
-- [ ] Simulate modified candle
-- [ ] Assert revision update path
+- [x] Seed 30+ finalized candles (Testcontainers)
+- [x] Run SuperTrend calculation
+- [x] Assert rows created
+- [x] Run again
+- [x] Assert idempotency
+- [x] Simulate modified candle
+- [x] Assert revision update path
 
 ---
 

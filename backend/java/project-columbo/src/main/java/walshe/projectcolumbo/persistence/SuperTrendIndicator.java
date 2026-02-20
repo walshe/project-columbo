@@ -9,7 +9,7 @@ import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "indicator_supertrend")
-class SuperTrendIndicator {
+public class SuperTrendIndicator {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -44,89 +44,118 @@ class SuperTrendIndicator {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private SuperTrendDirection direction;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
     SuperTrendIndicator() {
     }
 
-    Long getId() {
+    public static SuperTrendIndicator fromResult(Asset asset, Timeframe timeframe, SuperTrendResult result) {
+        SuperTrendIndicator indicator = new SuperTrendIndicator();
+        indicator.setAsset(asset);
+        indicator.setTimeframe(timeframe);
+        indicator.setCloseTime(result.closeTime());
+        indicator.setAtr(result.atr());
+        indicator.setUpperBand(result.upperBand());
+        indicator.setLowerBand(result.lowerBand());
+        indicator.setSupertrend(result.supertrend());
+        indicator.setDirection(result.direction());
+        return indicator;
+    }
+
+    public boolean isSameValues(SuperTrendResult result) {
+        return this.atr.compareTo(result.atr()) == 0 &&
+                this.upperBand.compareTo(result.upperBand()) == 0 &&
+                this.lowerBand.compareTo(result.lowerBand()) == 0 &&
+                this.supertrend.compareTo(result.supertrend()) == 0 &&
+                this.direction == result.direction();
+    }
+
+    public void updateFrom(SuperTrendResult result) {
+        this.atr = result.atr();
+        this.upperBand = result.upperBand();
+        this.lowerBand = result.lowerBand();
+        this.supertrend = result.supertrend();
+        this.direction = result.direction();
+    }
+
+    public Long getId() {
         return id;
     }
 
-    void setId(Long id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    Asset getAsset() {
+    public Asset getAsset() {
         return asset;
     }
 
-    void setAsset(Asset asset) {
+    public void setAsset(Asset asset) {
         this.asset = asset;
     }
 
-    Timeframe getTimeframe() {
+    public Timeframe getTimeframe() {
         return timeframe;
     }
 
-    void setTimeframe(Timeframe timeframe) {
+    public void setTimeframe(Timeframe timeframe) {
         this.timeframe = timeframe;
     }
 
-    OffsetDateTime getCloseTime() {
+    public OffsetDateTime getCloseTime() {
         return closeTime;
     }
 
-    void setCloseTime(OffsetDateTime closeTime) {
+    public void setCloseTime(OffsetDateTime closeTime) {
         this.closeTime = closeTime;
     }
 
-    BigDecimal getAtr() {
+    public BigDecimal getAtr() {
         return atr;
     }
 
-    void setAtr(BigDecimal atr) {
+    public void setAtr(BigDecimal atr) {
         this.atr = atr;
     }
 
-    BigDecimal getUpperBand() {
+    public BigDecimal getUpperBand() {
         return upperBand;
     }
 
-    void setUpperBand(BigDecimal upperBand) {
+    public void setUpperBand(BigDecimal upperBand) {
         this.upperBand = upperBand;
     }
 
-    BigDecimal getLowerBand() {
+    public BigDecimal getLowerBand() {
         return lowerBand;
     }
 
-    void setLowerBand(BigDecimal lowerBand) {
+    public void setLowerBand(BigDecimal lowerBand) {
         this.lowerBand = lowerBand;
     }
 
-    BigDecimal getSupertrend() {
+    public BigDecimal getSupertrend() {
         return supertrend;
     }
 
-    void setSupertrend(BigDecimal supertrend) {
+    public void setSupertrend(BigDecimal supertrend) {
         this.supertrend = supertrend;
     }
 
-    SuperTrendDirection getDirection() {
+    public SuperTrendDirection getDirection() {
         return direction;
     }
 
-    void setDirection(SuperTrendDirection direction) {
+    public void setDirection(SuperTrendDirection direction) {
         this.direction = direction;
     }
 
-    OffsetDateTime getCreatedAt() {
+    public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
 
-    void setCreatedAt(OffsetDateTime createdAt) {
+    public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
     }
 }

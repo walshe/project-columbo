@@ -1,5 +1,7 @@
 package walshe.projectcolumbo.persistence;
 
+import org.springframework.stereotype.Component;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -9,6 +11,7 @@ import java.util.List;
  * Pure, stateless calculator for SuperTrend indicator.
  * Logic based on standard TradingView / SuperTrend implementation.
  */
+@Component
 public class SuperTrendCalculator {
 
     private static final int SCALE = 10;
