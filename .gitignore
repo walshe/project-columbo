@@ -1,0 +1,30 @@
+# Environment
+.env
+.env.*
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# IDEs/editors (root level)
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Maven/Gradle build outputs (any module)
+**/target/
+**/build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Maven wrapper binary (any module)
+**/.mvn/wrapper/maven-wrapper.jar
+
+# Logs
+*.log
+
+# Test coverage/temp (if introduced later)
+coverage/
+.tmp/

@@ -2,25 +2,32 @@
 
 ## Phase 1 — Schema
 
-- [x] Create Flyway migration V1__create_asset_timeframe_candle.sql
-- [x] Define Postgres ENUM type timeframe ('1D')
-- [x] Create `asset` table with provider_id NOT NULL
-- [x] Create `candle` table with fields
-- [x] Add unique constraint (asset_id, timeframe, close_time)
-- [x] Start app and verify Flyway runs
-- [x] Inspect schema manually
+- [ ] Create Flyway migration V1__create_asset_timeframe_candle.sql
+- [ ] Define ENUM timeframe ('1D')
+- [ ] Define ENUM provider ('BINANCE')
+- [ ] Create `asset` table with provider ENUM
+- [ ] Add unique constraint (symbol, provider)
+- [ ] Create `candle` table with provider ENUM as source
+- [ ] Add unique constraint (asset_id, timeframe, close_time)
+- [ ] Start app and verify Flyway runs
+- [ ] Inspect schema manually
 
 ---
 
-## Phase 2 — Provider Layer
+## Phase 2 — Provider Layer (Binance)
 
-- [ ] Create CandleDto with open, high, low, close, open_time, close_time
+- [ ] Create CandleDto
+- [ ] Use BigDecimal for numeric fields
 - [ ] Create MarketDataProvider interface
-- [ ] Implement CoinGeckoMarketDataProvider
-- [ ] Configure demo API key property
-- [ ] Fetch `/coins/{id}/ohlc` with days=365
-- [ ] Normalize timestamp to UTC
-- [ ] Respect API rate limits (delay between calls)
+- [ ] Implement BinanceMarketDataProvider
+- [ ] Implement symbol normalization rule
+- [ ] Configure base URL
+- [ ] Call /api/v3/klines with interval=1d
+- [ ] Map openTime → open_time (UTC)
+- [ ] Map closeTime → close_time (UTC)
+- [ ] Parse numeric fields safely
+- [ ] Unit test provider parsing
+- [ ] Unit test symbol normalization
 
 ---
 
@@ -30,7 +37,7 @@
 - [ ] Inject provider & repository
 - [ ] Fetch active assets
 - [ ] Sort candles by close_time ascending
-- [ ] Finalized candle filter
+- [ ] Implement finalized candle filter (UTC boundary)
 - [ ] Map DTO → entity
 - [ ] Wrap asset ingestion in transaction
 
@@ -58,8 +65,8 @@
 
 ## Phase 6 — Testing
 
-- [ ] Unit test for finalized filtering
-- [ ] Unit test for revision detection
+- [ ] Unit test finalized filtering
+- [ ] Unit test revision detection
 - [ ] Provider parsing test
 - [ ] Testcontainers integration test
 - [ ] Run full test suite

@@ -15,7 +15,7 @@ Phase 1:
 
 - Daily timeframe only (1D)
 - Active assets from `asset` table
-- Single provider (CoinGecko initially)
+- Single provider (CoinGecko/Binance initially)
 - Idempotent upsert behavior
 - No indicator computation yet
 

@@ -1,7 +1,7 @@
 # Story 001 — Implementation Plan
-Fetch & Persist Daily OHLC Data
+Fetch & Persist Daily OHLC Data (Binance)
 
-This plan translates the requirements into deterministic implementation steps.
+This plan translates requirements into deterministic implementation steps.
 
 Follow in order.
 
@@ -16,29 +16,35 @@ Follow in order.
 
 2. Migration must:
 
-   - Create Postgres ENUM type:
+   - Create ENUM type:
        CREATE TYPE timeframe AS ENUM ('1D');
+
+   - Create ENUM type:
+       CREATE TYPE provider AS ENUM ('BINANCE');
 
    - Create `asset` table:
        id (PK)
-       provider_id (VARCHAR, NOT NULL)   # CoinGecko id usage
-       symbol (VARCHAR, unique)
+       symbol (VARCHAR, NOT NULL)               -- e.g. BTCUSDT
        name (VARCHAR)
-       active (BOOLEAN)
+       provider (provider ENUM NOT NULL)
+       active (BOOLEAN DEFAULT true)
        created_at (TIMESTAMPTZ DEFAULT now())
+
+   - Add unique constraint:
+       (symbol, provider)
 
    - Create `candle` table:
        id (PK)
-       asset_id (FK → asset.id)
-       timeframe (timeframe ENUM)
-       open_time (TIMESTAMPTZ)
-       close_time (TIMESTAMPTZ)
-       open (NUMERIC)
-       high (NUMERIC)
-       low (NUMERIC)
-       close (NUMERIC)
-       volume (NUMERIC)
-       source (VARCHAR)
+       asset_id (FK → asset.id, NOT NULL)
+       timeframe (timeframe ENUM NOT NULL)
+       open_time (TIMESTAMPTZ NOT NULL)
+       close_time (TIMESTAMPTZ NOT NULL)
+       open (NUMERIC NOT NULL)
+       high (NUMERIC NOT NULL)
+       low (NUMERIC NOT NULL)
+       close (NUMERIC NOT NULL)
+       volume (NUMERIC NOT NULL)
+       source (provider ENUM NOT NULL)
        raw_payload (JSONB NULL)
        created_at (TIMESTAMPTZ DEFAULT now())
 
@@ -55,32 +61,59 @@ Do not proceed until schema is correct.
 
 ---
 
-## Phase 2 — Provider Abstraction
+## Phase 2 — Provider Abstraction (Binance)
 
 1. Define interface:
 
    MarketDataProvider:
-       List<CandleDto> fetchDailyCandles(String providerId);
+       List<CandleDto> fetchDailyCandles(String symbol);
 
-2. Implement CoinGeckoMarketDataProvider.
+2. Implement BinanceMarketDataProvider.
 
-3. The provider must:
+3. Symbol Normalization Rule:
 
-   - Hit `/coins/{id}/ohlc?vs_currency=usd&days=365`
-   - Use the demo API key if provided (optional)
-   - Parse JSON of form:
+   - Symbols must be uppercase.
+   - If symbol does not end with "USDT",
+     append "USDT".
+   - Example:
+       BTC → BTCUSDT
+       eth → ETHUSDT
+       BTCUSDT → BTCUSDT
+
+   Normalization must occur before calling Binance.
+
+4. Provider must:
+
+   - Call:
+       GET /api/v3/klines?symbol={symbol}&interval=1d&limit=365
+
+   - Base URL:
+       https://api.binance.com
+
+   - Parse response format:
        [
-         [timestamp_ms, open, high, low, close],
+         [
+           openTime,
+           open,
+           high,
+           low,
+           close,
+           volume,
+           closeTime,
+           ...
+         ],
          ...
        ]
-   - Convert timestamp to UTC `close_time` (converted from ms)
-   - Set `open_time = close_time - 24h`
-   - Populate CandleDto with open, high, low, close
-   - Normalize all timestamps to UTC
-   - Do NOT persist anything here
 
-4. Rate limiting consideration:
-   - Since CoinGecko free plan allows 30 calls/minute, consider a mild delay between calls (e.g., Thread.sleep(250–500ms)) to avoid 429.
+   - Map:
+       openTime  → open_time (UTC)
+       closeTime → close_time (UTC)
+       open/high/low/close/volume → BigDecimal
+
+   - Use BigDecimal for numeric precision.
+   - Normalize timestamps to UTC.
+   - Do NOT persist anything here.
+   - Do NOT apply business logic here.
 
 ---
 
@@ -94,21 +127,31 @@ Method:
 Procedure:
 
 1. Fetch all active assets.
+
 2. For each asset:
 
-   a. Fetch daily candles via provider
-   b. Sort ascending by close_time
-   c. Only include finalized candles
+   a. Fetch daily candles via provider.
+   b. Sort ascending by close_time.
+   c. Filter finalized candles.
 
-Finalized rule:
+Finalized Candle Logic (Precise Definition):
 
-    A daily candle is finalized if:
-    Candle.close_time < current UTC day boundary.
+   Let:
+       now = Instant.now()
+       todayUtcStart = now truncated to UTC midnight.
+
+   A candle is finalized if:
+       candle.close_time < todayUtcStart
+
+   This guarantees:
+       - No partial current-day candle
+       - Close-time anchored truth
+       - Deterministic state
 
 3. Map DTO → Candle entity.
 4. Upsert deterministically.
 
-Each asset loop should be within a transaction.
+Each asset ingestion must run within a transaction.
 
 ---
 
@@ -154,8 +197,9 @@ Scheduler must:
 
 Unit tests:
 
+- Symbol normalization
 - Finalized filter logic
-- Revision detection
+- Revision detection logic
 - Provider parsing correctness
 
 Integration test (Testcontainers Postgres):
@@ -164,14 +208,17 @@ Integration test (Testcontainers Postgres):
 - Run ingestion twice
 - Assert no duplicates
 - Simulate modified candle
-- Assert WARNING
+- Assert WARNING path
 
 ---
 
 ## Phase 7 — Manual Verification
 
-1. Insert 2 assets via SQL:
-   e.g., INSERT INTO asset(provider_id, symbol, name, active) VALUES ('bitcoin', 'BTC', 'Bitcoin', true);
+1. Insert 2 assets:
+
+   INSERT INTO asset(symbol, name, provider, active)
+   VALUES ('BTC', 'Bitcoin', 'BINANCE', true);
+
 2. Run ingestion
 3. Inspect DB
 4. Run ingestion again

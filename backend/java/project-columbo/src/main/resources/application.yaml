@@ -20,4 +20,9 @@ logging:
     org.flywaydb: DEBUG
     org.springframework.jdbc: INFO
 
+app:
+  coingecko:
+    api-key: ${COINGECKO_API_KEY:}
+    base-url: "https://api.coingecko.com/api/v3"
+
 
