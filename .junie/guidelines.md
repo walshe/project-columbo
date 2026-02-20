@@ -223,7 +223,7 @@ Explicitly forbidden in v1:
 
 - PostgreSQL is the only supported database.
 - pgvector is used for embeddings.
-- All schema changes must be implemented via Liquibase.
+- All schema changes must be implemented via Flyway.
 - Timestamps must use DB defaults (`now()`).
 - No H2 compatibility workarounds are allowed.
 - Integration tests must use PostgreSQL Testcontainers.

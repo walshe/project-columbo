@@ -18,7 +18,7 @@ It consists of:
 ## 2.1 Signal Engine (Spring Boot)
 
 **Responsibilities:**
-- Fetch finalized daily OHLC candles
+- Fetch finalized daily OHLC candles. Clarify that Candle includes high and low (not just close state), because future indicators need full OHLC.
 - Normalize and persist candles
 - Fetch minimal lookback window per indicator (indicator-defined) to compute the latest finalized state safely
 - Compute SuperTrend(10,2)

@@ -1,54 +1,74 @@
 # Story 001 — Tasks
 
-## Schema
+## Phase 1 — Schema
 
-- [ ] Create Liquibase changeset for timeframe ENUM
-- [ ] Create asset table
-- [ ] Create candle table
+- [ ] Create Flyway migration V1__create_asset_timeframe_candle.sql
+- [ ] Define Postgres ENUM type timeframe ('1D')
+- [ ] Create `asset` table with provider_id NOT NULL
+- [ ] Create `candle` table with fields
 - [ ] Add unique constraint (asset_id, timeframe, close_time)
-- [ ] Run docker compose and verify schema
+- [ ] Start app and verify Flyway runs
+- [ ] Inspect schema manually
 
 ---
 
-## Provider Layer
+## Phase 2 — Provider Layer
 
+- [ ] Create CandleDto with open, high, low, close, open_time, close_time
 - [ ] Create MarketDataProvider interface
 - [ ] Implement CoinGeckoMarketDataProvider
-- [ ] Add configuration for API base URL
-- [ ] Normalize timestamps to UTC
+- [ ] Configure demo API key property
+- [ ] Fetch `/coins/{id}/ohlc` with days=365
+- [ ] Normalize timestamp to UTC
+- [ ] Respect API rate limits (delay between calls)
 
 ---
 
-## Ingestion Layer
+## Phase 3 — Ingestion Layer
 
 - [ ] Create CandleIngestionService
-- [ ] Inject provider + repository
-- [ ] Implement finalized candle filter
-- [ ] Implement upsert logic
-- [ ] Add revision WARNING logging
-- [ ] Add summary logging
+- [ ] Inject provider & repository
+- [ ] Fetch active assets
+- [ ] Sort candles by close_time ascending
+- [ ] Finalized candle filter
+- [ ] Map DTO → entity
+- [ ] Wrap asset ingestion in transaction
 
 ---
 
-## Scheduler
+## Phase 4 — Upsert Logic
 
-- [ ] Add @Scheduled ingestion method
-- [ ] Externalize cron to config
+- [ ] Implement INSERT ON CONFLICT
+- [ ] Compare fields excluding raw_payload & created_at
+- [ ] Log warning on revision
+- [ ] Track inserted_count
+- [ ] Track updated_count
+- [ ] Track skipped_count
+- [ ] Log summary
 
 ---
 
-## Testing
+## Phase 5 — Scheduler
 
-- [ ] Add unit test for finalized filtering
-- [ ] Add unit test for revision detection
-- [ ] Add Testcontainers integration test
+- [ ] Add @Scheduled ingestion
+- [ ] Externalize cron config
+- [ ] Catch exceptions
+
+---
+
+## Phase 6 — Testing
+
+- [ ] Unit test for finalized filtering
+- [ ] Unit test for revision detection
+- [ ] Provider parsing test
+- [ ] Testcontainers integration test
 - [ ] Run full test suite
 
 ---
 
-## Manual Validation
+## Phase 7 — Manual Validation
 
-- [ ] Seed at least 2 assets
+- [ ] Insert assets manually
 - [ ] Run ingestion manually
 - [ ] Inspect DB
 - [ ] Run ingestion again
