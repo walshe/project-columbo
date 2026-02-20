@@ -1,6 +1,6 @@
 Follow ./AI_EXECUTION_PROTOCOL.md.
-Story folder: ./stories/1-fetch-ohlc-data/
-Implement Phase 5 only.
+Story folder: ./stories/2-supertrend-indicator/
+Implement Phase 1 and 2 only.
 Stop after completion.
 
 
