@@ -26,26 +26,26 @@
 
 ## Phase 3 — SuperTrend Calculator (Pure Engine)
 
-- [ ] Create SuperTrendCalculator class
-- [ ] Implement True Range (TR)
-- [ ] Implement initial ATR calculation
-- [ ] Implement Wilder smoothing formula
-- [ ] Implement basic upper/lower bands
-- [ ] Implement final band logic
-- [ ] Implement SuperTrend switching logic
-- [ ] Implement direction derivation
-- [ ] Ensure oldest → newest sequential processing
-- [ ] Ensure no floating point usage (BigDecimal only)
-- [ ] Add full unit test suite for calculator
+- [x] Create SuperTrendCalculator class
+- [x] Implement True Range (TR)
+- [x] Implement initial ATR calculation
+- [x] Implement Wilder smoothing formula
+- [x] Implement basic upper/lower bands
+- [x] Implement final band logic
+- [x] Implement SuperTrend switching logic
+- [x] Implement direction derivation
+- [x] Ensure oldest → newest sequential processing
+- [x] Ensure no floating point usage (BigDecimal only)
+- [x] Add full unit test suite for calculator
 
 ---
 
 ## Phase 4 — Finalized Candle Filtering
 
-- [ ] Fetch candles ordered ascending
-- [ ] Implement UTC midnight boundary calculation
-- [ ] Filter out non-finalized candles
-- [ ] Unit test finalized filter logic
+- [x] Fetch candles ordered ascending
+- [x] Implement UTC midnight boundary calculation
+- [x] Filter out non-finalized candles
+- [x] Unit test finalized filter logic
 
 ---
 
