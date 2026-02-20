@@ -2,13 +2,13 @@
 
 ## Phase 1 — Schema
 
-- [ ] Create Flyway migration V1__create_asset_timeframe_candle.sql
-- [ ] Define Postgres ENUM type timeframe ('1D')
-- [ ] Create `asset` table with provider_id NOT NULL
-- [ ] Create `candle` table with fields
-- [ ] Add unique constraint (asset_id, timeframe, close_time)
-- [ ] Start app and verify Flyway runs
-- [ ] Inspect schema manually
+- [x] Create Flyway migration V1__create_asset_timeframe_candle.sql
+- [x] Define Postgres ENUM type timeframe ('1D')
+- [x] Create `asset` table with provider_id NOT NULL
+- [x] Create `candle` table with fields
+- [x] Add unique constraint (asset_id, timeframe, close_time)
+- [x] Start app and verify Flyway runs
+- [x] Inspect schema manually
 
 ---
 

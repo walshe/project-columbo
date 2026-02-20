@@ -3,20 +3,21 @@ spring:
     name: project-columbo
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/columbo
-    username: columbo
-    password: columbo
+    url: jdbc:postgresql://localhost:5432/mydatabase
+    username: myuser
+    password: secret
 
   jpa:
     hibernate:
       ddl-auto: validate
+    open-in-view: false
 
-#  docker:
-#    compose:
-#      file: ../../../../compose.yaml
+  flyway:
+    enabled: true
 
 logging:
   level:
+    org.flywaydb: DEBUG
     org.springframework.jdbc: INFO
 
 
