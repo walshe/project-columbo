@@ -203,7 +203,7 @@ project will use springdoc-openapi-starter-webmvc-ui to expose a swagger ui
 
 # 17. AI Platform-Specific Architectural Rules
 
-These rules apply specifically to the AI Market Intelligence Platform project.
+These rules apply specifically to project colombo.
 
 ## 17.1 Scope Discipline
 
