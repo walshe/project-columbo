@@ -24,9 +24,13 @@ class SuperTrendRepositoryTest {
     @Autowired
     private AssetRepository assetRepository;
 
+    @Autowired
+    private CandleRepository candleRepository;
+
     @BeforeEach
     void setUp() {
         superTrendRepository.deleteAll();
+        candleRepository.deleteAll();
         assetRepository.deleteAll();
     }
 
@@ -62,7 +66,7 @@ class SuperTrendRepositoryTest {
         superTrendRepository.save(st2);
 
         // When
-        Optional<SuperTrendIndicator> latest = superTrendRepository.findFirstByAssetIdAndTimeframeOrderByCloseTimeDesc(btc.getId(), Timeframe.D1);
+        Optional<SuperTrendIndicator> latest = superTrendRepository.findFirstByAssetAndTimeframeOrderByCloseTimeDesc(btc, Timeframe.D1);
 
         // Then
         assertThat(latest).isPresent();

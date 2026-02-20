@@ -114,6 +114,63 @@ public class SuperTrendCalculator {
         return results;
     }
 
+    /**
+     * Incremental calculation helper. Recomputes from a warm-up window around the last stored close time
+     * to preserve ATR continuity and returns only the new results after the anchor.
+     *
+     * @param candles ordered list (oldest to newest)
+     * @param atrLength ATR period
+     * @param multiplier ATR multiplier
+     * @param lastStoredCloseTime null if no prior data
+     * @param fullRecalc when true, ignores incremental anchor and returns full results
+     * @return list of new results strictly after {@code lastStoredCloseTime}; full list when {@code fullRecalc}
+     */
+    public List<SuperTrendResult> calculateIncremental(
+            List<Candle> candles,
+            int atrLength,
+            BigDecimal multiplier,
+            java.time.OffsetDateTime lastStoredCloseTime,
+            boolean fullRecalc
+    ) {
+        if (fullRecalc || lastStoredCloseTime == null) {
+            return calculate(candles, atrLength, multiplier);
+        }
+        if (candles.isEmpty()) {
+            return List.of();
+        }
+
+        // Find anchor index: exact match, else first greater; if none greater → up to date
+        int anchorIndex = -1;
+        for (int i = 0; i < candles.size(); i++) {
+            var ct = candles.get(i).getCloseTime();
+            if (ct.equals(lastStoredCloseTime)) {
+                anchorIndex = i;
+                break;
+            }
+            if (ct.isAfter(lastStoredCloseTime)) {
+                anchorIndex = i; // first greater
+                break;
+            }
+        }
+        if (anchorIndex == -1) {
+            return List.of(); // already up to date
+        }
+
+        int start = Math.max(0, anchorIndex - atrLength - 1);
+        List<Candle> window = candles.subList(start, candles.size());
+        List<SuperTrendResult> windowResults = calculate(window, atrLength, multiplier);
+
+        // Return only results with closeTime strictly after lastStoredCloseTime
+        List<SuperTrendResult> out = new java.util.ArrayList<>();
+        for (SuperTrendResult r : windowResults) {
+            if (r == null) continue;
+            if (r.closeTime().isAfter(lastStoredCloseTime)) {
+                out.add(r);
+            }
+        }
+        return out;
+    }
+
     private BigDecimal[] calculateTrueRanges(List<Candle> candles) {
         BigDecimal[] tr = new BigDecimal[candles.size()];
         BigDecimal prevClose = null;
