@@ -34,13 +34,13 @@
 
 ## Phase 3 — Ingestion Layer
 
-- [ ] Create CandleIngestionService
-- [ ] Inject provider & repository
-- [ ] Fetch active assets
-- [ ] Sort candles by close_time ascending
-- [ ] Implement finalized candle filter (UTC boundary)
-- [ ] Map DTO → entity
-- [ ] Wrap asset ingestion in transaction
+- [x] Create CandleIngestionService
+- [x] Inject provider & repository
+- [x] Fetch active assets
+- [x] Sort candles by close_time ascending
+- [x] Implement finalized candle filter (UTC boundary)
+- [x] Map DTO → entity
+- [x] Wrap asset ingestion in transaction
 
 ---
 
@@ -66,7 +66,7 @@
 
 ## Phase 6 — Testing
 
-- [ ] Unit test finalized filtering
+- [x] Unit test finalized filtering
 - [ ] Unit test revision detection
 - [ ] Provider parsing test
 - [ ] Testcontainers integration test

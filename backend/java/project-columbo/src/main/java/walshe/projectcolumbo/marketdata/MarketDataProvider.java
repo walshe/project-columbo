@@ -14,4 +14,12 @@ public interface MarketDataProvider {
      * @return a list of {@link CandleDto}
      */
     List<CandleDto> fetchDailyCandles(String providerId);
+
+    /**
+     * Get the name of the provider.
+     * @return the provider name (e.g., 'BINANCE')
+     */
+    default String getProviderName() {
+        return this.getClass().getSimpleName().toUpperCase().replace("MARKETDATAPROVIDER", "");
+    }
 }
