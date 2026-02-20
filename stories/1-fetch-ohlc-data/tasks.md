@@ -2,15 +2,15 @@
 
 ## Phase 1 — Schema
 
-- [ ] Create Flyway migration V1__create_asset_timeframe_candle.sql
-- [ ] Define ENUM timeframe ('1D')
-- [ ] Define ENUM provider ('BINANCE')
-- [ ] Create `asset` table with provider ENUM
-- [ ] Add unique constraint (symbol, provider)
-- [ ] Create `candle` table with provider ENUM as source
-- [ ] Add unique constraint (asset_id, timeframe, close_time)
-- [ ] Start app and verify Flyway runs
-- [ ] Inspect schema manually
+- [x] Create Flyway migration V1__create_asset_timeframe_candle.sql
+- [x] Define ENUM timeframe ('1D')
+- [x] Define ENUM provider ('BINANCE')
+- [x] Create `asset` table with provider ENUM
+- [x] Add unique constraint (symbol, provider)
+- [x] Create `candle` table with provider ENUM as source
+- [x] Add unique constraint (asset_id, timeframe, close_time)
+- [x] Start app and verify Flyway runs
+- [x] Inspect schema manually
 
 ---
 
