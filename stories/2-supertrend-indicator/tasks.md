@@ -51,11 +51,11 @@
 
 ## Phase 5 — Incremental Strategy
 
-- [ ] Fetch latest stored SuperTrend close_time
-- [ ] Implement incremental continuation logic
-- [ ] Recompute from (lastIndex - atrLength - 1)
-- [ ] Implement optional full recalculation mode
-- [ ] Unit test incremental correctness
+- [x] Fetch latest stored SuperTrend close_time
+- [x] Implement incremental continuation logic
+- [x] Recompute from (lastIndex - atrLength - 1)
+- [x] Implement optional full recalculation mode
+- [x] Unit test incremental correctness
 
 ---
 
