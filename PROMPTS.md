@@ -1,6 +1,6 @@
 Follow ./AI_EXECUTION_PROTOCOL.md.
 Story folder: ./stories/1-fetch-ohlc-data/
-Implement Phase 3 only.
+Implement Phase 5 only.
 Stop after completion.
 
 

@@ -2,6 +2,7 @@ package walshe.projectcolumbo.ingestion;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import walshe.projectcolumbo.marketdata.CandleDto;
@@ -30,6 +31,17 @@ public class CandleIngestionService {
         this.assetRepository = assetRepository;
         this.candleRepository = candleRepository;
         this.marketDataProviders = marketDataProviders;
+    }
+
+    @Scheduled(cron = "${app.ingestion.cron}")
+    public void scheduledIngest() {
+        logger.info("Triggering scheduled daily ingestion");
+        try {
+            ingestDaily();
+            logger.info("Scheduled daily ingestion completed successfully");
+        } catch (Exception e) {
+            logger.error("Scheduled daily ingestion failed", e);
+        }
     }
 
     public void ingestDaily() {

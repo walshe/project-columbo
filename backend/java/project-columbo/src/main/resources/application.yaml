@@ -26,5 +26,7 @@ app:
     base-url: "https://api.coingecko.com/api/v3"
   binance:
     base-url: "https://api.binance.com"
+  ingestion:
+    cron: "0 5 0 * * *" # Run at 00:05 UTC every day
 
 

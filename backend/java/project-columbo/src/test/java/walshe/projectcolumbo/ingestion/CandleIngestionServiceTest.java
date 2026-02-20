@@ -111,4 +111,15 @@ class CandleIngestionServiceTest {
         verify(candleRepository, times(1)).save(existing);
         assert existing.getClose().compareTo(new BigDecimal("6")) == 0;
     }
+
+    @Test
+    void scheduledIngest_shouldCatchExceptions() {
+        // Given
+        when(assetRepository.findByActiveTrue()).thenThrow(new RuntimeException("DB error"));
+
+        // When/Then (should not throw exception)
+        candleIngestionService.scheduledIngest();
+
+        verify(assetRepository).findByActiveTrue();
+    }
 }

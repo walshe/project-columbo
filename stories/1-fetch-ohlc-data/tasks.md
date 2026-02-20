@@ -58,9 +58,9 @@
 
 ## Phase 5 — Scheduler
 
-- [ ] Add @Scheduled ingestion
-- [ ] Externalize cron config
-- [ ] Catch exceptions
+- [x] Add @Scheduled ingestion
+- [x] Externalize cron config
+- [x] Catch exceptions
 
 ---
 
