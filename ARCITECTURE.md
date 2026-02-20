@@ -37,7 +37,7 @@ It consists of:
 - SignalEvents
 - MarketPulse snapshots
 
-Liquibase manages schema evolution.
+Flyway manages schema evolution.
 
 ## 2.3 AI Layer (OpenClaw)
 

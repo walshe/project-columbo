@@ -47,7 +47,7 @@ When invoked, AI will be given explicit file paths.
 AI may modify only:
 
 - Files within the referenced story folder
-- Files required to implement that story (e.g., new service classes, repositories, Liquibase changesets)
+- Files required to implement that story (e.g., new service classes, repositories, flyway migrations)
 
 AI must not:
 
