@@ -53,6 +53,7 @@ class CoinGeckoMarketDataProviderTest {
         assertThat(first.high()).isEqualByComparingTo("53000.2");
         assertThat(first.low()).isEqualByComparingTo("51000.3");
         assertThat(first.close()).isEqualByComparingTo("52500.4");
+        assertThat(first.volume()).isNull();
         
         Instant expectedCloseTime = Instant.ofEpochMilli(1708425600000L);
         assertThat(first.closeTime()).isEqualTo(expectedCloseTime);

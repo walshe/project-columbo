@@ -10,6 +10,7 @@ import java.time.Instant;
  * @param high       High price
  * @param low        Low price
  * @param close      Close price
+ * @param volume     Volume
  * @param openTime   Opening timestamp (UTC)
  * @param closeTime  Closing timestamp (UTC)
  */
@@ -18,6 +19,7 @@ public record CandleDto(
     BigDecimal high,
     BigDecimal low,
     BigDecimal close,
+    BigDecimal volume,
     Instant openTime,
     Instant closeTime
 ) {}

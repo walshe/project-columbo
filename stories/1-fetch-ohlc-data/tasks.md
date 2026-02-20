@@ -16,18 +16,19 @@
 
 ## Phase 2 — Provider Layer (Binance)
 
-- [ ] Create CandleDto
-- [ ] Use BigDecimal for numeric fields
-- [ ] Create MarketDataProvider interface
-- [ ] Implement BinanceMarketDataProvider
-- [ ] Implement symbol normalization rule
-- [ ] Configure base URL
-- [ ] Call /api/v3/klines with interval=1d
-- [ ] Map openTime → open_time (UTC)
-- [ ] Map closeTime → close_time (UTC)
-- [ ] Parse numeric fields safely
-- [ ] Unit test provider parsing
-- [ ] Unit test symbol normalization
+
+- [x] Create CandleDto
+- [x] Use BigDecimal for numeric fields
+- [x] Create MarketDataProvider interface
+- [x] Implement BinanceMarketDataProvider
+- [x] Implement symbol normalization rule
+- [x] Configure base URL
+- [x] Call /api/v3/klines with interval=1d
+- [x] Map openTime → open_time (UTC)
+- [x] Map closeTime → close_time (UTC)
+- [x] Parse numeric fields safely
+- [x] Unit test provider parsing
+- [x] Unit test symbol normalization
 
 ---
 

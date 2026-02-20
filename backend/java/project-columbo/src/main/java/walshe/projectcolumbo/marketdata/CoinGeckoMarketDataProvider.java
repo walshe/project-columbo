@@ -74,10 +74,11 @@ class CoinGeckoMarketDataProvider implements MarketDataProvider {
         BigDecimal high = row[2];
         BigDecimal low = row[3];
         BigDecimal close = row[4];
+        BigDecimal volume = null;
 
         Instant closeTime = Instant.ofEpochMilli(timestampMs);
         Instant openTime = closeTime.minus(1, ChronoUnit.DAYS);
 
-        return new CandleDto(open, high, low, close, openTime, closeTime);
+        return new CandleDto(open, high, low, close, volume, openTime, closeTime);
     }
 }
