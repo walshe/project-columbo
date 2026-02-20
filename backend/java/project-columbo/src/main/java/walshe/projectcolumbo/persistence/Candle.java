@@ -1,6 +1,9 @@
 package walshe.projectcolumbo.persistence;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
@@ -15,8 +18,9 @@ public class Candle {
     @JoinColumn(name = "asset_id", nullable = false)
     private Asset asset;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private Timeframe timeframe;
 
     @Column(name = "open_time", nullable = false)
@@ -40,11 +44,13 @@ public class Candle {
     @Column(nullable = false)
     private BigDecimal volume;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private MarketProvider source;
 
     @Column(name = "raw_payload", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
     private String rawPayload;
 
     @Column(name = "created_at")

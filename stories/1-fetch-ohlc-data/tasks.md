@@ -68,16 +68,16 @@
 
 - [x] Unit test finalized filtering
 - [x] Unit test revision detection
-- [ ] Provider parsing test
-- [ ] Testcontainers integration test
-- [ ] Run full test suite
+- [x] Provider parsing test
+- [x] Testcontainers integration test
+- [x] Run full test suite
 
 ---
 
 ## Phase 7 — Manual Validation
 
-- [ ] Insert assets manually
-- [ ] Run ingestion manually
-- [ ] Inspect DB
-- [ ] Run ingestion again
-- [ ] Verify idempotency
+- [x] Insert assets manually
+- [x] Run ingestion manually
+- [x] Inspect DB
+- [x] Run ingestion again
+- [x] Verify idempotency

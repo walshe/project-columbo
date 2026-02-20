@@ -1,7 +1,7 @@
 -- V1__create_asset_timeframe_candle.sql
 
 -- 1. Create timeframe ENUM
-CREATE TYPE timeframe AS ENUM ('1D');
+CREATE TYPE timeframe AS ENUM ('D1');
 
 -- 2. Create provider ENUM
 CREATE TYPE provider AS ENUM ('BINANCE');

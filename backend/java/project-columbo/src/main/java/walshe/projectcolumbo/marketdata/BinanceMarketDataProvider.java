@@ -20,12 +20,12 @@ import java.util.Objects;
 class BinanceMarketDataProvider implements MarketDataProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(BinanceMarketDataProvider.class);
-    private static final String KLINES_ENDPOINT = "/api/v3/klines?symbol={symbol}&interval=1d";
+    private static final String KLINES_ENDPOINT_PATH = "/api/v3/klines";
 
     private final RestClient restClient;
 
-    BinanceMarketDataProvider(RestClient.Builder builder, BinanceProperties properties) {
-        this.restClient = builder.baseUrl(properties.baseUrl()).build();
+    BinanceMarketDataProvider(RestClient.Builder restClientBuilder, BinanceProperties properties) {
+        this.restClient = restClientBuilder.clone().baseUrl(properties.baseUrl()).build();
     }
 
     @Override
@@ -34,7 +34,7 @@ class BinanceMarketDataProvider implements MarketDataProvider {
         logger.info("Fetching daily candles from Binance for symbol: {} (normalized: {})", symbol, normalizedSymbol);
 
         Object[][] response = restClient.get()
-                .uri(KLINES_ENDPOINT, normalizedSymbol)
+                .uri("/api/v3/klines?symbol={symbol}&interval=1d", normalizedSymbol)
                 .retrieve()
                 .body(Object[][].class);
 
@@ -53,7 +53,11 @@ class BinanceMarketDataProvider implements MarketDataProvider {
         if (symbol == null) {
             return "";
         }
-        return symbol.replace("/", "").replace("-", "").toUpperCase();
+        String normalized = symbol.replace("/", "").replace("-", "").toUpperCase();
+        if (!normalized.endsWith("USDT")) {
+            normalized += "USDT";
+        }
+        return normalized;
     }
 
     private CandleDto mapToCandleDto(Object[] row) {
