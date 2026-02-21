@@ -1,119 +1,137 @@
-# Story 003 — Tasks
+# Story 004 — Tasks
 
 ## Phase 1 — Schema
 
-- [x] Create Flyway migration V3__create_signal_state.sql
-- [x] Define ENUM indicator_type ('SUPERTREND')
-- [x] Define ENUM trend_state ('BULLISH', 'BEARISH')
-- [x] Define ENUM signal_event ('NONE', 'BULLISH_REVERSAL', 'BEARISH_REVERSAL')
-- [x] Create `signal_state` table
-- [x] Add unique constraint (asset_id, timeframe, indicator_type, close_time)
-- [x] Start application and verify Flyway runs
-- [x] Inspect schema manually
+- [ ] Create Flyway migration `V4__create_market_breadth_snapshot.sql`
+- [ ] Create table `market_breadth_snapshot` with:
+  - [ ] timeframe (timeframe ENUM NOT NULL)
+  - [ ] indicator_type (indicator_type ENUM NOT NULL)
+  - [ ] snapshot_close_time (TIMESTAMPTZ NOT NULL)
+  - [ ] bullish_count (INT NOT NULL)
+  - [ ] bearish_count (INT NOT NULL)
+  - [ ] missing_count (INT NOT NULL)
+  - [ ] total_assets (INT NOT NULL)
+  - [ ] bullish_ratio (NUMERIC with explicit precision/scale, NOT NULL)
+  - [ ] created_at (TIMESTAMPTZ DEFAULT now())
+- [ ] Add unique constraint `(timeframe, indicator_type, snapshot_close_time)`
+- [ ] Start application and verify Flyway runs successfully
+- [ ] Inspect schema manually (columns + constraint)
 
 ---
 
-## Phase 2 — Domain & Mapping
+## Phase 2 — Domain & Repository
 
-- [x] Create SignalState entity
-- [x] Map timeframe ENUM correctly (NAMED_ENUM)
-- [x] Map indicator_type ENUM correctly (NAMED_ENUM)
-- [x] Map trend_state ENUM correctly (NAMED_ENUM)
-- [x] Map signal_event ENUM correctly (NAMED_ENUM)
-- [x] Create SignalStateRepository
-- [x] Implement findLatestByAssetIdAndTimeframeAndIndicatorType(...)
-- [x] Implement findAllByAssetIdAndTimeframeAndIndicatorTypeOrderByCloseTimeAsc(...)
-- [/] Add basic repository test (Created, but Docker issues prevent execution in this environment)
+- [ ] Create `MarketBreadthSnapshot` entity
+- [ ] Map `timeframe` as PostgreSQL named enum (NAMED_ENUM)
+- [ ] Map `indicator_type` as PostgreSQL named enum (NAMED_ENUM)
+- [ ] Map `snapshotCloseTime` as `OffsetDateTime` (TIMESTAMPTZ)
+- [ ] Map `bullishRatio` as `BigDecimal`
+- [ ] Mirror unique constraint in entity mapping:
+      `(timeframe, indicator_type, snapshot_close_time)`
 
----
-
-## Phase 3 — SignalStateCalculator (Pure Engine)
-
-- [x] Create SignalStateCalculator class
-- [x] Implement oldest → newest sequential processing
-- [x] Implement first-row initialization rule
-- [x] Implement DOWN → UP → BULLISH_REVERSAL logic
-- [x] Implement UP → DOWN → BEARISH_REVERSAL logic
-- [x] Implement no-change → event NONE logic
-- [x] Ensure indicator_type is always SUPERTREND
-- [x] Ensure no candle access in this layer
-- [x] Add full unit test suite for calculator
+- [ ] Create `MarketBreadthSnapshotRepository`
+- [ ] Implement:
+      `findTopByTimeframeAndIndicatorTypeOrderBySnapshotCloseTimeDesc(...)`
+- [ ] Implement:
+      `findByTimeframeAndIndicatorTypeAndSnapshotCloseTime(...)`
+- [ ] Add basic repository test:
+  - [ ] insert + fetch latest snapshot
+  - [ ] verify unique constraint behavior
 
 ---
 
-## Phase 4 — Finalized Filtering
+## Phase 3 — Snapshot Day Selection (Incremental)
 
-- [x] Fetch SuperTrend rows ordered ascending
-- [x] Implement UTC midnight boundary calculation
-- [x] Filter out non-finalized rows
-- [x] Unit test finalized filter logic
+- [ ] Implement UTC day boundary calculation (UTC midnight)
+- [ ] Query latest stored snapshot_close_time via:
+      `findTopByTimeframeAndIndicatorTypeOrderBySnapshotCloseTimeDesc(...)`
+- [ ] Query latest available finalized close_time in `signal_state` for `(timeframe, indicator_type)`
+- [ ] If no snapshots exist:
+      determine earliest available finalized close_time in `signal_state`
+- [ ] Build ordered list of missing snapshot_close_time values (oldest → newest)
+- [ ] Ensure snapshot_close_time values match `signal_state.close_time` instants exactly
+- [ ] Unit test snapshot selection logic
 
 ---
 
-## Phase 5 — Incremental Processing
+## Phase 4 — MarketBreadthCalculator (Pure)
 
-- [x] Fetch latest signal_state close_time for:
-      asset_id + timeframe + indicator_type
-- [x] Fetch SuperTrend rows strictly after that
-- [x] Retrieve previous direction for transition continuity
-- [x] Implement fallback for first-run (no previous state)
-- [x] Implement optional full recalculation mode
-- [x] Unit test incremental correctness
+- [ ] Create `MarketBreadthCalculator` (pure/stateless)
+- [ ] Compute `bullish_count` from trend_state=BULLISH
+- [ ] Compute `bearish_count` from trend_state=BEARISH
+- [ ] Compute `total_assets` from active asset count
+- [ ] Compute `missing_count = total_assets - bullish_count - bearish_count`
+- [ ] Compute `bullish_ratio = bullish_count / total_assets`
+      using BigDecimal with explicit rounding/scale
+- [ ] Unit test calculator (including missing_count behavior)
+
+---
+
+## Phase 5 — Data Retrieval Per Snapshot Day
+
+- [ ] Add `assetRepository.countByActiveTrue()`
+- [ ] Add query method on `SignalStateRepository` to fetch rows for:
+      `(timeframe=1D, indicator_type=SUPERTREND, close_time = snapshot_close_time)`
+- [ ] Ensure query uses exact close_time equality (not range)
+- [ ] Build counts from returned rows (avoid per-asset API calls / loops)
 
 ---
 
 ## Phase 6 — Persistence / Upsert Logic
 
-- [x] Implement INSERT ON CONFLICT logic
-- [x] Compare fields excluding created_at
-- [x] Log WARNING on revision
-- [x] Track inserted_count
-- [x] Track updated_count
-- [x] Track skipped_count
-- [x] Log per-asset summary
+- [ ] Implement INSERT ... ON CONFLICT upsert for `market_breadth_snapshot`
+- [ ] Compare existing vs incoming excluding created_at
+- [ ] If identical → skipped_count++
+- [ ] If different → log WARNING and update → updated_count++
+- [ ] inserted_count++ on first insert
+- [ ] Log per-run summary
 
 ---
 
 ## Phase 7 — Service Layer
 
-- [x] Create SignalStateService
-- [x] Inject repository + calculator
-- [x] Fetch active assets
-- [x] Fetch finalized SuperTrend rows
-- [x] Apply incremental logic
-- [x] Call calculator
-- [x] Persist results with indicator_type = SUPERTREND
-- [x] Wrap per-asset execution in transaction
-- [x] Log summary
+- [ ] Create `MarketBreadthService`
+- [ ] Implement `computeDaily()`:
+  - [ ] Set timeframe=1D
+  - [ ] Set indicator_type=SUPERTREND
+  - [ ] Determine snapshot_close_time list (Phase 3)
+  - [ ] For each snapshot_close_time:
+      - [ ] count active assets
+      - [ ] fetch signal_state rows at that close_time
+      - [ ] compute snapshot (calculator)
+      - [ ] upsert snapshot
+- [ ] Ensure deterministic ordering (oldest → newest)
+- [ ] Log summary at end
 
 ---
 
 ## Phase 8 — Scheduler (Optional)
 
-- [x] Add @Scheduled detectDaily() method
-- [x] Externalize cron config
-- [x] Catch and log exceptions
+- [ ] Add `@Scheduled` method calling `MarketBreadthService.computeDaily()`
+- [ ] Externalize cron config
+- [ ] Ensure exceptions are caught and logged (no app crash)
 
 ---
 
-## Phase 9 — Integration Testing (Testcontainers)
+## Phase 9 — Integration Tests (Testcontainers)
 
-- [x] Seed SuperTrend rows
-- [x] Run detection
-- [x] Assert signal_state rows created
-- [x] Run again
-- [x] Assert idempotency
-- [x] Modify direction
-- [x] Assert revision update path
-- [x] Ensure no candle dependency exists
+- [ ] Seed active assets
+- [ ] Seed `signal_state` rows for multiple finalized days (same close_time across assets)
+- [ ] Run `computeDaily()` and assert snapshots created for expected days
+- [ ] Verify counts + ratio + missing_count are correct
+- [ ] Run again and assert idempotency (no duplicates; skipped path)
+- [ ] Modify a `signal_state` row and rerun
+- [ ] Assert WARNING + updated snapshot row
 
 ---
 
 ## Phase 10 — Manual Validation
 
-- [x] Seed BTCUSDT SuperTrend history but only back as far as needed
-- [x] Run detection manually
-- [x] Inspect DB
-- [x] Validate reversal events match direction flips
-- [x] Confirm one row per indicator per finalized SuperTrend row
-- [x] Confirm deterministic behavior
+- [ ] Seed small universe (e.g., 5 active assets)
+- [ ] Ensure signal_state exists for last few finalized days
+- [ ] Run `computeDaily()`
+- [ ] Inspect DB snapshot rows:
+  - [ ] counts add up correctly
+  - [ ] bullish_ratio correct
+  - [ ] missing_count correct
+  - [ ] deterministic on rerun

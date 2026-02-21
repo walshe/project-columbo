@@ -1,6 +1,6 @@
 Follow ./AI_EXECUTION_PROTOCOL.md.
-Story folder: ./stories/3-signal-state-detection/
-Implement Phase 7 and 8 only.
+Story folder: ./stories/4-market-pulse/
+Implement Phase 1 only.
 Stop after completion.
 
 
