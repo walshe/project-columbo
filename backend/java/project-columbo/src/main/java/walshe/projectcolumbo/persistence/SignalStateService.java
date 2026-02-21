@@ -75,7 +75,7 @@ class SignalStateService {
         // Phase 4: Filter out non-finalized rows
         List<SuperTrendIndicator> finalizedIndicators = indicatorsToProcess.stream()
                 .filter(i -> i.getCloseTime().isBefore(boundary))
-                .collect(Collectors.toList());
+                .toList();
 
         if (finalizedIndicators.isEmpty()) {
             return;
@@ -83,7 +83,43 @@ class SignalStateService {
 
         List<SignalStateResult> results = calculator.calculate(finalizedIndicators, previousDirection);
         
-        // Phase 6 & 7 will implement persistence, for now Phase 5 is about logic
-        log.debug("Calculated {} SignalState results for {} {}", results.size(), asset.getSymbol(), timeframe);
+        int inserted = 0;
+        int updated = 0;
+        int skipped = 0;
+
+        for (SignalStateResult result : results) {
+            Optional<SignalState> existing = signalStateRepository.findByAssetAndTimeframeAndIndicatorTypeAndCloseTime(
+                    asset, timeframe, IndicatorType.SUPERTREND, result.closeTime());
+
+            if (existing.isPresent()) {
+                SignalState state = existing.get();
+                if (state.getTrendState() == result.trendState() && state.getEvent() == result.event()) {
+                    skipped++;
+                } else {
+                    log.warn("REVISION: SignalState changed for {} {} at {}. Old: [{} {}], New: [{} {}]",
+                            asset.getSymbol(), timeframe, result.closeTime(),
+                            state.getTrendState(), state.getEvent(),
+                            result.trendState(), result.event());
+                    state.setTrendState(result.trendState());
+                    state.setEvent(result.event());
+                    signalStateRepository.save(state);
+                    updated++;
+                }
+            } else {
+                SignalState newState = new SignalState(
+                        asset,
+                        timeframe,
+                        IndicatorType.SUPERTREND,
+                        result.closeTime(),
+                        result.trendState(),
+                        result.event()
+                );
+                signalStateRepository.save(newState);
+                inserted++;
+            }
+        }
+
+        log.info("SignalState summary for {} {}: inserted={}, updated={}, skipped={}",
+                asset.getSymbol(), timeframe, inserted, updated, skipped);
     }
 }

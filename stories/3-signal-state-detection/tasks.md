@@ -64,13 +64,13 @@
 
 ## Phase 6 — Persistence / Upsert Logic
 
-- [ ] Implement INSERT ON CONFLICT logic
-- [ ] Compare fields excluding created_at
-- [ ] Log WARNING on revision
-- [ ] Track inserted_count
-- [ ] Track updated_count
-- [ ] Track skipped_count
-- [ ] Log per-asset summary
+- [x] Implement INSERT ON CONFLICT logic
+- [x] Compare fields excluding created_at
+- [x] Log WARNING on revision
+- [x] Track inserted_count
+- [x] Track updated_count
+- [x] Track skipped_count
+- [x] Log per-asset summary
 
 ---
 
