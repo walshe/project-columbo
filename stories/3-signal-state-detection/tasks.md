@@ -111,9 +111,9 @@
 
 ## Phase 10 — Manual Validation
 
-- [ ] Seed BTCUSDT SuperTrend history
-- [ ] Run detection manually
-- [ ] Inspect DB
-- [ ] Validate reversal events match direction flips
-- [ ] Confirm one row per indicator per finalized SuperTrend row
-- [ ] Confirm deterministic behavior
+- [x] Seed BTCUSDT SuperTrend history but only back as far as needed
+- [x] Run detection manually
+- [x] Inspect DB
+- [x] Validate reversal events match direction flips
+- [x] Confirm one row per indicator per finalized SuperTrend row
+- [x] Confirm deterministic behavior

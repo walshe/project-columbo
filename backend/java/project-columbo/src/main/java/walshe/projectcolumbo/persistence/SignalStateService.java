@@ -44,7 +44,7 @@ public class SignalStateService {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public void detectDaily() {
         List<Asset> activeAssets = assetRepository.findByActiveTrue();
         log.info("Starting SignalState detection for {} active assets", activeAssets.size());
