@@ -76,36 +76,36 @@
 
 ## Phase 7 — Service Layer
 
-- [ ] Create SignalStateService
-- [ ] Inject repository + calculator
-- [ ] Fetch active assets
-- [ ] Fetch finalized SuperTrend rows
-- [ ] Apply incremental logic
-- [ ] Call calculator
-- [ ] Persist results with indicator_type = SUPERTREND
-- [ ] Wrap per-asset execution in transaction
-- [ ] Log summary
+- [x] Create SignalStateService
+- [x] Inject repository + calculator
+- [x] Fetch active assets
+- [x] Fetch finalized SuperTrend rows
+- [x] Apply incremental logic
+- [x] Call calculator
+- [x] Persist results with indicator_type = SUPERTREND
+- [x] Wrap per-asset execution in transaction
+- [x] Log summary
 
 ---
 
 ## Phase 8 — Scheduler (Optional)
 
-- [ ] Add @Scheduled detectDaily() method
-- [ ] Externalize cron config
-- [ ] Catch and log exceptions
+- [x] Add @Scheduled detectDaily() method
+- [x] Externalize cron config
+- [x] Catch and log exceptions
 
 ---
 
 ## Phase 9 — Integration Testing (Testcontainers)
 
-- [ ] Seed SuperTrend rows
-- [ ] Run detection
-- [ ] Assert signal_state rows created
-- [ ] Run again
-- [ ] Assert idempotency
-- [ ] Modify direction
-- [ ] Assert revision update path
-- [ ] Ensure no candle dependency exists
+- [x] Seed SuperTrend rows
+- [x] Run detection
+- [x] Assert signal_state rows created
+- [x] Run again
+- [x] Assert idempotency
+- [x] Modify direction
+- [x] Assert revision update path
+- [x] Ensure no candle dependency exists
 
 ---
 

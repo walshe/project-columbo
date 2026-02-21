@@ -1,6 +1,6 @@
 Follow ./AI_EXECUTION_PROTOCOL.md.
 Story folder: ./stories/3-signal-state-detection/
-Implement Phase 1 and 2 only.
+Implement Phase 7 and 8 only.
 Stop after completion.
 
 
