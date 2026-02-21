@@ -29,36 +29,36 @@
 
 ## Phase 3 — SignalStateCalculator (Pure Engine)
 
-- [ ] Create SignalStateCalculator class
-- [ ] Implement oldest → newest sequential processing
-- [ ] Implement first-row initialization rule
-- [ ] Implement DOWN → UP → BULLISH_REVERSAL logic
-- [ ] Implement UP → DOWN → BEARISH_REVERSAL logic
-- [ ] Implement no-change → event NONE logic
-- [ ] Ensure indicator_type is always SUPERTREND
-- [ ] Ensure no candle access in this layer
-- [ ] Add full unit test suite for calculator
+- [x] Create SignalStateCalculator class
+- [x] Implement oldest → newest sequential processing
+- [x] Implement first-row initialization rule
+- [x] Implement DOWN → UP → BULLISH_REVERSAL logic
+- [x] Implement UP → DOWN → BEARISH_REVERSAL logic
+- [x] Implement no-change → event NONE logic
+- [x] Ensure indicator_type is always SUPERTREND
+- [x] Ensure no candle access in this layer
+- [x] Add full unit test suite for calculator
 
 ---
 
 ## Phase 4 — Finalized Filtering
 
-- [ ] Fetch SuperTrend rows ordered ascending
-- [ ] Implement UTC midnight boundary calculation
-- [ ] Filter out non-finalized rows
-- [ ] Unit test finalized filter logic
+- [x] Fetch SuperTrend rows ordered ascending
+- [x] Implement UTC midnight boundary calculation
+- [x] Filter out non-finalized rows
+- [x] Unit test finalized filter logic
 
 ---
 
 ## Phase 5 — Incremental Processing
 
-- [ ] Fetch latest signal_state close_time for:
+- [x] Fetch latest signal_state close_time for:
       asset_id + timeframe + indicator_type
-- [ ] Fetch SuperTrend rows strictly after that
-- [ ] Retrieve previous direction for transition continuity
-- [ ] Implement fallback for first-run (no previous state)
-- [ ] Implement optional full recalculation mode
-- [ ] Unit test incremental correctness
+- [x] Fetch SuperTrend rows strictly after that
+- [x] Retrieve previous direction for transition continuity
+- [x] Implement fallback for first-run (no previous state)
+- [x] Implement optional full recalculation mode
+- [x] Unit test incremental correctness
 
 ---
 
