@@ -1,15 +1,20 @@
-# Story 004 — Market Pulse Aggregation
+# Story 004 — Market Breadth Snapshot Across Assets
 
 ## 1. Objective
 
-Aggregate indicator-specific signal states into a unified asset-level
-market pulse per timeframe.
+Compute and persist daily market breadth snapshots across the tracked asset universe for a given:
 
-The market pulse represents the combined directional bias of multiple
-indicators for a given asset and timeframe.
+- timeframe (1D)
+- indicator_type (initially SUPERTREND)
 
-This story introduces multi-indicator coordination while preserving
-indicator independence.
+Market breadth answers:
+
+- How many assets are bullish vs bearish?
+- What is the bullish ratio?
+- What is the latest finalized close_time used for the snapshot?
+- How many assets are missing signal_state for that day?
+
+This story enables simple “market pulse” reporting without requiring a UI.
 
 ---
 
@@ -18,200 +23,113 @@ indicator independence.
 This story:
 
 - Reads finalized rows from `signal_state`
-- Aggregates across indicator_type
-- Produces one row per:
-    asset_id + timeframe + close_time
-- Persists aggregated result into `market_pulse` table
+- Aggregates **across assets** (breadth), not across indicators
+- Produces **one snapshot** per:
+    (timeframe, indicator_type, snapshot_close_time)
+- Persists the snapshot into `market_breadth_snapshot`
 
 This story does NOT:
 
+- Combine multiple indicators into a composite per-asset pulse
 - Recompute indicators
 - Recompute signal_state
-- Introduce trading logic
-- Trigger orders
-- Define strategies
+- Implement trading logic
+- Trigger orders, alerts, or notifications
 
-This is strictly aggregation.
-
----
-
-## 3. Functional Requirements
-
-### 3.1 Aggregation Inputs
-
-For a given:
-
-- asset_id
-- timeframe
-- close_time
-
-Fetch all signal_state rows where:
-
-- indicator_type IN enabled indicators
-- close_time < finalized boundary (UTC midnight for D1)
-
-Aggregation must only consider finalized signal_state rows.
+This is strictly breadth aggregation.
 
 ---
 
-### 3.2 Initial Indicator Set
+## 3. Inputs
 
-For Story 4:
+### 3.1 Source Table
 
-Enabled indicators:
+Read from:
 
-- SUPERTREND
+    signal_state
 
-Future stories may add:
+Filtering:
 
-- RSI
-- EMA
-- MACD
-- etc.
-
-The aggregation logic must support N indicators.
+- timeframe = 1D
+- indicator_type = 'SUPERTREND' (for Story 4)
+- close_time < UTC midnight boundary (finalized rule)
 
 ---
 
-### 3.3 Aggregation Rules (Version 1 — Simple Majority)
+## 4. Breadth Snapshot Definition
 
-Define:
+For each snapshot_close_time (finalized day), compute across all ACTIVE assets:
 
-    bullish_count
-    bearish_count
+- bullish_count
+- bearish_count
+- missing_count
+- total_assets
+- bullish_ratio = bullish_count / total_assets
 
-Compute:
+Definitions:
 
-If bullish_count > bearish_count:
-    pulse_state = BULLISH
+- total_assets = count(active assets)
+- bullish_count = number of active assets with signal_state(trend_state=BULLISH) at snapshot_close_time
+- bearish_count = number of active assets with signal_state(trend_state=BEARISH) at snapshot_close_time
+- missing_count = total_assets - bullish_count - bearish_count
 
-If bearish_count > bullish_count:
-    pulse_state = BEARISH
-
-If equal:
-    pulse_state = NEUTRAL
-
----
-
-### 3.4 Event Detection
-
-Define pulse_event:
-
-- NONE
-- BULLISH_REVERSAL
-- BEARISH_REVERSAL
-
-Rules:
-
-If previous pulse_state == BEARISH
-   AND current pulse_state == BULLISH
-   → BULLISH_REVERSAL
-
-If previous pulse_state == BULLISH
-   AND current pulse_state == BEARISH
-   → BEARISH_REVERSAL
-
-Else:
-   → NONE
-
-NEUTRAL transitions do NOT generate reversal events.
+A snapshot is valid only for finalized days and must include missing_count.
 
 ---
 
-### 3.5 Finalization Rule
+## 5. Persistence Model
 
-Only aggregate for:
+### 5.1 Table: market_breadth_snapshot
 
-    close_time < current UTC day boundary
+Create table:
 
-Never aggregate the current open daily candle.
-
----
-
-### 3.6 Determinism
-
-Aggregation must be:
-
-- Deterministic
-- Idempotent
-- Recomputable
-
-Full recalculation must produce identical results.
-
----
-
-## 4. Data Model
-
-### 4.1 ENUM Definitions
-
-Create ENUM:
-
-    pulse_state AS ENUM (
-        'BULLISH',
-        'BEARISH',
-        'NEUTRAL'
-    )
-
-Create ENUM:
-
-    pulse_event AS ENUM (
-        'NONE',
-        'BULLISH_REVERSAL',
-        'BEARISH_REVERSAL'
-    )
-
----
-
-### 4.2 market_pulse Table
+    market_breadth_snapshot
 
 Columns:
 
 - id (PK)
-- asset_id (FK → asset.id, NOT NULL)
-- timeframe (ENUM, NOT NULL)
-- close_time (TIMESTAMPTZ, NOT NULL)
+- timeframe (timeframe ENUM NOT NULL)
+- indicator_type (indicator_type ENUM NOT NULL)
+- snapshot_close_time (TIMESTAMPTZ NOT NULL)
 
 - bullish_count (INT NOT NULL)
 - bearish_count (INT NOT NULL)
-- total_indicators (INT NOT NULL)
+- missing_count (INT NOT NULL)
+- total_assets (INT NOT NULL)
 
-- pulse_state (pulse_state ENUM NOT NULL)
-- event (pulse_event ENUM NOT NULL)
+- bullish_ratio (NUMERIC NOT NULL)
 
 - created_at (TIMESTAMPTZ DEFAULT now())
 
 Unique constraint:
 
-    (asset_id, timeframe, close_time)
+    (timeframe, indicator_type, snapshot_close_time)
 
 ---
 
-## 5. Incremental Processing
+## 6. Finalized Rule
 
-Default mode: Incremental
+Snapshots must only be computed for:
 
-For each asset + timeframe:
+    snapshot_close_time < current UTC day boundary
 
-1. Fetch latest stored market_pulse close_time
-2. Fetch signal_state rows strictly after that
-3. For first incremental row:
-    Retrieve previous pulse_state for reversal continuity
-4. Aggregate sequentially oldest → newest
-
-Full recalculation mode supported.
+Never compute or store a snapshot for the current open day.
 
 ---
 
-## 6. Idempotent Persistence
+## 7. Determinism & Idempotency
 
-Use:
+Given identical input signal_state rows:
 
-    INSERT ... ON CONFLICT (asset_id, timeframe, close_time)
+- Snapshots must be identical.
+- Re-running must not create duplicates.
 
-Rules:
+Use upsert semantics:
 
 - If identical → skip
 - If different → log WARNING → update
+
+Exclude created_at from comparison.
 
 Track:
 
@@ -221,70 +139,79 @@ Track:
 
 ---
 
-## 7. Service Layer
+## 8. Incremental Processing
+
+Default mode: Incremental.
+
+1. Determine latest stored snapshot_close_time for:
+       timeframe + indicator_type
+
+2. Determine latest finalized close_time available in signal_state for:
+       timeframe + indicator_type
+
+3. For each missing snapshot_close_time between them:
+       compute and persist snapshot sequentially oldest → newest
+
+Full rebuild mode supported.
+
+---
+
+## 9. Service Layer
 
 Create:
 
-    MarketPulseService
+    MarketBreadthService
 
 Method:
 
-    aggregateDaily()
+    computeDaily()
 
 Steps:
 
-1. Fetch active assets
-2. Fetch finalized signal_state rows
-3. Group by close_time
-4. Apply aggregation rules
-5. Detect pulse transitions
-6. Persist via upsert
-7. Log summary
-
-Each asset processed within transaction.
+1. Determine which snapshot_close_time values to compute (incremental)
+2. For each snapshot_close_time:
+   - fetch active asset count
+   - fetch signal_state rows for that close_time
+   - compute counts + ratio + missing_count
+   - persist via upsert
+3. Log summary
 
 ---
 
-## 8. Non-Functional Requirements
-
-- O(n) sequential processing
-- No cross-asset coupling
-- No cross-timeframe coupling
-- No indicator recalculation
-- Aggregation must be pure and testable
-- Ready for N indicators
-
----
-
-## 9. Testing Requirements
+## 10. Testing Requirements
 
 ### Unit Tests
 
-- Single indicator → mirrors signal_state
-- Two bullish → pulse BULLISH
-- Two bearish → pulse BEARISH
-- 1 bullish + 1 bearish → NEUTRAL
-- Reversal detection works
-- Neutral transitions do not fire reversal
+- Given 3 assets:
+    - 2 bullish, 1 bearish → ratio=0.666...
+- Missing asset state increases missing_count
+- Deterministic recomputation produces identical snapshot
 
-### Integration Tests
+### Integration Tests (Testcontainers)
 
-- Seed signal_state rows
-- Run aggregation
-- Validate market_pulse rows
-- Run again
+- Seed assets + signal_state for multiple days
+- Run computeDaily()
+- Verify snapshots exist for expected days
+- Run computeDaily() again
 - Assert idempotency
-- Modify signal_state
-- Assert revision update
+- Modify a signal_state row
+- Re-run and assert WARNING + updated snapshot
 
 ---
 
-## 10. Out of Scope (Future Stories)
+## 11. Out of Scope
 
-- Indicator weighting
-- Confidence scoring
-- Strategy definitions
-- Trade execution
-- Multi-timeframe confirmation
-- Alerting
-- Risk management
+- Per-asset composite pulse (multi-indicator voting)
+- REST endpoints (Story 5)
+- OpenClaw integration (Story 6)
+- Indicator weighting / confidence scoring
+- Alerts and notifications
+
+---
+
+## 12. Success Criteria
+
+- Snapshots are created for finalized days present in signal_state
+- bullish_count + bearish_count + missing_count = total_assets
+- Re-running produces no duplicates
+- Snapshots remain deterministic and reproducible
