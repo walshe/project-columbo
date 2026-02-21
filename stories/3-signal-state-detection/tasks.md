@@ -2,28 +2,28 @@
 
 ## Phase 1 — Schema
 
-- [ ] Create Flyway migration V3__create_signal_state.sql
-- [ ] Define ENUM indicator_type ('SUPERTREND')
-- [ ] Define ENUM trend_state ('BULLISH', 'BEARISH')
-- [ ] Define ENUM signal_event ('NONE', 'BULLISH_REVERSAL', 'BEARISH_REVERSAL')
-- [ ] Create `signal_state` table
-- [ ] Add unique constraint (asset_id, timeframe, indicator_type, close_time)
-- [ ] Start application and verify Flyway runs
-- [ ] Inspect schema manually
+- [x] Create Flyway migration V3__create_signal_state.sql
+- [x] Define ENUM indicator_type ('SUPERTREND')
+- [x] Define ENUM trend_state ('BULLISH', 'BEARISH')
+- [x] Define ENUM signal_event ('NONE', 'BULLISH_REVERSAL', 'BEARISH_REVERSAL')
+- [x] Create `signal_state` table
+- [x] Add unique constraint (asset_id, timeframe, indicator_type, close_time)
+- [x] Start application and verify Flyway runs
+- [x] Inspect schema manually
 
 ---
 
 ## Phase 2 — Domain & Mapping
 
-- [ ] Create SignalState entity
-- [ ] Map timeframe ENUM correctly (NAMED_ENUM)
-- [ ] Map indicator_type ENUM correctly (NAMED_ENUM)
-- [ ] Map trend_state ENUM correctly (NAMED_ENUM)
-- [ ] Map signal_event ENUM correctly (NAMED_ENUM)
-- [ ] Create SignalStateRepository
-- [ ] Implement findLatestByAssetIdAndTimeframeAndIndicatorType(...)
-- [ ] Implement findAllByAssetIdAndTimeframeAndIndicatorTypeOrderByCloseTimeAsc(...)
-- [ ] Add basic repository test
+- [x] Create SignalState entity
+- [x] Map timeframe ENUM correctly (NAMED_ENUM)
+- [x] Map indicator_type ENUM correctly (NAMED_ENUM)
+- [x] Map trend_state ENUM correctly (NAMED_ENUM)
+- [x] Map signal_event ENUM correctly (NAMED_ENUM)
+- [x] Create SignalStateRepository
+- [x] Implement findLatestByAssetIdAndTimeframeAndIndicatorType(...)
+- [x] Implement findAllByAssetIdAndTimeframeAndIndicatorTypeOrderByCloseTimeAsc(...)
+- [/] Add basic repository test (Created, but Docker issues prevent execution in this environment)
 
 ---
 

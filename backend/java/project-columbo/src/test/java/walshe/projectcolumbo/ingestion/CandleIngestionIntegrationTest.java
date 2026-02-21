@@ -28,8 +28,16 @@ class CandleIngestionIntegrationTest {
     @Autowired
     private CandleRepository candleRepository;
 
+    @Autowired
+    private SuperTrendRepository superTrendRepository;
+
+    @Autowired
+    private SignalStateRepository signalStateRepository;
+
     @BeforeEach
     void setUp() {
+        signalStateRepository.deleteAll();
+        superTrendRepository.deleteAll();
         candleRepository.deleteAll();
         assetRepository.deleteAll();
     }

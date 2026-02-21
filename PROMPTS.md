@@ -1,6 +1,6 @@
 Follow ./AI_EXECUTION_PROTOCOL.md.
-Story folder: ./stories/2-supertrend-indicator/
-Implement Phase 4 and 5 only.
+Story folder: ./stories/3-signal-state-detection/
+Implement Phase 1 and 2 only.
 Stop after completion.
 
 

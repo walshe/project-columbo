@@ -33,12 +33,16 @@ class SuperTrendServiceTest {
     private CandleRepository candleRepository;
 
     @Autowired
+    private SignalStateRepository signalStateRepository;
+
+    @Autowired
     private EntityManager entityManager;
 
     private Asset btc;
 
     @BeforeEach
     void setUp() {
+        signalStateRepository.deleteAll();
         superTrendRepository.deleteAll();
         candleRepository.deleteAll();
         assetRepository.deleteAll();
