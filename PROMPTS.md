@@ -1,8 +1,8 @@
-`Follow ./AI_EXECUTION_PROTOCOL.md.
+Follow ./AI_EXECUTION_PROTOCOL.md.
 Story folder: ./stories/5-rest-api/
 Implement Phase 5 only.
 make sure to mark tasks as complete ([x]) as you go along
-Stop after completion.`
+Stop after completion.
 
 
 Once reverted, you can instruct Junie along these lines:
