@@ -29,8 +29,15 @@ public class MarketPulseQueryService {
     }
 
     public List<MarketPulseDto> getPulseHistory(Timeframe timeframe, IndicatorType indicatorType, OffsetDateTime from, OffsetDateTime to) {
-        OffsetDateTime start = (from != null) ? from : OffsetDateTime.MIN;
-        OffsetDateTime end = (to != null) ? to : OffsetDateTime.MAX;
+        if (from == null && to == null) {
+            return repository.findByTimeframeAndIndicatorTypeOrderBySnapshotCloseTimeAsc(timeframe, indicatorType)
+                    .stream()
+                    .map(MarketPulseMapper::toDto)
+                    .collect(Collectors.toList());
+        }
+
+        OffsetDateTime start = (from != null) ? from : OffsetDateTime.parse("1970-01-01T00:00:00Z");
+        OffsetDateTime end = (to != null) ? to : OffsetDateTime.parse("9999-12-31T23:59:59Z");
 
         return repository.findByTimeframeAndIndicatorTypeAndSnapshotCloseTimeBetweenOrderBySnapshotCloseTimeAsc(
                         timeframe, indicatorType, start, end)

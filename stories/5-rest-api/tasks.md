@@ -76,78 +76,78 @@
 
 ## Phase 5 — Controllers (Endpoints)
 
-- [ ] Create controller package for `/api/v1`
+- [x] Create controller package for `/api/v1`
 
 ### GET /api/v1/signals
-- [ ] Implement endpoint:
+- [x] Implement endpoint:
       `/api/v1/signals`
-- [ ] Validate required params: timeframe + indicatorType
-- [ ] Support optional params: state, sort
-- [ ] Return 200 + list of `SignalStateDto`
+- [x] Validate required params: timeframe + indicatorType
+- [x] Support optional params: state, sort
+- [x] Return 200 + list of `SignalStateDto`
 
 ### GET /api/v1/assets/by-state
-- [ ] Implement endpoint:
+- [x] Implement endpoint:
       `/api/v1/assets/by-state`
-- [ ] Validate required params: timeframe + indicatorType + state
-- [ ] Return 200 + list of asset symbols
+- [x] Validate required params: timeframe + indicatorType + state
+- [x] Return 200 + list of asset symbols
 
 ### GET /api/v1/market-pulse
-- [ ] Implement endpoint:
+- [x] Implement endpoint:
       `/api/v1/market-pulse`
-- [ ] Validate required params: timeframe + indicatorType
-- [ ] Return 200 + `MarketPulseDto`
+- [x] Validate required params: timeframe + indicatorType
+- [x] Return 200 + `MarketPulseDto`
 
 ### GET /api/v1/market-pulse/history
-- [ ] Implement endpoint:
+- [x] Implement endpoint:
       `/api/v1/market-pulse/history`
-- [ ] Validate required params: timeframe + indicatorType
-- [ ] Support optional params: from, to (ISO-8601)
-- [ ] Return 200 + ordered list (oldest → newest)
+- [x] Validate required params: timeframe + indicatorType
+- [x] Support optional params: from, to (ISO-8601)
+- [x] Return 200 + ordered list (oldest → newest)
 
 ---
 
 ## Phase 6 — Validation & Error Handling
 
-- [ ] Add consistent enum validation for timeframe/indicatorType/state/sort
-- [ ] Return 400 for invalid inputs
-- [ ] Return 200 + empty list when no data found
-- [ ] Add `@ControllerAdvice` (or equivalent) for uniform 400 responses
-- [ ] Add tests verifying 400 behavior for invalid params
+- [x] Add consistent enum validation for timeframe/indicatorType/state/sort
+- [x] Return 400 for invalid inputs
+- [x] Return 200 + empty list when no data found
+- [x] Add `@ControllerAdvice` (or equivalent) for uniform 400 responses
+- [x] Add tests verifying 400 behavior for invalid params
 
 ---
 
 ## Phase 7 — Performance & Index Check
 
-- [ ] Confirm index exists for `signal_state` suitable for "latest per asset" query
-- [ ] Confirm index exists for `market_breadth_snapshot` latest + range queries
-- [ ] Ensure no N+1 queries (verify with logs if needed)
+- [x] Confirm index exists for `signal_state` suitable for "latest per asset" query
+- [x] Confirm index exists for `market_breadth_snapshot` latest + range queries
+- [x] Ensure no N+1 queries (verify with logs if needed)
 
 ---
 
 ## Phase 8 — Integration Tests (Testcontainers)
 
-- [ ] Seed:
-  - [ ] active assets
-  - [ ] signal_state rows for multiple days
-  - [ ] market_breadth_snapshot rows for multiple days
+- [x] Seed:
+  - [x] active assets
+  - [x] signal_state rows for multiple days
+  - [x] market_breadth_snapshot rows for multiple days
 
-- [ ] Integration test: `/api/v1/signals`
-- [ ] Integration test: `/api/v1/signals` with state filter
-- [ ] Integration test: `/api/v1/signals` with sort LAST_FLIP_DESC
-- [ ] Integration test: `/api/v1/assets/by-state`
-- [ ] Integration test: `/api/v1/market-pulse`
-- [ ] Integration test: `/api/v1/market-pulse/history` order correctness
-- [ ] Integration test: invalid params return 400
+- [x] Integration test: `/api/v1/signals`
+- [x] Integration test: `/api/v1/signals` with state filter
+- [x] Integration test: `/api/v1/signals` with sort LAST_FLIP_DESC
+- [x] Integration test: `/api/v1/assets/by-state`
+- [x] Integration test: `/api/v1/market-pulse`
+- [x] Integration test: `/api/v1/market-pulse/history` order correctness
+- [x] Integration test: invalid params return 400
 
 ---
 
 ## Phase 9 — Manual Validation
 
-- [ ] Run app + DB
-- [ ] Verify with curl:
-  - [ ] `/api/v1/signals?timeframe=D1&indicatorType=SUPERTREND`
-  - [ ] `/api/v1/signals?timeframe=D1&indicatorType=SUPERTREND&state=BULLISH&sort=LAST_FLIP_DESC`
-  - [ ] `/api/v1/assets/by-state?timeframe=D1&indicatorType=SUPERTREND&state=BEARISH`
-  - [ ] `/api/v1/market-pulse?timeframe=D1&indicatorType=SUPERTREND`
-  - [ ] `/api/v1/market-pulse/history?timeframe=D1&indicatorType=SUPERTREND`
-- [ ] Confirm outputs match DB and finalized-day rules
+- [x] Run app + DB
+- [x] Verify with curl:
+  - [x] `/api/v1/signals?timeframe=D1&indicatorType=SUPERTREND`
+  - [x] `/api/v1/signals?timeframe=D1&indicatorType=SUPERTREND&state=BULLISH&sort=LAST_FLIP_DESC`
+  - [x] `/api/v1/assets/by-state?timeframe=D1&indicatorType=SUPERTREND&state=BEARISH`
+  - [x] `/api/v1/market-pulse?timeframe=D1&indicatorType=SUPERTREND`
+  - [x] `/api/v1/market-pulse/history?timeframe=D1&indicatorType=SUPERTREND`
+- [x] Confirm outputs match DB and finalized-day rules

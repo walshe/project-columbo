@@ -42,13 +42,13 @@ class SuperTrendServiceTest {
 
     @BeforeEach
     void setUp() {
-        signalStateRepository.deleteAll();
-        superTrendRepository.deleteAll();
-        candleRepository.deleteAll();
-        assetRepository.deleteAll();
+        signalStateRepository.deleteAllInBatch();
+        superTrendRepository.deleteAllInBatch();
+        candleRepository.deleteAllInBatch();
+        assetRepository.deleteAllInBatch();
 
         btc = new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true);
-        assetRepository.save(btc);
+        assetRepository.saveAndFlush(btc);
     }
 
     @Test

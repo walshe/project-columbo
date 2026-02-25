@@ -46,7 +46,7 @@ class MarketPulseQueryServiceTest {
     }
 
     @Test
-    void shouldGetPulseHistory() {
+    void shouldGetPulseHistoryWithNullRange() {
         MarketBreadthSnapshot s1 = new MarketBreadthSnapshot(
                 Timeframe.D1, IndicatorType.SUPERTREND, time.minusDays(1), 60, 30, 10, 100, new BigDecimal("0.60")
         );
@@ -54,8 +54,8 @@ class MarketPulseQueryServiceTest {
                 Timeframe.D1, IndicatorType.SUPERTREND, time, 70, 20, 10, 100, new BigDecimal("0.70")
         );
 
-        when(repository.findByTimeframeAndIndicatorTypeAndSnapshotCloseTimeBetweenOrderBySnapshotCloseTimeAsc(
-                eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), any(), any()))
+        when(repository.findByTimeframeAndIndicatorTypeOrderBySnapshotCloseTimeAsc(
+                eq(Timeframe.D1), eq(IndicatorType.SUPERTREND)))
                 .thenReturn(List.of(s1, s2));
 
         List<MarketPulseDto> result = service.getPulseHistory(Timeframe.D1, IndicatorType.SUPERTREND, null, null);
@@ -63,5 +63,26 @@ class MarketPulseQueryServiceTest {
         assertThat(result).hasSize(2);
         assertThat(result.get(0).bullishRatio()).isEqualByComparingTo("0.60");
         assertThat(result.get(1).bullishRatio()).isEqualByComparingTo("0.70");
+    }
+
+    @Test
+    void shouldGetPulseHistoryWithRange() {
+        MarketBreadthSnapshot s1 = new MarketBreadthSnapshot(
+                Timeframe.D1, IndicatorType.SUPERTREND, time.minusDays(1), 60, 30, 10, 100, new BigDecimal("0.60")
+        );
+        MarketBreadthSnapshot s2 = new MarketBreadthSnapshot(
+                Timeframe.D1, IndicatorType.SUPERTREND, time, 70, 20, 10, 100, new BigDecimal("0.70")
+        );
+
+        OffsetDateTime from = time.minusDays(2);
+        OffsetDateTime to = time.plusDays(1);
+
+        when(repository.findByTimeframeAndIndicatorTypeAndSnapshotCloseTimeBetweenOrderBySnapshotCloseTimeAsc(
+                eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(from), eq(to)))
+                .thenReturn(List.of(s1, s2));
+
+        List<MarketPulseDto> result = service.getPulseHistory(Timeframe.D1, IndicatorType.SUPERTREND, from, to);
+
+        assertThat(result).hasSize(2);
     }
 }

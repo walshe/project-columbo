@@ -30,12 +30,16 @@ class SignalStateServiceLogicTest {
     @Autowired
     private AssetRepository assetRepository;
 
+    @Autowired
+    private CandleRepository candleRepository;
+
     private Asset btc;
 
     @BeforeEach
     void setUp() {
         signalStateRepository.deleteAll();
         superTrendRepository.deleteAll();
+        candleRepository.deleteAll();
         assetRepository.deleteAll();
 
         btc = new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true);
