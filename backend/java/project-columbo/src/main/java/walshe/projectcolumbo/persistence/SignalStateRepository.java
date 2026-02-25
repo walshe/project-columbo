@@ -16,17 +16,20 @@ public interface SignalStateRepository extends JpaRepository<SignalState, Long> 
            WHERE a.active = true
              AND s.timeframe = :timeframe
              AND s.indicatorType = :indicatorType
+             AND s.closeTime < :boundary
              AND s.closeTime = (
                  SELECT MAX(s2.closeTime)
                  FROM SignalState s2
                  WHERE s2.asset.id = s.asset.id
                    AND s2.timeframe = :timeframe
                    AND s2.indicatorType = :indicatorType
+                   AND s2.closeTime < :boundary
              )
            """)
-    List<SignalState> findLatestForActiveAssets(
+    List<SignalState> findLatestFinalizedForActiveAssets(
             @Param("timeframe") Timeframe timeframe,
-            @Param("indicatorType") IndicatorType indicatorType
+            @Param("indicatorType") IndicatorType indicatorType,
+            @Param("boundary") OffsetDateTime boundary
     );
 
     @Query("""
@@ -36,6 +39,7 @@ public interface SignalStateRepository extends JpaRepository<SignalState, Long> 
              AND s.timeframe = :timeframe
              AND s.indicatorType = :indicatorType
              AND s.event != 'NONE'
+             AND s.closeTime < :boundary
              AND s.closeTime = (
                  SELECT MAX(s2.closeTime)
                  FROM SignalState s2
@@ -43,11 +47,13 @@ public interface SignalStateRepository extends JpaRepository<SignalState, Long> 
                    AND s2.timeframe = :timeframe
                    AND s2.indicatorType = :indicatorType
                    AND s2.event != 'NONE'
+                   AND s2.closeTime < :boundary
              )
            """)
-    List<SignalState> findLatestFlipsForActiveAssets(
+    List<SignalState> findLatestFinalizedFlipsForActiveAssets(
             @Param("timeframe") Timeframe timeframe,
-            @Param("indicatorType") IndicatorType indicatorType
+            @Param("indicatorType") IndicatorType indicatorType,
+            @Param("boundary") OffsetDateTime boundary
     );
 
     Optional<SignalState> findFirstByAssetIdAndTimeframeAndIndicatorTypeOrderByCloseTimeDesc(

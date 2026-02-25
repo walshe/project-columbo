@@ -51,26 +51,26 @@
 ## Phase 4 — Service Layer (Query Services)
 
 ### SignalQueryService
-- [ ] Create `SignalQueryService`
-- [ ] Implement:
+- [x] Create `SignalQueryService`
+- [x] Implement:
       `listSignals(timeframe, indicatorType, state?, sort?)`
-- [ ] Ensure it returns one row per ACTIVE asset
-- [ ] Ensure it uses only FINALIZED data
-- [ ] Apply filtering by state when provided
-- [ ] Apply deterministic sorting:
-  - [ ] LAST_FLIP_ASC
-  - [ ] LAST_FLIP_DESC
-  - [ ] ASSET_ASC
-- [ ] Compute `lastFlipTime` + `timeSinceFlipDays` server-side
-- [ ] Ensure no per-asset DB loops (no N+1 queries)
+- [x] Ensure it returns one row per ACTIVE asset
+- [x] Ensure it uses only FINALIZED data
+- [x] Apply filtering by state when provided
+- [x] Apply deterministic sorting:
+  - [x] LAST_FLIP_ASC
+  - [x] LAST_FLIP_DESC
+  - [x] ASSET_ASC
+- [x] Compute `lastFlipTime` + `timeSinceFlipDays` server-side
+- [x] Ensure no per-asset DB loops (no N+1 queries)
 
 ### MarketPulseQueryService
-- [ ] Create `MarketPulseQueryService`
-- [ ] Implement:
-  - [ ] `getLatestPulse(timeframe, indicatorType)`
-  - [ ] `getPulseHistory(timeframe, indicatorType, from?, to?)`
+- [x] Create `MarketPulseQueryService`
+- [x] Implement:
+  - [x] `getLatestPulse(timeframe, indicatorType)`
+  - [x] `getPulseHistory(timeframe, indicatorType, from?, to?)`
 
-- [ ] Add unit tests for service-level sorting and mapping
+- [x] Add unit tests for service-level sorting and mapping
 
 ---
 

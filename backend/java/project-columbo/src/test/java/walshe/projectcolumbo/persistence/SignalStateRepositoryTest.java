@@ -112,7 +112,8 @@ class SignalStateRepositoryTest {
         signalStateRepository.save(new SignalState(inactive, Timeframe.D1, IndicatorType.SUPERTREND, t2, TrendState.BULLISH, SignalEvent.NONE));
 
         // When
-        List<SignalState> latest = signalStateRepository.findLatestForActiveAssets(Timeframe.D1, IndicatorType.SUPERTREND);
+        OffsetDateTime boundary = t2.plusDays(1);
+        List<SignalState> latest = signalStateRepository.findLatestFinalizedForActiveAssets(Timeframe.D1, IndicatorType.SUPERTREND, boundary);
 
         // Then
         assertThat(latest).hasSize(2);
@@ -146,7 +147,8 @@ class SignalStateRepositoryTest {
         signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, t2, TrendState.BEARISH, SignalEvent.BEARISH_REVERSAL));
 
         // When
-        List<SignalState> flips = signalStateRepository.findLatestFlipsForActiveAssets(Timeframe.D1, IndicatorType.SUPERTREND);
+        OffsetDateTime boundary = t3.plusDays(1);
+        List<SignalState> flips = signalStateRepository.findLatestFinalizedFlipsForActiveAssets(Timeframe.D1, IndicatorType.SUPERTREND, boundary);
 
         // Then
         assertThat(flips).hasSize(2);

@@ -1,6 +1,6 @@
 Follow ./AI_EXECUTION_PROTOCOL.md.
-Story folder: ./stories/4-market-pulse/
-Implement Phase 1 only.
+Story folder: ./stories/5-rest-api/
+Implement Phase 4 only.
 make sure to mark tasks as complete ([x]) as you go along
 Stop after completion.
 
