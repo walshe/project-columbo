@@ -15,6 +15,10 @@ spring:
   flyway:
     enabled: true
 
+  docker:
+    compose:
+      enabled: false
+
 logging:
   level:
     org.flywaydb: DEBUG
