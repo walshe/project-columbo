@@ -27,6 +27,8 @@ class CandleIngestionServiceTest {
     private CandleRepository candleRepository;
     @Mock
     private MarketDataProvider binanceProvider;
+    @Mock
+    private IngestionOrchestrator orchestrator;
 
     private CandleIngestionService candleIngestionService;
 
@@ -34,7 +36,7 @@ class CandleIngestionServiceTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         when(binanceProvider.getProviderName()).thenReturn("BINANCE");
-        candleIngestionService = new CandleIngestionService(assetRepository, candleRepository, List.of(binanceProvider));
+        candleIngestionService = new CandleIngestionService(assetRepository, candleRepository, List.of(binanceProvider), orchestrator);
     }
 
     @Test
@@ -68,7 +70,7 @@ class CandleIngestionServiceTest {
         when(assetRepository.findByActiveTrue()).thenReturn(List.of(btc));
         
         // Use a service without providers
-        CandleIngestionService serviceNoProviders = new CandleIngestionService(assetRepository, candleRepository, List.of());
+        CandleIngestionService serviceNoProviders = new CandleIngestionService(assetRepository, candleRepository, List.of(), orchestrator);
 
         // When
         serviceNoProviders.ingestDaily();
@@ -114,11 +116,11 @@ class CandleIngestionServiceTest {
     @Test
     void scheduledIngest_shouldCatchExceptions() {
         // Given
-        when(assetRepository.findByActiveTrue()).thenThrow(new RuntimeException("DB error"));
+        when(orchestrator.runInternal(any(), any())).thenThrow(new RuntimeException("DB error"));
 
         // When/Then (should not throw exception)
         candleIngestionService.scheduledIngest();
 
-        verify(assetRepository).findByActiveTrue();
+        verify(orchestrator).runInternal(any(), any());
     }
 }

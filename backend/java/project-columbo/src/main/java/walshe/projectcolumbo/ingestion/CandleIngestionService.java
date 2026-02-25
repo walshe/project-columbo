@@ -24,27 +24,32 @@ public class CandleIngestionService {
     private final AssetRepository assetRepository;
     private final CandleRepository candleRepository;
     private final List<MarketDataProvider> marketDataProviders;
+    private final IngestionOrchestrator orchestrator;
 
     public CandleIngestionService(AssetRepository assetRepository,
                                   CandleRepository candleRepository,
-                                  List<MarketDataProvider> marketDataProviders) {
+                                  List<MarketDataProvider> marketDataProviders,
+                                  @org.springframework.context.annotation.Lazy IngestionOrchestrator orchestrator) {
         this.assetRepository = assetRepository;
         this.candleRepository = candleRepository;
         this.marketDataProviders = marketDataProviders;
+        this.orchestrator = orchestrator;
     }
 
     @Scheduled(cron = "${app.ingestion.cron}")
     public void scheduledIngest() {
         logger.info("Triggering scheduled daily ingestion");
         try {
-            ingestDaily();
+            orchestrator.runInternal(MarketProvider.BINANCE, Timeframe.D1);
             logger.info("Scheduled daily ingestion completed successfully");
+        } catch (IngestionAlreadyRunningException e) {
+            logger.info("Scheduled daily ingestion skipped - already running: {}", e.getMessage());
         } catch (Exception e) {
             logger.error("Scheduled daily ingestion failed", e);
         }
     }
 
-    public void ingestDaily() {
+    public IngestionStats ingestDaily() {
         List<Asset> activeAssets = assetRepository.findByActiveTrue();
         logger.info("Starting daily ingestion for {} active assets", activeAssets.size());
 
@@ -56,11 +61,18 @@ public class CandleIngestionService {
                 totalStats.add(assetStats);
             } catch (Exception e) {
                 logger.error("Failed to ingest data for asset: {}", asset.getSymbol(), e);
+                totalStats.errorCount++;
+                if (totalStats.firstErrorMessage == null) {
+                    totalStats.firstErrorMessage = e.getMessage();
+                }
             }
         }
 
-        logger.info("Daily ingestion summary: {} inserted, {} updated, {} skipped across {} assets",
-                totalStats.insertedCount, totalStats.updatedCount, totalStats.skippedCount, activeAssets.size());
+        logger.info("Daily ingestion summary: {} inserted, {} updated, {} skipped, {} errors across {} assets",
+                totalStats.insertedCount, totalStats.updatedCount, totalStats.skippedCount,
+                totalStats.errorCount, activeAssets.size());
+
+        return totalStats;
     }
 
     @Transactional
@@ -69,6 +81,8 @@ public class CandleIngestionService {
         MarketDataProvider provider = findProvider(asset.getProvider());
         if (provider == null) {
             logger.warn("No provider found for {}", asset.getProvider());
+            stats.errorCount++;
+            stats.firstErrorMessage = "No provider found for " + asset.getProvider();
             return stats;
         }
 
@@ -130,15 +144,21 @@ public class CandleIngestionService {
         }
     }
 
-    private static class IngestionStats {
-        int insertedCount = 0;
-        int updatedCount = 0;
-        int skippedCount = 0;
+    public static class IngestionStats {
+        public int insertedCount = 0;
+        public int updatedCount = 0;
+        public int skippedCount = 0;
+        public int errorCount = 0;
+        public String firstErrorMessage = null;
 
-        void add(IngestionStats other) {
+        public void add(IngestionStats other) {
             this.insertedCount += other.insertedCount;
             this.updatedCount += other.updatedCount;
             this.skippedCount += other.skippedCount;
+            this.errorCount += other.errorCount;
+            if (this.firstErrorMessage == null && other.firstErrorMessage != null) {
+                this.firstErrorMessage = other.firstErrorMessage;
+            }
         }
     }
 

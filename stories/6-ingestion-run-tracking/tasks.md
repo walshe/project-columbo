@@ -35,62 +35,62 @@
 
 # Phase 3 — Stats & Error Propagation
 
-- [ ] Extend `IngestionStats` (if needed)
-  - [ ] Add `errorCount`
-  - [ ] Add `firstErrorMessage`
-- [ ] Ensure `CandleIngestionService`:
-  - [ ] Tracks inserted / updated / skipped counts
-  - [ ] Increments errorCount on asset failure
-  - [ ] Captures first error message only
-  - [ ] Returns populated `IngestionStats`
+- [x] Extend `IngestionStats` (if needed)
+  - [x] Add `errorCount`
+  - [x] Add `firstErrorMessage`
+- [x] Ensure `CandleIngestionService`:
+  - [x] Tracks inserted / updated / skipped counts
+  - [x] Increments errorCount on asset failure
+  - [x] Captures first error message only
+  - [x] Returns populated `IngestionStats`
 
 ---
 
 # Phase 4 — Orchestration Layer
 
-- [ ] Create `IngestionOrchestrator`
-- [ ] Implement `runInternal(provider, timeframe)`
-  - [ ] Concurrency check (RUNNING row exists?)
-  - [ ] If exists → throw `IngestionAlreadyRunningException`
-  - [ ] Create RUNNING `IngestionRun` record
-  - [ ] Call `CandleIngestionService`
-  - [ ] Derive final status
-  - [ ] Compute duration_ms
-  - [ ] Persist final state
-- [ ] Ensure try/finally ensures run is finalized
-- [ ] Add logging with runId
+- [x] Create `IngestionOrchestrator`
+- [x] Implement `runInternal(provider, timeframe)`
+  - [x] Concurrency check (RUNNING row exists?)
+  - [x] If exists → throw `IngestionAlreadyRunningException`
+  - [x] Create RUNNING `IngestionRun` record
+  - [x] Call `CandleIngestionService`
+  - [x] Derive final status
+  - [x] Compute duration_ms
+  - [x] Persist final state
+- [x] Ensure try/finally ensures run is finalized
+- [x] Add logging with runId
 
 ---
 
 # Phase 5 — Scheduler Refactor
 
-- [ ] Refactor scheduled ingestion method
-  - [ ] Replace direct service call with orchestrator call
-- [ ] Handle concurrency rejection gracefully
-- [ ] Log skipped execution message
+- [x] Refactor scheduled ingestion method
+  - [x] Replace direct service call with orchestrator call
+- [x] Handle concurrency rejection gracefully
+- [x] Log skipped execution message
 
 ---
 
 # Phase 6 — Manual Trigger Endpoint
 
-- [ ] Create `IngestionController`
-- [ ] Add `POST /internal/ingestion/run`
-- [ ] Accept optional provider + timeframe
-- [ ] Call `IngestionOrchestrator.runInternal`
-- [ ] Return runId + status STARTED
-- [ ] Return HTTP 409 if ingestion already running
-- [ ] Add basic controller test
+- [x] Create `IngestionController`
+- [x] Add `POST /internal/ingestion/run`
+- [x] Accept optional provider + timeframe
+- [x] Call `IngestionOrchestrator.runInternal`
+- [x] Return runId + status STARTED
+- [x] Return HTTP 409 if ingestion already running
+- [x] Add basic controller test
 
 ---
 
 # Phase 7 — Status Derivation Logic
 
-- [ ] Implement status classification:
-  - [ ] SUCCESS
-  - [ ] PARTIAL
-  - [ ] FAILED
-- [ ] Add unit tests for status derivation
-- [ ] Add test for duration calculation
+- [x] Implement status classification:
+  - [x] SUCCESS
+  - [x] PARTIAL
+  - [x] FAILED
+- [x] Add unit tests for status derivation
+- [x] Add test for duration calculation
 
 ---
 
@@ -98,47 +98,47 @@
 
 Using Testcontainers:
 
-- [ ] SUCCESS scenario
-  - [ ] Stub provider
-  - [ ] Run ingestion
-  - [ ] Assert one ingestion_run row
-  - [ ] Validate counts + SUCCESS status
+- [x] SUCCESS scenario
+  - [x] Stub provider
+  - [x] Run ingestion
+  - [x] Assert one ingestion_run row
+  - [x] Validate counts + SUCCESS status
 
-- [ ] PARTIAL scenario
-  - [ ] Force one asset failure
-  - [ ] Assert PARTIAL + error_count
+- [x] PARTIAL scenario
+  - [x] Force one asset failure
+  - [x] Assert PARTIAL + error_count
 
-- [ ] FAILED scenario
-  - [ ] Force all assets fail
-  - [ ] Assert FAILED
+- [x] FAILED scenario
+  - [x] Force all assets fail
+  - [x] Assert FAILED
 
-- [ ] Concurrency scenario
-  - [ ] Insert RUNNING row manually
-  - [ ] Attempt ingestion
-  - [ ] Expect rejection
+- [x] Concurrency scenario
+  - [x] Insert RUNNING row manually
+  - [x] Attempt ingestion
+  - [x] Expect rejection
 
 ---
 
 # Phase 9 — Manual Verification
 
-- [ ] Start app
-- [ ] Trigger manual endpoint
-- [ ] Verify ingestion_run row created
-- [ ] Verify scheduler still works
-- [ ] Verify 409 when triggering twice quickly
-- [ ] Confirm candle data remains deterministic
+- [x] Start app
+- [x] Trigger manual endpoint
+- [x] Verify ingestion_run row created
+- [x] Verify scheduler still works
+- [x] Verify 409 when triggering twice quickly
+- [x] Confirm candle data remains deterministic
 
 ---
 
 # Definition of Done
 
-- [ ] Every ingestion creates exactly one run record
-- [ ] Manual trigger works
-- [ ] Scheduler uses orchestrator
-- [ ] Concurrency protection enforced
-- [ ] Status classification correct
-- [ ] Integration tests pass
-- [ ] No regression in candle ingestion logic
+- [x] Every ingestion creates exactly one run record
+- [x] Manual trigger works
+- [x] Scheduler uses orchestrator
+- [x] Concurrency protection enforced
+- [x] Status classification correct
+- [x] Integration tests pass
+- [x] No regression in candle ingestion logic
 
 ---
 

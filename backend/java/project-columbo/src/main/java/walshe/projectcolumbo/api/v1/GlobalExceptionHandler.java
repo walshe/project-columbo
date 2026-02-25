@@ -5,9 +5,18 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import walshe.projectcolumbo.ingestion.IngestionAlreadyRunningException;
 
-@RestControllerAdvice(assignableTypes = {SignalController.class, MarketPulseController.class})
+@RestControllerAdvice(assignableTypes = {SignalController.class, MarketPulseController.class, IngestionController.class})
 class GlobalExceptionHandler {
+
+    @ExceptionHandler(IngestionAlreadyRunningException.class)
+    ProblemDetail handleIngestionAlreadyRunningException(IngestionAlreadyRunningException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problemDetail.setTitle("Ingestion Already Running");
+        problemDetail.setProperty("error_code", "INGESTION_ALREADY_RUNNING");
+        return problemDetail;
+    }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     ProblemDetail handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
