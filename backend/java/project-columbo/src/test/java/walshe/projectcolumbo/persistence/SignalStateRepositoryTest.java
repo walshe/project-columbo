@@ -90,4 +90,73 @@ class SignalStateRepositoryTest {
         assertThat(states.get(1).getCloseTime()).isEqualTo(t2);
         assertThat(states.get(2).getCloseTime()).isEqualTo(t3);
     }
+
+    @Test
+    void shouldFindLatestForActiveAssets() {
+        // Given
+        Asset btc = assetRepository.save(new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true));
+        Asset eth = assetRepository.save(new Asset("ETHUSDT", "Ethereum", MarketProvider.BINANCE, true));
+        Asset inactive = assetRepository.save(new Asset("XRPUSDT", "Ripple", MarketProvider.BINANCE, false));
+
+        OffsetDateTime t1 = OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+        OffsetDateTime t2 = t1.plusDays(1);
+
+        // BTC: latest is t2
+        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.BULLISH, SignalEvent.NONE));
+        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, t2, TrendState.BEARISH, SignalEvent.BEARISH_REVERSAL));
+
+        // ETH: latest is t1
+        signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.BULLISH, SignalEvent.NONE));
+
+        // Inactive: should be ignored
+        signalStateRepository.save(new SignalState(inactive, Timeframe.D1, IndicatorType.SUPERTREND, t2, TrendState.BULLISH, SignalEvent.NONE));
+
+        // When
+        List<SignalState> latest = signalStateRepository.findLatestForActiveAssets(Timeframe.D1, IndicatorType.SUPERTREND);
+
+        // Then
+        assertThat(latest).hasSize(2);
+        assertThat(latest).anySatisfy(s -> {
+            assertThat(s.getAsset().getSymbol()).isEqualTo("BTCUSDT");
+            assertThat(s.getCloseTime()).isEqualTo(t2);
+        });
+        assertThat(latest).anySatisfy(s -> {
+            assertThat(s.getAsset().getSymbol()).isEqualTo("ETHUSDT");
+            assertThat(s.getCloseTime()).isEqualTo(t1);
+        });
+    }
+
+    @Test
+    void shouldFindLatestFlipsForActiveAssets() {
+        // Given
+        Asset btc = assetRepository.save(new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true));
+        Asset eth = assetRepository.save(new Asset("ETHUSDT", "Ethereum", MarketProvider.BINANCE, true));
+
+        OffsetDateTime t1 = OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+        OffsetDateTime t2 = t1.plusDays(1);
+        OffsetDateTime t3 = t1.plusDays(2);
+
+        // BTC: flips at t1 and t3. Latest flip is t3.
+        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.BULLISH, SignalEvent.BULLISH_REVERSAL));
+        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, t2, TrendState.BULLISH, SignalEvent.NONE));
+        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, t3, TrendState.BEARISH, SignalEvent.BEARISH_REVERSAL));
+
+        // ETH: flip at t2.
+        signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.BULLISH, SignalEvent.NONE));
+        signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, t2, TrendState.BEARISH, SignalEvent.BEARISH_REVERSAL));
+
+        // When
+        List<SignalState> flips = signalStateRepository.findLatestFlipsForActiveAssets(Timeframe.D1, IndicatorType.SUPERTREND);
+
+        // Then
+        assertThat(flips).hasSize(2);
+        assertThat(flips).anySatisfy(s -> {
+            assertThat(s.getAsset().getSymbol()).isEqualTo("BTCUSDT");
+            assertThat(s.getCloseTime()).isEqualTo(t3);
+        });
+        assertThat(flips).anySatisfy(s -> {
+            assertThat(s.getAsset().getSymbol()).isEqualTo("ETHUSDT");
+            assertThat(s.getCloseTime()).isEqualTo(t2);
+        });
+    }
 }
