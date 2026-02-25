@@ -8,11 +8,18 @@ import java.time.temporal.ChronoUnit;
 
 public class SignalStateMapper {
     public static SignalStateDto toDto(SignalState latest, SignalState lastFlip, OffsetDateTime now) {
-        long daysSinceFlip = ChronoUnit.DAYS.between(lastFlip.getCloseTime(), now);
+        Long daysSinceFlip = null;
+        OffsetDateTime lastFlipTime = null;
+        
+        if (lastFlip != null) {
+            lastFlipTime = lastFlip.getCloseTime();
+            daysSinceFlip = ChronoUnit.DAYS.between(lastFlipTime, now);
+        }
+
         return new SignalStateDto(
             latest.getAsset().getSymbol(),
             latest.getTrendState(),
-            lastFlip.getCloseTime(),
+            lastFlipTime,
             daysSinceFlip
         );
     }

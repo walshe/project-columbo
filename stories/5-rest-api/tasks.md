@@ -2,49 +2,49 @@
 
 ## Phase 1 — API Contract & DTOs
 
-- [ ] Create API base path `/api/v1`
-- [ ] Create DTO `SignalStateDto`
-- [ ] Create DTO `MarketPulseDto`
-- [ ] Create DTO for history response (either `MarketPulseDto` list or `MarketPulseHistoryDto`)
-- [ ] Create request enums (or reuse domain enums safely):
-  - [ ] `SignalSort` (LAST_FLIP_ASC / LAST_FLIP_DESC / ASSET_ASC)
-- [ ] Implement explicit mappers (Entity → DTO only)
-- [ ] Ensure controllers will not serialize entities directly
+- [x] Create API base path `/api/v1`
+- [x] Create DTO `SignalStateDto`
+- [x] Create DTO `MarketPulseDto`
+- [x] Create DTO for history response (either `MarketPulseDto` list or `MarketPulseHistoryDto`)
+- [x] Create request enums (or reuse domain enums safely):
+  - [x] `SignalSort` (LAST_FLIP_ASC / LAST_FLIP_DESC / ASSET_ASC)
+- [x] Implement explicit mappers (Entity → DTO only)
+- [x] Ensure controllers will not serialize entities directly
 
 ---
 
 ## Phase 2 — Repository Query Methods (Bulk, Deterministic)
 
 ### Active Assets
-- [ ] Add repository method to fetch active assets (symbols + ids)
+- [x] Add repository method to fetch active assets (symbols + ids)
       (projection preferred)
 
 ### Latest finalized signal state per asset
-- [ ] Implement bulk query to fetch latest finalized `signal_state` per asset
+- [x] Implement bulk query to fetch latest finalized `signal_state` per asset
       for `(timeframe, indicator_type)` with `close_time < utcMidnightToday`
-- [ ] Implement bulk query to fetch latest flip per asset
+- [x] Implement bulk query to fetch latest flip per asset
       (`event != NONE`) for `(timeframe, indicator_type)` with `close_time < utcMidnightToday`
 
 ### Market pulse snapshots
-- [ ] Add repository method:
+- [x] Add repository method:
       `findTopByTimeframeAndIndicatorTypeOrderBySnapshotCloseTimeDesc(...)`
 
 ### Market pulse history
-- [ ] Add repository method to list snapshots ordered by `snapshotCloseTime ASC`
-- [ ] Add optional `from/to` filtering support
+- [x] Add repository method to list snapshots ordered by `snapshotCloseTime ASC`
+- [x] Add optional `from/to` filtering support
 
-- [ ] Add repository-level tests for the above queries
+- [x] Add repository-level tests for the above queries
 
 ---
 
 ## Phase 3 — Time Model Helpers (Finalized Boundary + Days Since Flip)
 
-- [ ] Introduce injectable `TimeProvider` / `Clock` for UTC time
-- [ ] Implement helper: `utcMidnightToday()`
-- [ ] Implement `timeSinceFlipDays` computation (whole days, UTC)
-- [ ] Decide and implement behavior when flip is missing:
-  - [ ] return null (recommended) OR use earliest state close_time
-- [ ] Unit test time calculations with fixed clock
+- [x] Introduce injectable `TimeProvider` / `Clock` for UTC time
+- [x] Implement helper: `utcMidnightToday()`
+- [x] Implement `timeSinceFlipDays` computation (whole days, UTC)
+- [x] Decide and implement behavior when flip is missing:
+  - [x] return null (recommended) OR use earliest state close_time
+- [x] Unit test time calculations with fixed clock
 
 ---
 
