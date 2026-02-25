@@ -5,31 +5,31 @@
 
 # Phase 1 — Database Migration
 
-- [ ] Create Liquibase changeSet for `ingestion_run_status` ENUM
-- [ ] Create `ingestion_run` table
-- [ ] Add indexes:
-  - [ ] (started_at DESC)
-  - [ ] (provider, timeframe, started_at DESC)
-  - [ ] Partial index on (provider, timeframe) WHERE status = 'RUNNING'
-- [ ] Verify migration runs successfully
-- [ ] Confirm table + enum visible in DB
+- [x] Create Liquibase changeSet for `ingestion_run_status` ENUM
+- [x] Create `ingestion_run` table
+- [x] Add indexes:
+  - [x] (started_at DESC)
+  - [x] (provider, timeframe, started_at DESC)
+  - [x] Partial index on (provider, timeframe) WHERE status = 'RUNNING'
+- [x] Verify migration runs successfully
+- [x] Confirm table + enum visible in DB
 
 ---
 
 # Phase 2 — Domain Layer
 
-- [ ] Create `IngestionRunStatus` enum (Java)
-- [ ] Create `IngestionRun` entity
-  - [ ] Map provider as `NAMED_ENUM`
-  - [ ] Map timeframe as `NAMED_ENUM`
-  - [ ] Map status as `NAMED_ENUM`
-  - [ ] Map timestamps as `OffsetDateTime`
-  - [ ] Map duration_ms as `Long`
-- [ ] Add default values for counts (0)
-- [ ] Implement `IngestionRunRepository`
-  - [ ] `findFirstByProviderAndTimeframeAndStatusOrderByStartedAtDesc`
-  - [ ] `findTopByProviderAndTimeframeOrderByStartedAtDesc`
-- [ ] Add repository integration test (Testcontainers)
+- [x] Create `IngestionRunStatus` enum (Java)
+- [x] Create `IngestionRun` entity
+  - [x] Map provider as `NAMED_ENUM`
+  - [x] Map timeframe as `NAMED_ENUM`
+  - [x] Map status as `NAMED_ENUM`
+  - [x] Map timestamps as `OffsetDateTime`
+  - [x] Map duration_ms as `Long`
+- [x] Add default values for counts (0)
+- [x] Implement `IngestionRunRepository`
+  - [x] `findFirstByProviderAndTimeframeAndStatusOrderByStartedAtDesc`
+  - [x] `findTopByProviderAndTimeframeOrderByStartedAtDesc`
+- [x] Add repository integration test (Testcontainers)
 
 ---
 

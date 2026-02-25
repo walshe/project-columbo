@@ -1,7 +1,7 @@
 Follow ./AI_EXECUTION_PROTOCOL.md.
-Story folder: ./stories/5-rest-api/
-Implement Phase 5 only.
-make sure to mark tasks as complete ([x]) as you go along
+Story folder: ./stories/6-ingestion-run-tracking/
+Implement Phase 1 and 2 only.
+make sure to mark relevant tasks as complete ([x]) as you go along
 Stop after completion.
 
 
