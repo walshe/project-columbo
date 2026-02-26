@@ -56,8 +56,8 @@ class IncrementalIngestionIntegrationTest {
     @Test
     void scenario1_initialBackfill() {
         // Given: Empty database
-        Instant todayUtcStart = Instant.now().atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).toInstant();
-        Instant yesterday = todayUtcStart.minus(1, ChronoUnit.DAYS);
+        Instant pastTodayStart = Instant.parse("2020-01-10T00:00:00Z");
+        Instant yesterday = pastTodayStart.minus(1, ChronoUnit.DAYS);
 
         CandleDto dto = new CandleDto(
                 new BigDecimal("50000"), new BigDecimal("51000"), new BigDecimal("49000"), new BigDecimal("50500"),
@@ -74,8 +74,6 @@ class IncrementalIngestionIntegrationTest {
         assertThat(candles).hasSize(1);
         assertThat(candles.get(0).getClose()).isEqualByComparingTo("50500");
         
-        // backfillStart is 2020-01-01T00:00:00Z in tests (see CandleIngestionServiceTest setUp, wait, that was unit test)
-        // In real app it depends on application.properties. 
         // Let's verify provider was called with SOME startTime (not null)
         verify(binanceProvider).fetchDailyCandles(eq("BTCUSDT"), anyLong(), anyLong());
     }
@@ -83,8 +81,9 @@ class IncrementalIngestionIntegrationTest {
     @Test
     void scenario2_incrementalDelta() {
         // Given: DB contains candles up to yesterday
-        Instant todayUtcStart = Instant.now().atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).toInstant();
-        Instant yesterdayStart = todayUtcStart.minus(1, ChronoUnit.DAYS);
+        // We use a date far in the past to ensure getFinalizedBoundary() is always > this date
+        Instant pastTodayStart = Instant.parse("2020-01-10T00:00:00Z");
+        Instant yesterdayStart = pastTodayStart.minus(1, ChronoUnit.DAYS);
         Instant dayBeforeYesterdayStart = yesterdayStart.minus(1, ChronoUnit.DAYS);
 
         Candle oldCandle = new Candle();
@@ -103,7 +102,7 @@ class IncrementalIngestionIntegrationTest {
         // New candle from provider (yesterday's candle)
         CandleDto newDto = new CandleDto(
                 new BigDecimal("60000"), new BigDecimal("61000"), new BigDecimal("59000"), new BigDecimal("60500"),
-                new BigDecimal("200"), yesterdayStart, todayUtcStart.minusMillis(1)
+                new BigDecimal("200"), yesterdayStart, pastTodayStart.minusMillis(1)
         );
 
         when(binanceProvider.fetchDailyCandles(eq("BTCUSDT"), anyLong(), anyLong())).thenReturn(List.of(newDto));
@@ -124,14 +123,22 @@ class IncrementalIngestionIntegrationTest {
     @Test
     void scenario3_noDelta() {
         // Given: DB fully up to date (contains yesterday's candle)
-        Instant todayUtcStart = Instant.now().atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).toInstant();
-        Instant yesterdayStart = todayUtcStart.minus(1, ChronoUnit.DAYS);
+        // finalizedBoundary is UTC midnight today.
+        // If today is 2024-01-10, finalizedBoundary is 2024-01-10T00:00:00Z.
+        // Yesterday's candle should end at 2024-01-10T00:00:00Z.
+        
+        // However, the test service uses REAL clock for finalizedBoundary.
+        // We must use a date that is definitely in the future relative to 2024-01-10
+        // to ensure the real clock-based finalizedBoundary is <= our candle's close time.
+        
+        Instant realTodayStart = Instant.now().atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).toInstant();
+        Instant yesterdayStart = realTodayStart.minus(1, ChronoUnit.DAYS);
 
         Candle yesterdayCandle = new Candle();
         yesterdayCandle.setAsset(btc);
         yesterdayCandle.setTimeframe(Timeframe.D1);
         yesterdayCandle.setOpenTime(yesterdayStart.atOffset(ZoneOffset.UTC));
-        yesterdayCandle.setCloseTime(todayUtcStart.atOffset(ZoneOffset.UTC));
+        yesterdayCandle.setCloseTime(realTodayStart.atOffset(ZoneOffset.UTC));
         yesterdayCandle.setOpen(BigDecimal.ONE);
         yesterdayCandle.setHigh(BigDecimal.TEN);
         yesterdayCandle.setLow(BigDecimal.ONE);
@@ -150,8 +157,8 @@ class IncrementalIngestionIntegrationTest {
     @Test
     void scenario4_idempotency() {
         // Given: Data already fetched once
-        Instant todayUtcStart = Instant.now().atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).toInstant();
-        Instant yesterdayStart = todayUtcStart.minus(1, ChronoUnit.DAYS);
+        Instant pastTodayStart = Instant.parse("2020-01-10T00:00:00Z");
+        Instant yesterdayStart = pastTodayStart.minus(1, ChronoUnit.DAYS);
 
         CandleDto dto = new CandleDto(
                 new BigDecimal("50000"), new BigDecimal("51000"), new BigDecimal("49000"), new BigDecimal("50500"),

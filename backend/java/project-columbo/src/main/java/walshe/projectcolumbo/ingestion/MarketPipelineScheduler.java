@@ -8,26 +8,27 @@ import walshe.projectcolumbo.persistence.MarketProvider;
 import walshe.projectcolumbo.persistence.Timeframe;
 
 @Component
-public class MarketPipelineScheduler {
+class MarketPipelineScheduler {
 
-    private static final Logger logger = LoggerFactory.getLogger(MarketPipelineScheduler.class);
+    private static final Logger log = LoggerFactory.getLogger(MarketPipelineScheduler.class);
 
-    private final MarketPipelineService marketPipelineService;
+    private final MarketPipelineService pipelineService;
 
-    public MarketPipelineScheduler(MarketPipelineService marketPipelineService) {
-        this.marketPipelineService = marketPipelineService;
+    MarketPipelineScheduler(MarketPipelineService pipelineService) {
+        this.pipelineService = pipelineService;
     }
 
+    // Single scheduler for the whole market pipeline
     @Scheduled(cron = "${app.market-pipeline.cron}")
-    public void scheduledRun() {
-        logger.info("Triggering scheduled market pipeline");
+    void runDailyPipeline() {
         try {
-            marketPipelineService.runDaily(MarketProvider.BINANCE, Timeframe.D1, RunMode.INCREMENTAL);
-            logger.info("Scheduled market pipeline completed successfully");
+            log.info("Scheduled pipeline trigger: starting daily market pipeline");
+            pipelineService.runDaily(MarketProvider.BINANCE, Timeframe.D1, RunMode.INCREMENTAL);
         } catch (IngestionAlreadyRunningException e) {
-            logger.info("Scheduled market pipeline skipped - already running: {}", e.getMessage());
+            // Concurrency: skip silently with info log
+            log.info("Scheduled pipeline skipped: a RUNNING ingestion exists for {} {}", MarketProvider.BINANCE, Timeframe.D1);
         } catch (Exception e) {
-            logger.error("Scheduled market pipeline failed", e);
+            log.error("Scheduled pipeline failed: {}", e.getMessage(), e);
         }
     }
 }

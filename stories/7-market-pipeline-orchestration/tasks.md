@@ -59,15 +59,15 @@ public void runDaily(Provider provider, Timeframe timeframe, RunMode mode)
 
 ## 3.1 Concurrency Protection
 
-* [ ] Check if a `RUNNING` ingestion exists for `provider + timeframe`
-* [ ] If exists:
+* [x] Check if a `RUNNING` ingestion exists for `provider + timeframe`
+* [x] If exists:
 
-  * [ ] Throw concurrency exception (manual path)
-  * [ ] Log and skip (scheduler path)
+  * [x] Throw concurrency exception (manual path)
+  * [x] Log and skip (scheduler path)
 
 ## 3.2 Create RUNNING Record
 
-* [ ] Insert `ingestion_run` row:
+* [x] Insert `ingestion_run` row:
 
   * status = `RUNNING`
   * started_at = now
@@ -83,49 +83,49 @@ Execution order must be strict:
 
 ### Implementation Tasks
 
-* [ ] Log: `"Starting phase: INGESTION"`
+* [x] Log: "Starting phase: INGESTION"
 
-* [ ] Call `CandleIngestionService`
+* [x] Call `CandleIngestionService`
 
-* [ ] Log phase completion + duration
+* [x] Log phase completion + duration
 
-* [ ] Log: `"Starting phase: INDICATOR"`
+* [x] Log: "Starting phase: INDICATOR"
 
-* [ ] Call indicator computation service
+* [x] Call indicator computation service
 
-* [ ] Log completion + duration
+* [x] Log completion + duration
 
-* [ ] Log: `"Starting phase: SIGNAL"`
+* [x] Log: "Starting phase: SIGNAL"
 
-* [ ] Call `SignalStateService`
+* [x] Call `SignalStateService`
 
-* [ ] Log completion + duration
+* [x] Log completion + duration
 
-* [ ] Log: `"Starting phase: MARKET_PULSE"`
+* [x] Log: "Starting phase: MARKET_PULSE"
 
-* [ ] Call `MarketPulseService`
+* [x] Call `MarketPulseService`
 
-* [ ] Log completion + duration
+* [x] Log completion + duration
 
 ## 3.4 Failure Handling
 
-* [ ] Wrap pipeline in try/catch
-* [ ] On exception:
+* [x] Wrap pipeline in try/catch
+* [x] On exception:
 
-  * [ ] Mark run `FAILED`
-  * [ ] Set `finished_at`
-  * [ ] Compute `duration_ms`
-  * [ ] Store `error_sample` (max 1000 chars)
-  * [ ] Stop downstream execution
+  * [x] Mark run `FAILED`
+  * [x] Set `finished_at`
+  * [x] Compute `duration_ms`
+  * [x] Store `error_sample` (max 1000 chars)
+  * [x] Stop downstream execution
 
 ## 3.5 Success Handling
 
-* [ ] On successful completion:
+* [x] On successful completion:
 
-  * [ ] Mark run `SUCCESS`
-  * [ ] Set `finished_at`
-  * [ ] Compute `duration_ms`
-  * [ ] Persist ingestion statistics
+  * [x] Mark run `SUCCESS`
+  * [x] Set `finished_at`
+  * [x] Compute `duration_ms`
+  * [x] Persist ingestion statistics
 
 ---
 
@@ -133,7 +133,7 @@ Execution order must be strict:
 
 ## 4.1 Add New Cron Property
 
-* [ ] Add configuration property:
+* [x] Add configuration property:
 
 ```
 app.market-pipeline.cron
@@ -141,21 +141,21 @@ app.market-pipeline.cron
 
 ## 4.2 Create Scheduler Method
 
-* [ ] Add single `@Scheduled` method
-* [ ] Invoke:
+* [x] Add single `@Scheduled` method
+* [x] Invoke:
 
 ```java
 marketPipelineService.runDaily(BINANCE, D1, INCREMENTAL);
 ```
 
-* [ ] Handle concurrency exception:
+* [x] Handle concurrency exception:
 
-  * [ ] Log skip
-  * [ ] Do not throw
+  * [x] Log skip
+  * [x] Do not throw
 
 **Verification**
 
-* [ ] Only ONE scheduled job exists in application
+* [x] Only ONE scheduled job exists in application
 
 ---
 
