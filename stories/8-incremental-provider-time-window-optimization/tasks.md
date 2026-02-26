@@ -106,31 +106,31 @@ Follow phases in order.
 
 ## Phase 5 — Defensive Guard
 
-- [ ] Before persisting each candle:
-  - Ensure `close_time < finalizedBoundary`
-  - Discard any invalid candle returned by provider
+- [x] Before persisting each candle:
+  - [x] Ensure `close_time < finalizedBoundary`
+  - [x] Discard any invalid candle returned by provider
 
 ---
 
 ## Phase 6 — Regression Safety
 
-- [ ] Verify no changes to:
-  - Candle schema
-  - Unique constraints
-  - Upsert logic
-  - Pipeline orchestration
-- [ ] Confirm `ingestion_run` tracking unchanged
+- [x] Verify no changes to:
+  - [x] Candle schema
+  - [x] Unique constraints
+  - [x] Upsert logic
+  - [x] Pipeline orchestration
+- [x] Confirm `ingestion_run` tracking unchanged
 
 ---
 
 ## Phase 7 — Unit Tests
 
-- [ ] `startTime` computed correctly when `lastClose` exists
-- [ ] `startTime` computed correctly when DB empty
-- [ ] `endTime` equals finalized boundary
-- [ ] Skip condition works
-- [ ] Provider called with correct timestamps
-- [ ] Provider not called when no delta
+- [x] `startTime` computed correctly when `lastClose` exists
+- [x] `startTime` computed correctly when DB empty
+- [x] `endTime` equals finalized boundary
+- [x] Skip condition works
+- [x] Provider called with correct timestamps
+- [x] Provider not called when no delta
 
 ---
 
@@ -138,38 +138,38 @@ Follow phases in order.
 
 ### Scenario 1 — Initial Backfill
 
-- [ ] Empty database
-- [ ] Run ingestion
-- [ ] Verify candles inserted
+- [x] Empty database
+- [x] Run ingestion
+- [x] Verify candles inserted
 
 ### Scenario 2 — Incremental Delta
 
-- [ ] Database contains candles up to yesterday
-- [ ] Run ingestion
-- [ ] Verify only new candle fetched
+- [x] Database contains candles up to yesterday
+- [x] Run ingestion
+- [x] Verify only new candle fetched
 
 ### Scenario 3 — No Delta
 
-- [ ] Database fully up to date
-- [ ] Verify provider not called
+- [x] Database fully up to date
+- [x] Verify provider not called
 
 ### Scenario 4 — Idempotency
 
-- [ ] Run ingestion twice
-- [ ] Verify no duplicate candles
-- [ ] Verify identical row count
+- [x] Run ingestion twice
+- [x] Verify no duplicate candles
+- [x] Verify identical row count
 
 ---
 
 ## Phase 9 — Validation Checklist
 
-- [ ] No schema changes introduced
-- [ ] No regression in candle count
-- [ ] No regression in `signal_state`
-- [ ] No regression in `market_pulse`
-- [ ] Logs show correct time windows
-- [ ] API payload size reduced
-- [ ] Ingestion remains deterministic
+- [x] No schema changes introduced
+- [x] No regression in candle count
+- [x] No regression in `signal_state`
+- [x] No regression in `market_pulse`
+- [x] Logs show correct time windows
+- [x] API payload size reduced
+- [x] Ingestion remains deterministic
 
 ---
 
@@ -177,9 +177,9 @@ Follow phases in order.
 
 Story complete when:
 
-- [ ] Provider calls include `startTime` and `endTime`
-- [ ] Only missing candles are requested
-- [ ] No unnecessary API calls occur
-- [ ] No open candles are stored
-- [ ] Ingestion remains idempotent
-- [ ] System behavior unchanged except efficiency improvement
+- [x] Provider calls include `startTime` and `endTime`
+- [x] Only missing candles are requested
+- [x] No unnecessary API calls occur
+- [x] No open candles are stored
+- [x] Ingestion remains idempotent
+- [x] System behavior unchanged except efficiency improvement

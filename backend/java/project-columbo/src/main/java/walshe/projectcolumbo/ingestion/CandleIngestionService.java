@@ -95,6 +95,12 @@ public class CandleIngestionService {
         // Phase 4.2: Compute time window
         OffsetDateTime lastClose = candleRepository
                 .findLatestCloseTime(asset.getId(), Timeframe.D1.name())
+                .map(obj -> {
+                    if (obj instanceof Instant instant) {
+                        return instant.atOffset(ZoneOffset.UTC);
+                    }
+                    return (OffsetDateTime) obj;
+                })
                 .orElse(null);
 
         Long startTimeMs = (lastClose != null)
@@ -111,9 +117,9 @@ public class CandleIngestionService {
             return stats;
         }
 
-        // Phase 4.4: Call provider with window
         List<CandleDto> dtos = provider.fetchDailyCandles(asset.getSymbol(), startTimeMs, endTimeMs);
 
+        // Phase 5: Defensive Guard - Ensure close_time < finalizedBoundary
         List<Candle> finalizedCandles = dtos.stream()
                 .filter(dto -> dto.closeTime().isBefore(finalizedBoundary))
                 .sorted(Comparator.comparing(CandleDto::closeTime))

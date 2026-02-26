@@ -116,6 +116,66 @@ class CandleIngestionServiceTest {
     }
 
     @Test
+    void ingestForAsset_shouldComputeStartTimeFromLastClosePlusOneMs() {
+        // Given
+        Asset btc = new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true);
+        btc.setId(1L);
+        when(assetRepository.findByActiveTrue()).thenReturn(List.of(btc));
+
+        Instant lastCloseInstant = Instant.parse("2024-01-01T23:59:59.999Z");
+        OffsetDateTime lastClose = OffsetDateTime.ofInstant(lastCloseInstant, ZoneOffset.UTC);
+        when(candleRepository.findLatestCloseTime(1L, "D1")).thenReturn(Optional.of(lastClose));
+
+        when(binanceProvider.fetchDailyCandles(any(), any(), any())).thenReturn(List.of());
+
+        // When
+        candleIngestionService.ingestDaily();
+
+        // Then
+        // startTime should be lastClose + 1ms = 2024-01-02T00:00:00.000Z
+        long expectedStartTime = lastCloseInstant.toEpochMilli() + 1;
+        verify(binanceProvider).fetchDailyCandles(eq("BTCUSDT"), eq(expectedStartTime), any());
+    }
+
+    @Test
+    void ingestForAsset_shouldComputeStartTimeFromBackfillStartWhenNoLastClose() {
+        // Given
+        Asset btc = new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true);
+        btc.setId(1L);
+        when(assetRepository.findByActiveTrue()).thenReturn(List.of(btc));
+
+        when(candleRepository.findLatestCloseTime(1L, "D1")).thenReturn(Optional.empty());
+        when(binanceProvider.fetchDailyCandles(any(), any(), any())).thenReturn(List.of());
+
+        // When
+        candleIngestionService.ingestDaily();
+
+        // Then
+        // backfillStart is 2020-01-01T00:00:00Z
+        long expectedStartTime = OffsetDateTime.parse("2020-01-01T00:00:00Z").toInstant().toEpochMilli();
+        verify(binanceProvider).fetchDailyCandles(eq("BTCUSDT"), eq(expectedStartTime), any());
+    }
+
+    @Test
+    void ingestForAsset_shouldSkipWhenStartTimeIsGreaterOrEqualToEndTime() {
+        // Given
+        Asset btc = new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true);
+        btc.setId(1L);
+        when(assetRepository.findByActiveTrue()).thenReturn(List.of(btc));
+
+        // Set lastClose to today (so startTime will be after finalizedBoundary)
+        Instant todayUtcStart = Instant.now().atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).toInstant();
+        OffsetDateTime lastClose = OffsetDateTime.ofInstant(todayUtcStart, ZoneOffset.UTC);
+        when(candleRepository.findLatestCloseTime(1L, "D1")).thenReturn(Optional.of(lastClose));
+
+        // When
+        candleIngestionService.ingestDaily();
+
+        // Then
+        verify(binanceProvider, never()).fetchDailyCandles(any(), any(), any());
+    }
+
+    @Test
     void scheduledIngest_shouldCatchExceptions() {
         // Given
         when(orchestrator.runInternal(any(), any())).thenThrow(new RuntimeException("DB error"));
