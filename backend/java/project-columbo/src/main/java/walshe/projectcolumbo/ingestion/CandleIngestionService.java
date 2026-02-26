@@ -25,15 +25,18 @@ public class CandleIngestionService {
     private final CandleRepository candleRepository;
     private final List<MarketDataProvider> marketDataProviders;
     private final IngestionOrchestrator orchestrator;
+    private final IngestionProperties ingestionProperties;
 
     public CandleIngestionService(AssetRepository assetRepository,
                                   CandleRepository candleRepository,
                                   List<MarketDataProvider> marketDataProviders,
-                                  @org.springframework.context.annotation.Lazy IngestionOrchestrator orchestrator) {
+                                  @org.springframework.context.annotation.Lazy IngestionOrchestrator orchestrator,
+                                  IngestionProperties ingestionProperties) {
         this.assetRepository = assetRepository;
         this.candleRepository = candleRepository;
         this.marketDataProviders = marketDataProviders;
         this.orchestrator = orchestrator;
+        this.ingestionProperties = ingestionProperties;
     }
 
     @Scheduled(cron = "${app.ingestion.cron}")
@@ -86,12 +89,33 @@ public class CandleIngestionService {
             return stats;
         }
 
-        List<CandleDto> dtos = provider.fetchDailyCandles(asset.getSymbol(), null, null);
+        // Phase 4.1: Compute finalized boundary (UTC start of current day)
+        Instant finalizedBoundary = getFinalizedBoundary();
 
-        Instant todayUtcStart = Instant.now().atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).toInstant();
+        // Phase 4.2: Compute time window
+        OffsetDateTime lastClose = candleRepository
+                .findLatestCloseTime(asset.getId(), Timeframe.D1.name())
+                .orElse(null);
+
+        Long startTimeMs = (lastClose != null)
+                ? lastClose.toInstant().toEpochMilli() + 1
+                : ingestionProperties.backfillStartEpochMs();
+
+        Long endTimeMs = finalizedBoundary.toEpochMilli();
+
+        logger.info("INGESTION_WINDOW asset={} start={} end={}", asset.getSymbol(), startTimeMs, endTimeMs);
+
+        // Phase 4.3: Skip condition
+        if (startTimeMs == null || startTimeMs >= endTimeMs) {
+            logger.info("No new candles required for {}. Skipping.", asset.getSymbol());
+            return stats;
+        }
+
+        // Phase 4.4: Call provider with window
+        List<CandleDto> dtos = provider.fetchDailyCandles(asset.getSymbol(), startTimeMs, endTimeMs);
 
         List<Candle> finalizedCandles = dtos.stream()
-                .filter(dto -> dto.closeTime().isBefore(todayUtcStart))
+                .filter(dto -> dto.closeTime().isBefore(finalizedBoundary))
                 .sorted(Comparator.comparing(CandleDto::closeTime))
                 .map(dto -> mapToEntity(asset, dto))
                 .toList();
@@ -160,6 +184,10 @@ public class CandleIngestionService {
                 this.firstErrorMessage = other.firstErrorMessage;
             }
         }
+    }
+
+    private Instant getFinalizedBoundary() {
+        return Instant.now().atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).toInstant();
     }
 
     private MarketDataProvider findProvider(MarketProvider providerType) {

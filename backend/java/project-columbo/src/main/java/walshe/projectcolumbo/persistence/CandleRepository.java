@@ -1,6 +1,8 @@
 package walshe.projectcolumbo.persistence;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -14,4 +16,7 @@ public interface CandleRepository extends JpaRepository<Candle, Long> {
     List<Candle> findByAssetAndTimeframeAndCloseTimeGreaterThanEqualOrderByCloseTimeAsc(Asset asset, Timeframe timeframe, OffsetDateTime closeTime);
 
     Optional<Candle> findByAssetAndTimeframeAndCloseTime(Asset asset, Timeframe timeframe, OffsetDateTime closeTime);
+
+    @Query(value = "SELECT close_time FROM candle WHERE asset_id = :assetId AND timeframe = :timeframe ORDER BY close_time DESC LIMIT 1", nativeQuery = true)
+    Optional<OffsetDateTime> findLatestCloseTime(@Param("assetId") Long assetId, @Param("timeframe") String timeframe);
 }

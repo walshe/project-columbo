@@ -60,7 +60,7 @@ Follow phases in order.
 
 ### 3.1 Add Latest Close Time Query
 
-- [ ] Add repository method that:
+- [x] Add repository method that:
   - Queries by asset + timeframe
   - Orders by `close_time` DESC
   - Limits 1
@@ -72,13 +72,13 @@ Follow phases in order.
 
 ### 4.1 Compute Finalized Boundary
 
-- [ ] Implement utility method:
+- [x] Implement utility method:
   - `getFinalizedBoundary()` → UTC start of current day
-- [ ] Ensure the same logic is used across the system
+- [x] Ensure the same logic is used across the system
 
 ### 4.2 Compute Time Window
 
-- [ ] Inside ingestion loop:
+- [x] Inside ingestion loop:
   - Fetch last stored candle close time
   - If exists: compute `startTime = lastClose + 1ms`
   - If not: compute `startTime = backfillStart`
@@ -91,16 +91,16 @@ Follow phases in order.
 
 ### 4.3 Implement Skip Condition
 
-- [ ] If `startTime >= endTime`:
+- [x] If `startTime >= endTime`:
   - Log "No new candles required"
   - Skip provider call
   - Continue to next asset
 
 ### 4.4 Call Provider With Window
 
-- [ ] Pass `startTime` and `endTime` to provider
-- [ ] Handle empty response gracefully
-- [ ] Preserve existing upsert logic
+- [x] Pass `startTime` and `endTime` to provider
+- [x] Handle empty response gracefully
+- [x] Preserve existing upsert logic
 
 ---
 

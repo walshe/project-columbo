@@ -1,6 +1,6 @@
 Follow ./AI_EXECUTION_PROTOCOL.md.
 Story folder: ./stories/8-incremental-provider-time-window-optimization
-Implement Phase 1 and 2 only.
+Implement Phase 5 and 6 only.
 make sure to mark relevant tasks as complete ([x]) as you go along
 Stop after completion.
 

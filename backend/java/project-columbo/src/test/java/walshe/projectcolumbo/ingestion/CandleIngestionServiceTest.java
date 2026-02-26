@@ -36,7 +36,8 @@ class CandleIngestionServiceTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         when(binanceProvider.getProviderName()).thenReturn("BINANCE");
-        candleIngestionService = new CandleIngestionService(assetRepository, candleRepository, List.of(binanceProvider), orchestrator);
+        IngestionProperties ingestionProperties = new IngestionProperties(OffsetDateTime.parse("2020-01-01T00:00:00Z"));
+        candleIngestionService = new CandleIngestionService(assetRepository, candleRepository, List.of(binanceProvider), orchestrator, ingestionProperties);
     }
 
     @Test
@@ -70,7 +71,8 @@ class CandleIngestionServiceTest {
         when(assetRepository.findByActiveTrue()).thenReturn(List.of(btc));
         
         // Use a service without providers
-        CandleIngestionService serviceNoProviders = new CandleIngestionService(assetRepository, candleRepository, List.of(), orchestrator);
+        IngestionProperties ingestionProperties = new IngestionProperties(OffsetDateTime.parse("2020-01-01T00:00:00Z"));
+        CandleIngestionService serviceNoProviders = new CandleIngestionService(assetRepository, candleRepository, List.of(), orchestrator, ingestionProperties);
 
         // When
         serviceNoProviders.ingestDaily();
