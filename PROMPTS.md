@@ -1,6 +1,6 @@
 Follow ./AI_EXECUTION_PROTOCOL.md.
 Story folder: ./stories/7-market-pipeline-orchestration
-Implement Phase 5 & 6 only.
+Implement Phase 7 only.
 make sure to mark relevant tasks as complete ([x]) as you go along
 Stop after completion.
 

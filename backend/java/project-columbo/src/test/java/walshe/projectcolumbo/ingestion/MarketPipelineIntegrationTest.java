@@ -127,4 +127,21 @@ class MarketPipelineIntegrationTest {
         assertEquals(candleCount, candleRepository.count(), "Candle count should not change");
         assertEquals(runCount + 1, ingestionRunRepository.count(), "A new ingestion run should be created");
     }
+
+    @Test
+    void shouldMarkRunAsFailedOnException() {
+        // Given: Ingestion fails
+        assetRepository.save(new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true));
+        when(binanceProvider.fetchDailyCandles(any(), any(), any())).thenThrow(new RuntimeException("Mocked failure"));
+
+        // When
+        marketPipelineService.runDaily(MarketProvider.BINANCE, Timeframe.D1, RunMode.INCREMENTAL);
+
+        // Then
+        List<IngestionRun> runs = ingestionRunRepository.findAll();
+        assertEquals(1, runs.size());
+        assertEquals(IngestionRunStatus.FAILED, runs.get(0).getStatus());
+        assertNotNull(runs.get(0).getErrorSample());
+        assertTrue(runs.get(0).getErrorSample().contains("Mocked failure"));
+    }
 }

@@ -201,36 +201,36 @@ Logs must make operational diagnosis easy.
 
 # Phase 7 — Unit Tests
 
-* [ ] Verify phases execute in correct order
-* [ ] Verify downstream phases are NOT executed after failure
-* [ ] Verify concurrency rejection logic
-* [ ] Verify manual trigger invokes pipeline (not ingestion directly)
+* [x] Verify phases execute in correct order
+* [x] Verify downstream phases are NOT executed after failure
+* [x] Verify concurrency rejection logic
+* [x] Verify manual trigger invokes pipeline (not ingestion directly)
 
 ---
 
 # Phase 8 — Integration Tests (Testcontainers)
 
-* [ ] Seed assets
-* [ ] Run pipeline once:
+* [x] Seed assets
+* [x] Run pipeline once:
 
-  * [ ] Candles created
-  * [ ] `signal_state` rows created
-  * [ ] `market_pulse` rows created
-* [ ] Run pipeline again:
+  * [x] Candles created
+  * [x] `signal_state` rows created
+  * [x] `market_pulse` rows created
+* [x] Run pipeline again:
 
-  * [ ] Assert idempotency (no duplicates)
-* [ ] Simulate indicator failure:
+  * [x] Assert idempotency (no duplicates)
+* [x] Simulate indicator failure:
 
-  * [ ] Downstream phases not executed
-  * [ ] `ingestion_run.status = FAILED`
+  * [x] Downstream phases not executed
+  * [x] `ingestion_run.status = FAILED`
 
 ---
 
 # Phase 9 — Final Verification Checklist
 
-* [ ] Only one scheduled job exists
-* [ ] Manual trigger executes full pipeline
-* [ ] `ingestion_run` tracks full pipeline lifecycle
-* [ ] All phases respect finalized candle boundary rule
-* [ ] No duplicate data on re-run
-* [ ] Concurrency protection works
+* [x] Only one scheduled job exists
+* [x] Manual trigger executes full pipeline
+* [x] `ingestion_run` tracks full pipeline lifecycle
+* [x] All phases respect finalized candle boundary rule
+* [x] No duplicate data on re-run
+* [x] Concurrency protection works
