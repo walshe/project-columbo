@@ -34,7 +34,8 @@ public class SignalStateService {
     }
 
     /**
-     * Phase 8: Scheduled daily detection.
+     * Entry point for the scheduled daily signal detection.
+     * This is triggered by a timer to run automatically.
      */
     public void scheduledDetectDaily() {
         try {
@@ -46,8 +47,13 @@ public class SignalStateService {
         }
     }
 
+    /**
+     * Main process to detect signals for all active assets (like BTC, ETH)
+     * across all available timeframes (like Daily).
+     */
     @Transactional
     public void detectDaily() {
+        // 1. Get all assets that are currently marked as active
         List<Asset> activeAssets = assetRepository.findByActiveTrue();
         log.info("Starting SignalState detection for {} active assets", activeAssets.size());
 
@@ -55,9 +61,11 @@ public class SignalStateService {
         int totalUpdated = 0;
         int totalSkipped = 0;
 
+        // 2. Iterate through each asset and each timeframe
         for (Asset asset : activeAssets) {
             for (Timeframe timeframe : Timeframe.values()) {
                 try {
+                    // 3. Process the asset to see if there are any new trend changes
                     ProcessingStats stats = this.processAsset(asset, timeframe, false);
                     totalInserted += stats.inserted;
                     totalUpdated += stats.updated;
@@ -73,24 +81,32 @@ public class SignalStateService {
                 totalInserted, totalUpdated, totalSkipped);
     }
 
+    /**
+     * Processes a single asset for a specific timeframe to identify trend signals.
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public ProcessingStats processAsset(Asset asset, Timeframe timeframe, boolean fullRecalc) {
+        // We only care about data from completed days (before today's midnight)
         OffsetDateTime boundary = CandleFilters.utcMidnightToday(OffsetDateTime.now());
 
+        // Step 1: Find the last trend state we recorded for this asset
         Optional<SignalState> latestStored = signalStateRepository.findFirstByAssetIdAndTimeframeAndIndicatorTypeOrderByCloseTimeDesc(
                 asset.getId(), timeframe, IndicatorType.SUPERTREND);
 
         List<SuperTrendIndicator> indicatorsToProcess;
         SuperTrendDirection previousDirection = null;
 
+        // Step 2: Decide which data to look at
         if (fullRecalc || latestStored.isEmpty()) {
+            // No history or full refresh requested: look at all historical data
             indicatorsToProcess = superTrendRepository.findByAssetAndTimeframeOrderByCloseTimeAsc(asset, timeframe);
         } else {
+            // Incremental update: only look at data newer than what we already have
             OffsetDateTime lastCloseTime = latestStored.get().getCloseTime();
             indicatorsToProcess = superTrendRepository.findByAssetAndTimeframeAndCloseTimeAfterOrderByCloseTimeAsc(
                     asset, timeframe, lastCloseTime);
 
-            // To determine reversal for the first new row, we need the direction of the row that produced the last stored state
+            // To detect a trend "flip" (reversal), we need to know the trend direction of the previous record
             Optional<SuperTrendIndicator> lastStoredIndicator = superTrendRepository.findByAssetAndTimeframeAndCloseTime(
                     asset, timeframe, lastCloseTime);
             if (lastStoredIndicator.isPresent()) {
@@ -98,14 +114,14 @@ public class SignalStateService {
             }
         }
 
-        // Phase 4: Filter out non-finalized rows
+        // Step 3: Only process indicators for finalized periods (e.g., yesterday or earlier)
         List<SuperTrendIndicator> finalizedIndicators = indicatorsToProcess.stream()
                 .filter(i -> i.getCloseTime().isBefore(boundary))
                 .toList();
 
+        // Step 4: Handle cases where there is no new trend data available
         if (finalizedIndicators.isEmpty()) {
-            // Check if we should create or update an UNKNOWN state for the latest finalized candle
-            // if there's no real signal (BULLISH/BEARISH) for the current finalized data.
+            // Even if there's no new signal, we check if there's a finalized candle (price data)
             Optional<Candle> latestFinalizedCandle = candleRepository.findFirstByAssetAndTimeframeAndCloseTimeBeforeOrderByCloseTimeDesc(
                     asset, timeframe, boundary);
 
@@ -113,7 +129,8 @@ public class SignalStateService {
                 OffsetDateTime closeTime = latestFinalizedCandle.get().getCloseTime();
 
                 if (latestStored.isEmpty()) {
-                    // Create new UNKNOWN state
+                    // Case A: This asset is new and hasn't produced a signal yet (usually due to lack of data)
+                    // We mark it as UNKNOWN so we know it's being tracked but has no trend yet.
                     SignalState newState = new SignalState(
                             asset,
                             timeframe,
@@ -125,9 +142,11 @@ public class SignalStateService {
                     signalStateRepository.save(newState);
                     return new ProcessingStats(1, 0, 0);
                 } else {
+                    // Case B: The asset already has a record. 
+                    // If it was previously UNKNOWN, we update its time to the latest candle 
+                    // so it stays current in our reports even without a trend.
                     SignalState stored = latestStored.get();
                     if (stored.getTrendState() == TrendState.UNKNOWN && stored.getCloseTime().isBefore(closeTime)) {
-                        // Update existing UNKNOWN state to current candle time
                         stored.setCloseTime(closeTime);
                         signalStateRepository.save(stored);
                         return new ProcessingStats(0, 1, 0);
@@ -137,19 +156,24 @@ public class SignalStateService {
             return new ProcessingStats(0, 0, 0);
         }
 
+        // Step 5: Calculate the trend states (Bullish/Bearish) and events (Reversals)
         List<SignalStateResult> results = calculator.calculate(finalizedIndicators, previousDirection);
 
         ProcessingStats stats = new ProcessingStats(0, 0, 0);
 
+        // Step 6: Save the results to the database
         for (SignalStateResult result : results) {
+            // Check if we already have a record for this specific time
             Optional<SignalState> existing = signalStateRepository.findByAssetAndTimeframeAndIndicatorTypeAndCloseTime(
                     asset, timeframe, IndicatorType.SUPERTREND, result.closeTime());
 
             if (existing.isPresent()) {
                 SignalState state = existing.get();
+                // If the data matches, we skip it to avoid unnecessary database work
                 if (state.getTrendState() == result.trendState() && state.getEvent() == result.event()) {
                     stats.skipped++;
                 } else {
+                    // If the trend changed (rare for finalized data), update the existing record
                     log.warn("REVISION: SignalState changed for {} {} at {}. Old: [{} {}], New: [{} {}]",
                             asset.getSymbol(), timeframe, result.closeTime(),
                             state.getTrendState(), state.getEvent(),
@@ -160,6 +184,7 @@ public class SignalStateService {
                     stats.updated++;
                 }
             } else {
+                // Save a brand new trend signal
                 SignalState newState = new SignalState(
                         asset,
                         timeframe,
