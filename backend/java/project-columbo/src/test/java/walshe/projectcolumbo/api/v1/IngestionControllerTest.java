@@ -56,7 +56,7 @@ class IngestionControllerTest {
                         .content("{\"provider\": \"BINANCE\", \"timeframe\": \"1D\"}"))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.runId").value(123))
-                .andExpect(jsonPath("$.status").value("RUNNING"));
+                .andExpect(jsonPath("$.status").value("STARTED"));
     }
 
     @Test

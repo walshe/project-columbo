@@ -163,15 +163,15 @@ marketPipelineService.runDaily(BINANCE, D1, INCREMENTAL);
 
 ## 5.1 Update Endpoint
 
-* [ ] Modify `POST /internal/ingestion/run`
-* [ ] Replace direct ingestion call with pipeline call
+- [x] Modify `POST /internal/ingestion/run`
+- [x] Replace direct ingestion call with pipeline call
 
 ## 5.2 Concurrency Response
 
-* [ ] If `RUNNING` exists:
+- [x] If `RUNNING` exists:
 
-  * [ ] Return HTTP 409
-  * [ ] Do not start new run
+  - [x] Return HTTP 409
+  - [x] Do not start new run
 
 ## 5.3 Response Contract
 
@@ -183,16 +183,17 @@ Return:
   "status": "STARTED"
 }
 ```
+- [x] Success response contract matches
 
 ---
 
 # Phase 6 — Logging Improvements
 
-* [ ] Log pipeline start
-* [ ] Log pipeline completion
-* [ ] Log phase durations
-* [ ] Log concurrency skips
-* [ ] Log failures clearly with phase name
+- [x] Log pipeline start
+- [x] Log pipeline completion
+- [x] Log phase durations
+- [x] Log concurrency skips
+- [x] Log failures clearly with phase name
 
 Logs must make operational diagnosis easy.
 

@@ -56,6 +56,7 @@ public class MarketPipelineService {
         ingestionRunRepository.findFirstByProviderAndTimeframeAndStatusOrderByStartedAtDesc(
                 actualProvider, actualTimeframe, IngestionRunStatus.RUNNING)
                 .ifPresent(run -> {
+                    logger.info("Concurrency skip: Market pipeline already running for {} {}", actualProvider, actualTimeframe);
                     throw new IngestionAlreadyRunningException("Market pipeline already running for " + actualProvider + " " + actualTimeframe);
                 });
 
@@ -77,27 +78,29 @@ public class MarketPipelineService {
 
             // PHASE 2: Indicator Computation
             logger.info("Starting phase: INDICATOR");
-            startTime = System.currentTimeMillis();
+            long indicatorStartTime = System.currentTimeMillis();
             // Using default parameters for SuperTrend (10, 3.0)
             superTrendService.processAllActiveAssets(actualTimeframe, 10, new BigDecimal("3.0"), false);
-            logger.info("Completed phase: INDICATOR in {}ms", System.currentTimeMillis() - startTime);
+            logger.info("Completed phase: INDICATOR in {}ms", System.currentTimeMillis() - indicatorStartTime);
 
             // PHASE 3: Signal Detection
             logger.info("Starting phase: SIGNAL");
-            startTime = System.currentTimeMillis();
+            long signalStartTime = System.currentTimeMillis();
             signalStateService.detectDaily();
-            logger.info("Completed phase: SIGNAL in {}ms", System.currentTimeMillis() - startTime);
+            logger.info("Completed phase: SIGNAL in {}ms", System.currentTimeMillis() - signalStartTime);
 
             // PHASE 4: Market Pulse Aggregation
             logger.info("Starting phase: MARKET_PULSE");
-            startTime = System.currentTimeMillis();
+            long pulseStartTime = System.currentTimeMillis();
             marketPulseService.computeDaily();
-            logger.info("Completed phase: MARKET_PULSE in {}ms", System.currentTimeMillis() - startTime);
+            logger.info("Completed phase: MARKET_PULSE in {}ms", System.currentTimeMillis() - pulseStartTime);
 
             // Success Handling
             finalizeRun(run, stats, null);
+            logger.info("Market pipeline completed successfully for {} {} in {}ms", 
+                    actualProvider, actualTimeframe, System.currentTimeMillis() - startTime);
         } catch (Exception e) {
-            logger.error("Market pipeline failed", e);
+            logger.error("Market pipeline failed at phase during execution: {}", e.getMessage());
             finalizeRun(run, null, e);
         } finally {
             run = ingestionRunRepository.save(run);

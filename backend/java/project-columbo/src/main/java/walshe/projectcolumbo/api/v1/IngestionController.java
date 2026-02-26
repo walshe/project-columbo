@@ -30,6 +30,6 @@ class IngestionController {
         IngestionRun run = pipelineService.runDaily(safeRequest.provider(), safeRequest.timeframe(), RunMode.INCREMENTAL);
         
         return ResponseEntity.status(HttpStatus.ACCEPTED)
-                .body(new IngestionResponse(run.getId(), run.getStatus()));
+                .body(new IngestionResponse(run.getId(), "STARTED"));
     }
 }
