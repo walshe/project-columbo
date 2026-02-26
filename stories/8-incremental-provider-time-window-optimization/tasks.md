@@ -11,15 +11,15 @@ Follow phases in order.
 
 ### 1.1 Add Backfill Start Property
 
-- [ ] Add configuration property:
+- [x] Add configuration property:
 
   ```properties
-  app.ingestion.backfill-start=2020-01-01T00:00:00Z
+  app.ingestion.backfill-start=2025-12-12T00:00:00Z
   ```
 
-- [ ] Bind property to a configuration class
-- [ ] Ensure it is parsed as `OffsetDateTime` in UTC
-- [ ] Add method to convert to epoch milliseconds
+- [x] Bind property to a configuration class
+- [x] Ensure it is parsed as `OffsetDateTime` in UTC
+- [x] Add method to convert to epoch milliseconds
 
 ---
 
@@ -27,7 +27,7 @@ Follow phases in order.
 
 ### 2.1 Update Interface
 
-- [ ] Change provider method from:
+- [x] Change provider method from:
 
   ```java
   fetchDailyCandles(String symbol)
@@ -39,20 +39,20 @@ Follow phases in order.
   fetchDailyCandles(String symbol, Long startTime, Long endTime)
   ```
 
-- [ ] Ensure both parameters are nullable
-- [ ] Update all implementations accordingly
+- [x] Ensure both parameters are nullable
+- [x] Update all implementations accordingly
 
 ### 2.2 Update Binance Implementation
 
-- [ ] Modify KLINES request to include parameters:
+- [x] Modify KLINES request to include parameters:
   - `symbol`
   - `interval=1d`
   - `startTime`
   - `endTime`
-- [ ] Use a URI builder (no string concatenation)
-- [ ] Ensure timestamps are epoch milliseconds
-- [ ] Ensure UTC consistency
-- [ ] Verify request URL in logs
+- [x] Use a URI builder (no string concatenation)
+- [x] Ensure timestamps are epoch milliseconds
+- [x] Ensure UTC consistency
+- [x] Verify request URL in logs
 
 ---
 

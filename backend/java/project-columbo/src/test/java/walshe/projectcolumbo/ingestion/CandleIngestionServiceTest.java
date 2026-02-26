@@ -54,7 +54,7 @@ class CandleIngestionServiceTest {
         CandleDto finalizedCandle = new CandleDto(BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ONE, new BigDecimal("5"), BigDecimal.valueOf(100), yesterday, yesterday.plus(1, ChronoUnit.DAYS).minusMillis(1));
         CandleDto nonFinalizedCandle = new CandleDto(BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ONE, new BigDecimal("5"), BigDecimal.valueOf(100), todayUtcStart, now);
 
-        when(binanceProvider.fetchDailyCandles("BTCUSDT")).thenReturn(List.of(oldCandle, finalizedCandle, nonFinalizedCandle));
+        when(binanceProvider.fetchDailyCandles(eq("BTCUSDT"), any(), any())).thenReturn(List.of(oldCandle, finalizedCandle, nonFinalizedCandle));
 
         // When
         candleIngestionService.ingestDaily();
@@ -101,7 +101,7 @@ class CandleIngestionServiceTest {
         existing.setVolume(BigDecimal.valueOf(100));
         existing.setSource(MarketProvider.BINANCE);
 
-        when(binanceProvider.fetchDailyCandles("BTCUSDT")).thenReturn(List.of(dto));
+        when(binanceProvider.fetchDailyCandles(eq("BTCUSDT"), any(), any())).thenReturn(List.of(dto));
         when(candleRepository.findByAssetAndTimeframeAndCloseTime(eq(btc), eq(Timeframe.D1), eq(yesterdayOd)))
                 .thenReturn(Optional.of(existing));
 

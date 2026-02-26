@@ -11,9 +11,11 @@ public interface MarketDataProvider {
      * Fetch daily OHLC candles for a given asset from the provider.
      *
      * @param providerId the asset's ID as defined by the provider (e.g., 'bitcoin' for CoinGecko)
+     * @param startTime the start time in epoch milliseconds (nullable)
+     * @param endTime the end time in epoch milliseconds (nullable)
      * @return a list of {@link CandleDto}
      */
-    List<CandleDto> fetchDailyCandles(String providerId);
+    List<CandleDto> fetchDailyCandles(String providerId, Long startTime, Long endTime);
 
     /**
      * Get the name of the provider.

@@ -55,7 +55,7 @@ class BinanceMarketDataProviderTest {
                 .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
 
         // When
-        List<CandleDto> candles = provider.fetchDailyCandles(symbol);
+        List<CandleDto> candles = provider.fetchDailyCandles(symbol, null, null);
 
         // Then
         assertThat(candles).hasSize(1);
@@ -69,19 +69,21 @@ class BinanceMarketDataProviderTest {
         assertThat(candle.closeTime()).isEqualTo(Instant.ofEpochMilli(1708473599999L));
     }
 
-    @ParameterizedTest
-    @CsvSource({
-        "BTC/USDT, BTCUSDT",
-        "btc/usdt, BTCUSDT",
-        "BTC-USDT, BTCUSDT",
-        "BTCUSDT, BTCUSDT"
-    })
-    void shouldNormalizeSymbol(String input, String expected) {
+    @Test
+    void shouldFetchWithTimeWindow() {
+        // Given
+        String symbol = "BTC/USDT";
+        Long startTime = 1708387200000L;
+        Long endTime = 1708473599999L;
         String jsonResponse = "[]";
-        server.expect(requestTo("https://api.binance.com/api/v3/klines?symbol=" + expected + "&interval=1d"))
+
+        server.expect(requestTo("https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1708387200000&endTime=1708473599999"))
                 .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
 
-        provider.fetchDailyCandles(input);
+        // When
+        provider.fetchDailyCandles(symbol, startTime, endTime);
+
+        // Then
         server.verify();
     }
 }

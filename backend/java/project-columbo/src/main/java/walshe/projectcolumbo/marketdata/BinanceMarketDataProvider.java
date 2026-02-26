@@ -29,12 +29,19 @@ class BinanceMarketDataProvider implements MarketDataProvider {
     }
 
     @Override
-    public List<CandleDto> fetchDailyCandles(String symbol) {
+    public List<CandleDto> fetchDailyCandles(String symbol, Long startTime, Long endTime) {
         String normalizedSymbol = normalizeSymbol(symbol);
-        logger.info("Fetching daily candles from Binance for symbol: {} (normalized: {})", symbol, normalizedSymbol);
+        logger.info("Fetching daily candles from Binance for symbol: {} (normalized: {}, startTime={}, endTime={})", 
+                symbol, normalizedSymbol, startTime, endTime);
 
         Object[][] response = restClient.get()
-                .uri("/api/v3/klines?symbol={symbol}&interval=1d", normalizedSymbol)
+                .uri(uriBuilder -> uriBuilder
+                        .path(KLINES_ENDPOINT_PATH)
+                        .queryParam("symbol", normalizedSymbol)
+                        .queryParam("interval", "1d")
+                        .queryParamIfPresent("startTime", java.util.Optional.ofNullable(startTime))
+                        .queryParamIfPresent("endTime", java.util.Optional.ofNullable(endTime))
+                        .build())
                 .retrieve()
                 .body(Object[][].class);
 

@@ -22,7 +22,7 @@ class CoinGeckoMarketDataProviderIT {
     @Test
     void shouldFetchRealData() {
         // This test would hit the real CoinGecko API if enabled
-        List<CandleDto> candles = provider.fetchDailyCandles("bitcoin");
+        List<CandleDto> candles = provider.fetchDailyCandles("bitcoin", null, null);
         assertThat(candles).isNotEmpty();
     }
 }

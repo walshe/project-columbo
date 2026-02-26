@@ -35,8 +35,8 @@ class CoinGeckoMarketDataProvider implements MarketDataProvider {
     }
 
     @Override
-    public List<CandleDto> fetchDailyCandles(String providerId) {
-        logger.info("Fetching daily candles for asset: {}", providerId);
+    public List<CandleDto> fetchDailyCandles(String providerId, Long startTime, Long endTime) {
+        logger.info("Fetching daily candles for asset: {} (startTime={}, endTime={})", providerId, startTime, endTime);
 
         try {
             // Apply a mild delay to respect rate limits (as per plan.md)

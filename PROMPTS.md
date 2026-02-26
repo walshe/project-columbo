@@ -1,5 +1,5 @@
 Follow ./AI_EXECUTION_PROTOCOL.md.
-Story folder: ./stories/6-ingestion-run-tracking/
+Story folder: ./stories/8-incremental-provider-time-window-optimization
 Implement Phase 1 and 2 only.
 make sure to mark relevant tasks as complete ([x]) as you go along
 Stop after completion.

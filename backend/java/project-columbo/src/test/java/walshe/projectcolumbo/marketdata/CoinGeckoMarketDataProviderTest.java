@@ -43,7 +43,7 @@ class CoinGeckoMarketDataProviderTest {
                 .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
 
         // When
-        List<CandleDto> candles = provider.fetchDailyCandles(providerId);
+        List<CandleDto> candles = provider.fetchDailyCandles(providerId, null, null);
 
         // Then
         assertThat(candles).hasSize(2);
@@ -68,7 +68,7 @@ class CoinGeckoMarketDataProviderTest {
                 .andRespond(withSuccess("null", MediaType.APPLICATION_JSON));
 
         // When
-        List<CandleDto> candles = provider.fetchDailyCandles(providerId);
+        List<CandleDto> candles = provider.fetchDailyCandles(providerId, null, null);
 
         // Then
         assertThat(candles).isEmpty();

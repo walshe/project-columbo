@@ -86,7 +86,7 @@ public class CandleIngestionService {
             return stats;
         }
 
-        List<CandleDto> dtos = provider.fetchDailyCandles(asset.getSymbol());
+        List<CandleDto> dtos = provider.fetchDailyCandles(asset.getSymbol(), null, null);
 
         Instant todayUtcStart = Instant.now().atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).toInstant();
 
