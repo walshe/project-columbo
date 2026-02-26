@@ -12,18 +12,18 @@ Complete phases in order.
 
 ## 1.1 Remove Independent Scheduling
 
-- [ ] Remove `@Scheduled` from `CandleIngestionService`
-- [ ] Remove `@Scheduled` from indicator computation service (e.g. `SuperTrendService`)
-- [ ] Remove `@Scheduled` from `SignalStateService`
-- [ ] Remove `@Scheduled` from `MarketPulseService`
-- [ ] Ensure no service directly triggers another phase
-- [ ] Remove or deprecate:
-  - [ ] `app.ingestion.cron`
-  - [ ] `app.signal-state.cron`
+- [x] Remove `@Scheduled` from `CandleIngestionService`
+- [x] Remove `@Scheduled` from indicator computation service (e.g. `SuperTrendService`)
+- [x] Remove `@Scheduled` from `SignalStateService`
+- [x] Remove `@Scheduled` from `MarketPulseService`
+- [x] Ensure no service directly triggers another phase
+- [x] Remove or deprecate:
+  - [x] `app.ingestion.cron`
+  - [x] `app.signal-state.cron`
 
 **Verification**
-- [ ] Application starts without scheduler conflicts
-- [ ] No duplicate cron jobs execute
+- [x] Application starts without scheduler conflicts
+- [x] No duplicate cron jobs execute
 
 ---
 
@@ -31,13 +31,13 @@ Complete phases in order.
 
 ## 2.1 Create Service Skeleton
 
-- [ ] Create `MarketPipelineService`
-- [ ] Inject:
-  - [ ] `CandleIngestionService`
-  - [ ] Indicator computation service
-  - [ ] `SignalStateService`
-  - [ ] `MarketPulseService`
-  - [ ] `IngestionRunService` / orchestrator
+- [x] Create `MarketPipelineService`
+- [x] Inject:
+  - [x] `CandleIngestionService`
+  - [x] Indicator computation service
+  - [x] `SignalStateService`
+  - [x] `MarketPulseService`
+  - [x] `IngestionRunService` / orchestrator
 
 ## 2.2 Define Entry Method
 
@@ -47,7 +47,7 @@ Implement:
 public void runDaily(Provider provider, Timeframe timeframe, RunMode mode)
 ````
 
-* [ ] Apply defaults if null:
+* [x] Apply defaults if null:
 
   * Provider → `BINANCE`
   * Timeframe → `D1`

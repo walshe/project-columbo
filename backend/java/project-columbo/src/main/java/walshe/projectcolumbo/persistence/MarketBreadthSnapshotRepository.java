@@ -16,4 +16,7 @@ public interface MarketBreadthSnapshotRepository extends JpaRepository<MarketBre
 
     List<MarketBreadthSnapshot> findByTimeframeAndIndicatorTypeOrderBySnapshotCloseTimeAsc(
             Timeframe timeframe, IndicatorType indicatorType);
+
+    Optional<MarketBreadthSnapshot> findByTimeframeAndIndicatorTypeAndSnapshotCloseTime(
+            Timeframe timeframe, IndicatorType indicatorType, OffsetDateTime snapshotCloseTime);
 }

@@ -12,4 +12,6 @@ public interface AssetRepository extends JpaRepository<Asset, Long> {
     }
 
     List<AssetSummary> findActiveBy();
+
+    long countByActiveTrue();
 }

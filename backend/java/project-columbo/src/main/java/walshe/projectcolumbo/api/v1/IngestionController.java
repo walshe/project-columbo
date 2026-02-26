@@ -8,24 +8,26 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import walshe.projectcolumbo.api.v1.dto.IngestionRequest;
 import walshe.projectcolumbo.api.v1.dto.IngestionResponse;
-import walshe.projectcolumbo.ingestion.IngestionOrchestrator;
 import walshe.projectcolumbo.ingestion.IngestionRun;
+import walshe.projectcolumbo.ingestion.IngestionRunStatus;
+import walshe.projectcolumbo.ingestion.MarketPipelineService;
+import walshe.projectcolumbo.ingestion.RunMode;
 
 @RestController
 @RequestMapping("/api/v1/internal/ingestion")
 class IngestionController {
 
-    private final IngestionOrchestrator orchestrator;
+    private final MarketPipelineService pipelineService;
 
-    IngestionController(IngestionOrchestrator orchestrator) {
-        this.orchestrator = orchestrator;
+    IngestionController(MarketPipelineService pipelineService) {
+        this.pipelineService = pipelineService;
     }
 
     @PostMapping("/run")
     ResponseEntity<IngestionResponse> triggerRun(@RequestBody(required = false) IngestionRequest request) {
         IngestionRequest safeRequest = request != null ? request : new IngestionRequest(null, null);
         
-        IngestionRun run = orchestrator.runInternal(safeRequest.provider(), safeRequest.timeframe());
+        IngestionRun run = pipelineService.runDaily(safeRequest.provider(), safeRequest.timeframe(), RunMode.INCREMENTAL);
         
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                 .body(new IngestionResponse(run.getId(), run.getStatus()));

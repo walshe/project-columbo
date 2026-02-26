@@ -39,7 +39,6 @@ public class CandleIngestionService {
         this.ingestionProperties = ingestionProperties;
     }
 
-    @Scheduled(cron = "${app.ingestion.cron}")
     public void scheduledIngest() {
         logger.info("Triggering scheduled daily ingestion");
         try {

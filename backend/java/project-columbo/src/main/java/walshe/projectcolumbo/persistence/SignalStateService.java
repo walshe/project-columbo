@@ -33,7 +33,6 @@ public class SignalStateService {
     /**
      * Phase 8: Scheduled daily detection.
      */
-    @Scheduled(cron = "${app.signal-state.cron}")
     public void scheduledDetectDaily() {
         try {
             log.info("Scheduled SignalState detection started");

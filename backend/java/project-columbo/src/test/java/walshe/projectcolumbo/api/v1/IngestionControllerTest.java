@@ -12,7 +12,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import walshe.projectcolumbo.TestcontainersConfiguration;
 import walshe.projectcolumbo.ingestion.IngestionAlreadyRunningException;
-import walshe.projectcolumbo.ingestion.IngestionOrchestrator;
+import walshe.projectcolumbo.ingestion.MarketPipelineService;
 import walshe.projectcolumbo.ingestion.IngestionRun;
 import walshe.projectcolumbo.ingestion.IngestionRunStatus;
 
@@ -32,7 +32,7 @@ class IngestionControllerTest {
     private WebApplicationContext context;
 
     @MockitoBean
-    private IngestionOrchestrator orchestrator;
+    private MarketPipelineService pipelineService;
 
     @BeforeEach
     void setUp() {
@@ -48,7 +48,7 @@ class IngestionControllerTest {
         field.set(run, 123L);
         run.setStatus(IngestionRunStatus.RUNNING);
         
-        when(orchestrator.runInternal(any(), any())).thenReturn(run);
+        when(pipelineService.runDaily(any(), any(), any())).thenReturn(run);
 
         // When / Then
         mockMvc.perform(post("/api/v1/internal/ingestion/run")
@@ -62,7 +62,7 @@ class IngestionControllerTest {
     @Test
     void shouldReturn409IfAlreadyRunning() throws Exception {
         // Given
-        when(orchestrator.runInternal(any(), any()))
+        when(pipelineService.runDaily(any(), any(), any()))
                 .thenThrow(new IngestionAlreadyRunningException("Already running"));
 
         // When / Then

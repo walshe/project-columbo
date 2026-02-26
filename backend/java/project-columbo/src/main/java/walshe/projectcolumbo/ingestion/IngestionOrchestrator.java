@@ -61,7 +61,7 @@ public class IngestionOrchestrator {
         return ingestionRunRepository.save(run);
     }
 
-    private void finalizeRun(IngestionRun run, CandleIngestionService.IngestionStats stats, Exception error) {
+    public void finalizeRun(IngestionRun run, CandleIngestionService.IngestionStats stats, Exception error) {
         run.setFinishedAt(OffsetDateTime.now());
         run.setDurationMs(Duration.between(run.getStartedAt(), run.getFinishedAt()).toMillis());
 
