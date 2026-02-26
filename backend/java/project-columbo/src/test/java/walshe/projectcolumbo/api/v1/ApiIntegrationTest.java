@@ -30,6 +30,12 @@ class ApiIntegrationTest {
 
     @Autowired
     private AssetRepository assetRepository;
+    
+    @Autowired
+    private CandleRepository candleRepository;
+
+    @Autowired
+    private SuperTrendRepository superTrendRepository;
 
     @Autowired
     private SignalStateRepository signalStateRepository;
@@ -41,6 +47,8 @@ class ApiIntegrationTest {
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
         signalStateRepository.deleteAll();
+        superTrendRepository.deleteAll();
+        candleRepository.deleteAll();
         marketBreadthSnapshotRepository.deleteAll();
         assetRepository.deleteAll();
     }
