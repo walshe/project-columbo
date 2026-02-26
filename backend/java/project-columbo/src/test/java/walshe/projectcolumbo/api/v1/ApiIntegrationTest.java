@@ -161,6 +161,14 @@ class ApiIntegrationTest {
     }
 
     @Test
+    void shouldAcceptTimeframe1D() throws Exception {
+        mockMvc.perform(get("/api/v1/signals")
+                        .param("timeframe", "1D")
+                        .param("indicatorType", "SUPERTREND"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void shouldReturn400ForMissingParams() throws Exception {
         mockMvc.perform(get("/api/v1/signals")
                         .param("timeframe", "D1"))

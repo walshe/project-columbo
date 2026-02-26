@@ -1,5 +1,6 @@
 package walshe.projectcolumbo.persistence;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum Timeframe {
@@ -14,5 +15,15 @@ public enum Timeframe {
     @JsonValue
     public String getValue() {
         return value;
+    }
+
+    @JsonCreator
+    public static Timeframe fromValue(String value) {
+        for (Timeframe timeframe : Timeframe.values()) {
+            if (timeframe.value.equalsIgnoreCase(value) || timeframe.name().equalsIgnoreCase(value)) {
+                return timeframe;
+            }
+        }
+        throw new IllegalArgumentException("Unknown timeframe: " + value);
     }
 }
