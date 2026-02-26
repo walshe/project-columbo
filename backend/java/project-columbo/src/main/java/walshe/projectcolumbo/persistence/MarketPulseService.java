@@ -46,7 +46,7 @@ public class MarketPulseService {
 
         // We want to find the latest available closeTime in signal_state that is before boundary
         // For simplicity, we'll just use the latest finalized close time found across all assets
-        List<SignalState> latestStates = signalStateRepository.findLatestFinalizedForActiveAssets(timeframe, indicatorType, boundary);
+         List<SignalState> latestStates = signalStateRepository.findLatestFinalizedForActiveAssets(timeframe, indicatorType, boundary);
         
         if (latestStates.isEmpty()) {
             log.info("No signal states found to aggregate for MarketPulse");
@@ -68,10 +68,12 @@ public class MarketPulseService {
 
         int bullishCount = (int) statesAtTime.stream().filter(s -> s.getTrendState() == TrendState.BULLISH).count();
         int bearishCount = (int) statesAtTime.stream().filter(s -> s.getTrendState() == TrendState.BEARISH).count();
-        int missingCount = (int) (totalActiveAssets - bullishCount - bearishCount);
+        int unknownCount = (int) statesAtTime.stream().filter(s -> s.getTrendState() == TrendState.UNKNOWN).count();
+        int missingCount = (int) (totalActiveAssets - bullishCount - bearishCount - unknownCount);
 
-        BigDecimal bullishRatio = totalActiveAssets > 0 
-                ? BigDecimal.valueOf(bullishCount).divide(BigDecimal.valueOf(totalActiveAssets), 4, RoundingMode.HALF_UP)
+        int presentCount = bullishCount + bearishCount;
+        BigDecimal bullishRatio = presentCount > 0 
+                ? BigDecimal.valueOf(bullishCount).divide(BigDecimal.valueOf(presentCount), 4, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
         MarketBreadthSnapshot snapshot = new MarketBreadthSnapshot(

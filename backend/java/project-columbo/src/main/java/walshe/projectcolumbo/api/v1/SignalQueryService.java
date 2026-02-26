@@ -38,9 +38,13 @@ public class SignalQueryService {
 
         List<SignalState> latestSignals = signalStateRepository.findLatestFinalizedForActiveAssets(timeframe, indicatorType, boundary);
         List<SignalState> latestFlips = signalStateRepository.findLatestFinalizedFlipsForActiveAssets(timeframe, indicatorType, boundary);
+        List<SignalState> earliestStates = signalStateRepository.findEarliestFinalizedForActiveAssets(timeframe, indicatorType, boundary);
 
         Map<Long, SignalState> flipsByAssetId = latestFlips.stream()
                 .collect(Collectors.toMap(s -> s.getAsset().getId(), s -> s));
+        
+        // Add fallbacks for assets that never flipped
+        earliestStates.forEach(s -> flipsByAssetId.putIfAbsent(s.getAsset().getId(), s));
 
         List<SignalStateDto> dtos = latestSignals.stream()
                 .filter(s -> stateFilter == null || s.getTrendState() == stateFilter)
@@ -52,6 +56,7 @@ public class SignalQueryService {
                 case ASSET_ASC -> Comparator.comparing(SignalStateDto::symbol);
                 case LAST_FLIP_ASC -> Comparator.comparing(SignalStateDto::lastFlipTime, Comparator.nullsLast(Comparator.naturalOrder()));
                 case LAST_FLIP_DESC -> Comparator.comparing(SignalStateDto::lastFlipTime, Comparator.nullsFirst(Comparator.reverseOrder()));
+                case TREND_STATE_ASC -> Comparator.comparing(SignalStateDto::trendState);
             };
             dtos.sort(comparator);
         } else {

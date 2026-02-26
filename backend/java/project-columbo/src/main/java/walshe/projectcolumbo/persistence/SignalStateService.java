@@ -16,15 +16,18 @@ public class SignalStateService {
     private static final Logger log = LoggerFactory.getLogger(SignalStateService.class);
 
     private final AssetRepository assetRepository;
+    private final CandleRepository candleRepository;
     private final SuperTrendRepository superTrendRepository;
     private final SignalStateRepository signalStateRepository;
     private final SignalStateCalculator calculator;
 
     public SignalStateService(AssetRepository assetRepository,
+                              CandleRepository candleRepository,
                               SuperTrendRepository superTrendRepository,
                               SignalStateRepository signalStateRepository,
                               SignalStateCalculator calculator) {
         this.assetRepository = assetRepository;
+        this.candleRepository = candleRepository;
         this.superTrendRepository = superTrendRepository;
         this.signalStateRepository = signalStateRepository;
         this.calculator = calculator;
@@ -101,6 +104,36 @@ public class SignalStateService {
                 .toList();
 
         if (finalizedIndicators.isEmpty()) {
+            // Check if we should create or update an UNKNOWN state for the latest finalized candle
+            // if there's no real signal (BULLISH/BEARISH) for the current finalized data.
+            Optional<Candle> latestFinalizedCandle = candleRepository.findFirstByAssetAndTimeframeAndCloseTimeBeforeOrderByCloseTimeDesc(
+                    asset, timeframe, boundary);
+
+            if (latestFinalizedCandle.isPresent()) {
+                OffsetDateTime closeTime = latestFinalizedCandle.get().getCloseTime();
+
+                if (latestStored.isEmpty()) {
+                    // Create new UNKNOWN state
+                    SignalState newState = new SignalState(
+                            asset,
+                            timeframe,
+                            IndicatorType.SUPERTREND,
+                            closeTime,
+                            TrendState.UNKNOWN,
+                            SignalEvent.NONE
+                    );
+                    signalStateRepository.save(newState);
+                    return new ProcessingStats(1, 0, 0);
+                } else {
+                    SignalState stored = latestStored.get();
+                    if (stored.getTrendState() == TrendState.UNKNOWN && stored.getCloseTime().isBefore(closeTime)) {
+                        // Update existing UNKNOWN state to current candle time
+                        stored.setCloseTime(closeTime);
+                        signalStateRepository.save(stored);
+                        return new ProcessingStats(0, 1, 0);
+                    }
+                }
+            }
             return new ProcessingStats(0, 0, 0);
         }
 

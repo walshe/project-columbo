@@ -128,6 +128,33 @@ class SignalStateRepositoryTest {
     }
 
     @Test
+    void shouldFindLatestIncludingUnknownForActiveAssets() {
+        // Given
+        Asset btc = assetRepository.save(new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true));
+        Asset eth = assetRepository.save(new Asset("ETHUSDT", "Ethereum", MarketProvider.BINANCE, true));
+
+        OffsetDateTime t1 = OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+
+        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.BULLISH, SignalEvent.NONE));
+        signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.UNKNOWN, SignalEvent.NONE));
+
+        // When
+        OffsetDateTime boundary = t1.plusDays(1);
+        List<SignalState> latest = signalStateRepository.findLatestFinalizedForActiveAssets(Timeframe.D1, IndicatorType.SUPERTREND, boundary);
+
+        // Then
+        assertThat(latest).hasSize(2);
+        assertThat(latest).anySatisfy(s -> {
+            assertThat(s.getAsset().getSymbol()).isEqualTo("BTCUSDT");
+            assertThat(s.getTrendState()).isEqualTo(TrendState.BULLISH);
+        });
+        assertThat(latest).anySatisfy(s -> {
+            assertThat(s.getAsset().getSymbol()).isEqualTo("ETHUSDT");
+            assertThat(s.getTrendState()).isEqualTo(TrendState.UNKNOWN);
+        });
+    }
+
+    @Test
     void shouldFindLatestFlipsForActiveAssets() {
         // Given
         Asset btc = assetRepository.save(new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true));

@@ -2,13 +2,13 @@ services:
   postgres:
     image: 'postgres:15.5'
     environment:
-      - 'POSTGRES_DB=mydatabase'
+      - 'POSTGRES_DB=columbo'
       - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
+      - 'POSTGRES_USER=emmett'
     ports:
       - '5432:5432'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d mydatabase -U myuser"]
+      test: ["CMD-SHELL", "pg_isready -d columbo -U emmett"]
       interval: 5s
       timeout: 5s
       retries: 5

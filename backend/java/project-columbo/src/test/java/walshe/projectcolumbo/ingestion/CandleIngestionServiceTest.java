@@ -4,6 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.client.HttpClientErrorException;
 import walshe.projectcolumbo.marketdata.CandleDto;
 import walshe.projectcolumbo.marketdata.MarketDataProvider;
 import walshe.projectcolumbo.persistence.*;
@@ -16,6 +18,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -29,6 +32,8 @@ class CandleIngestionServiceTest {
     private MarketDataProvider binanceProvider;
     @Mock
     private IngestionOrchestrator orchestrator;
+    @Mock
+    private CandlePersistenceService candlePersistenceService;
 
     private CandleIngestionService candleIngestionService;
 
@@ -37,11 +42,11 @@ class CandleIngestionServiceTest {
         MockitoAnnotations.openMocks(this);
         when(binanceProvider.getProviderName()).thenReturn("BINANCE");
         IngestionProperties ingestionProperties = new IngestionProperties(OffsetDateTime.parse("2020-01-01T00:00:00Z"));
-        candleIngestionService = new CandleIngestionService(assetRepository, candleRepository, List.of(binanceProvider), orchestrator, ingestionProperties);
+        candleIngestionService = new CandleIngestionService(assetRepository, candleRepository, List.of(binanceProvider), orchestrator, ingestionProperties, candlePersistenceService);
     }
 
     @Test
-    void ingestDaily_shouldFilterNonFinalizedCandles() {
+    void ingestDaily_shouldDelegateToPersistenceService() {
         // Given
         Asset btc = new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true);
         when(assetRepository.findByActiveTrue()).thenReturn(List.of(btc));
@@ -49,19 +54,17 @@ class CandleIngestionServiceTest {
         Instant now = Instant.now();
         Instant todayUtcStart = now.atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).toInstant();
         Instant yesterday = todayUtcStart.minus(1, ChronoUnit.DAYS);
-        Instant twoDaysAgo = todayUtcStart.minus(2, ChronoUnit.DAYS);
 
-        CandleDto oldCandle = new CandleDto(BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ONE, new BigDecimal("5"), BigDecimal.valueOf(100), twoDaysAgo, twoDaysAgo.plus(1, ChronoUnit.DAYS).minusMillis(1));
         CandleDto finalizedCandle = new CandleDto(BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ONE, new BigDecimal("5"), BigDecimal.valueOf(100), yesterday, yesterday.plus(1, ChronoUnit.DAYS).minusMillis(1));
-        CandleDto nonFinalizedCandle = new CandleDto(BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ONE, new BigDecimal("5"), BigDecimal.valueOf(100), todayUtcStart, now);
 
-        when(binanceProvider.fetchDailyCandles(eq("BTCUSDT"), any(), any())).thenReturn(List.of(oldCandle, finalizedCandle, nonFinalizedCandle));
+        when(binanceProvider.fetchDailyCandles(eq("BTCUSDT"), any(), any())).thenReturn(List.of(finalizedCandle));
+        when(candlePersistenceService.persistCandles(any(), any(), any(), any())).thenReturn(new CandleIngestionService.IngestionStats());
 
         // When
         candleIngestionService.ingestDaily();
 
         // Then
-        verify(candleRepository, times(2)).save(any(Candle.class));
+        verify(candlePersistenceService).persistCandles(eq(btc), eq(List.of(finalizedCandle)), any(Instant.class), any());
     }
 
     @Test
@@ -72,47 +75,31 @@ class CandleIngestionServiceTest {
         
         // Use a service without providers
         IngestionProperties ingestionProperties = new IngestionProperties(OffsetDateTime.parse("2020-01-01T00:00:00Z"));
-        CandleIngestionService serviceNoProviders = new CandleIngestionService(assetRepository, candleRepository, List.of(), orchestrator, ingestionProperties);
+        CandleIngestionService serviceNoProviders = new CandleIngestionService(assetRepository, candleRepository, List.of(), orchestrator, ingestionProperties, candlePersistenceService);
 
         // When
         serviceNoProviders.ingestDaily();
 
         // Then
-        verify(candleRepository, never()).save(any(Candle.class));
+        verify(candlePersistenceService, never()).persistCandles(any(), any(), any(), any());
     }
 
     @Test
     void ingestDaily_shouldDetectRevisions() {
+        // This test logic is now handled in CandlePersistenceService.
+        // We just verify it's called.
         // Given
         Asset btc = new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true);
         when(assetRepository.findByActiveTrue()).thenReturn(List.of(btc));
 
-        Instant yesterday = Instant.now().atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).toInstant().minus(1, ChronoUnit.DAYS);
-        OffsetDateTime yesterdayOd = OffsetDateTime.ofInstant(yesterday, ZoneOffset.UTC);
-
-        CandleDto dto = new CandleDto(BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ONE, new BigDecimal("6"), BigDecimal.valueOf(100), yesterday.minus(1, ChronoUnit.DAYS), yesterday);
-        
-        Candle existing = new Candle();
-        existing.setAsset(btc);
-        existing.setTimeframe(Timeframe.D1);
-        existing.setCloseTime(yesterdayOd);
-        existing.setClose(new BigDecimal("5")); // Different from DTO
-        existing.setOpen(BigDecimal.ONE);
-        existing.setHigh(BigDecimal.TEN);
-        existing.setLow(BigDecimal.ONE);
-        existing.setVolume(BigDecimal.valueOf(100));
-        existing.setSource(MarketProvider.BINANCE);
-
+        CandleDto dto = new CandleDto(BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ONE, new BigDecimal("6"), BigDecimal.valueOf(100), Instant.now().minus(1, ChronoUnit.DAYS), Instant.now());
         when(binanceProvider.fetchDailyCandles(eq("BTCUSDT"), any(), any())).thenReturn(List.of(dto));
-        when(candleRepository.findByAssetAndTimeframeAndCloseTime(eq(btc), eq(Timeframe.D1), eq(yesterdayOd)))
-                .thenReturn(Optional.of(existing));
 
         // When
         candleIngestionService.ingestDaily();
 
         // Then
-        verify(candleRepository, times(1)).save(existing);
-        assert existing.getClose().compareTo(new BigDecimal("6")) == 0;
+        verify(candlePersistenceService).persistCandles(eq(btc), any(), any(), any());
     }
 
     @Test
@@ -184,5 +171,34 @@ class CandleIngestionServiceTest {
         candleIngestionService.scheduledIngest();
 
         verify(orchestrator).runInternal(any(), any());
+    }
+
+    @Test
+    void ingestForAsset_shouldMarkAssetInactiveOnBinanceInvalidSymbolError() {
+        // Given
+        Asset cro = new Asset("CRO", "Cronos", MarketProvider.BINANCE, true);
+        cro.setId(10L);
+        when(assetRepository.findByActiveTrue()).thenReturn(List.of(cro));
+
+        // Mock Binance throwing 400 Bad Request with -1121 code in body
+        String errorBody = "{\"code\":-1121,\"msg\":\"Invalid symbol.\"}";
+        HttpClientErrorException exception = HttpClientErrorException.create(
+                HttpStatus.BAD_REQUEST, 
+                "Bad Request", 
+                null, 
+                errorBody.getBytes(), 
+                null
+        );
+        
+        when(binanceProvider.fetchDailyCandles(any(), any(), any())).thenThrow(exception);
+
+        // When
+        CandleIngestionService.IngestionStats stats = candleIngestionService.ingestDaily();
+
+        // Then
+        assertThat(cro.isActive()).isFalse();
+        verify(assetRepository).save(cro);
+        assertThat(stats.errorCount).isEqualTo(1);
+        assertThat(stats.firstErrorMessage).contains("Invalid symbol: CRO");
     }
 }

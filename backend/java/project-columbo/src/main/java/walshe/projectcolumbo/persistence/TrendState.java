@@ -2,5 +2,6 @@ package walshe.projectcolumbo.persistence;
 
 public enum TrendState {
     BULLISH,
-    BEARISH
+    BEARISH,
+    UNKNOWN
 }

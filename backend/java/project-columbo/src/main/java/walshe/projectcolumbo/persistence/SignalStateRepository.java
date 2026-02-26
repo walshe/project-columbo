@@ -56,6 +56,28 @@ public interface SignalStateRepository extends JpaRepository<SignalState, Long> 
             @Param("boundary") OffsetDateTime boundary
     );
 
+    @Query("""
+           SELECT s FROM SignalState s
+           JOIN FETCH s.asset a
+           WHERE a.active = true
+             AND s.timeframe = :timeframe
+             AND s.indicatorType = :indicatorType
+             AND s.closeTime < :boundary
+             AND s.closeTime = (
+                 SELECT MIN(s2.closeTime)
+                 FROM SignalState s2
+                 WHERE s2.asset.id = s.asset.id
+                   AND s2.timeframe = :timeframe
+                   AND s2.indicatorType = :indicatorType
+                   AND s2.closeTime < :boundary
+             )
+           """)
+    List<SignalState> findEarliestFinalizedForActiveAssets(
+            @Param("timeframe") Timeframe timeframe,
+            @Param("indicatorType") IndicatorType indicatorType,
+            @Param("boundary") OffsetDateTime boundary
+    );
+
     Optional<SignalState> findFirstByAssetIdAndTimeframeAndIndicatorTypeOrderByCloseTimeDesc(
             Long assetId,
             Timeframe timeframe,

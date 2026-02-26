@@ -80,7 +80,7 @@ public class MarketPipelineService {
             logger.info("Starting phase: INDICATOR");
             long indicatorStartTime = System.currentTimeMillis();
             // Using default parameters for SuperTrend (10, 3.0)
-            superTrendService.processAllActiveAssets(actualTimeframe, 10, new BigDecimal("3.0"), false);
+            superTrendService.processAllActiveAssets(actualTimeframe, 10, new BigDecimal("2.0"), false);
             logger.info("Completed phase: INDICATOR in {}ms", System.currentTimeMillis() - indicatorStartTime);
 
             // PHASE 3: Signal Detection
