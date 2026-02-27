@@ -41,8 +41,7 @@ class MarketPulseServiceTest {
         OffsetDateTime closeTime = OffsetDateTime.of(2026, 2, 25, 23, 59, 59, 999000000, ZoneOffset.UTC);
         
         // 21 bullish, 20 bearish = 41 total present. 19 missing.
-        // User example: 21 bullish, 20 bearish, 19 missing, 60 total.
-        // New Ratio = 21 / 41 = 0.5122
+        // Ratio = 21 / 41 = 0.5122
         
         List<SignalState> states = new java.util.ArrayList<>();
         for (int i = 0; i < 21; i++) {
@@ -52,17 +51,23 @@ class MarketPulseServiceTest {
             states.add(new SignalState(asset1, Timeframe.D1, IndicatorType.SUPERTREND, closeTime, TrendState.BEARISH, SignalEvent.NONE));
         }
         
-        when(signalStateRepository.findLatestFinalizedForActiveAssets(any(), any(), any())).thenReturn(states);
-        when(snapshotRepository.findByTimeframeAndIndicatorTypeAndSnapshotCloseTime(any(), any(), any())).thenReturn(Optional.empty());
+        // Mocking for SUPERTREND (the only indicator for now)
+        when(signalStateRepository.findLatestFinalizedForActiveAssets(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), any()))
+                .thenReturn(states);
+        when(snapshotRepository.findByTimeframeAndIndicatorTypeAndSnapshotCloseTime(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), any()))
+                .thenReturn(Optional.empty());
 
         // When
         service.computeDaily();
 
         // Then
         ArgumentCaptor<MarketBreadthSnapshot> captor = ArgumentCaptor.forClass(MarketBreadthSnapshot.class);
-        verify(snapshotRepository).save(captor.capture());
+        verify(snapshotRepository, atLeastOnce()).save(captor.capture());
         
-        MarketBreadthSnapshot snapshot = captor.getValue();
+        MarketBreadthSnapshot snapshot = captor.getAllValues().stream()
+                .filter(s -> s.getIndicatorType() == IndicatorType.SUPERTREND)
+                .findFirst().orElseThrow();
+                
         assertThat(snapshot.getBullishCount()).isEqualTo(21);
         assertThat(snapshot.getBearishCount()).isEqualTo(20);
         assertThat(snapshot.getMissingCount()).isEqualTo(19);

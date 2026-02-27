@@ -30,9 +30,14 @@ public class MarketPulseService {
     @Transactional
     public void computeDaily() {
         log.info("Starting MarketPulse aggregation (Breadth Snapshots)");
-        
         Timeframe timeframe = Timeframe.D1;
-        IndicatorType indicatorType = IndicatorType.SUPERTREND;
+        for (IndicatorType type : IndicatorType.values()) {
+            computePulseForIndicator(timeframe, type);
+        }
+    }
+
+    private void computePulseForIndicator(Timeframe timeframe, IndicatorType indicatorType) {
+        log.debug("Computing MarketPulse for indicator: {}", indicatorType);
         OffsetDateTime boundary = CandleFilters.utcMidnightToday(OffsetDateTime.now());
 
         // For now, we only compute for the latest finalized day to keep it simple and align with daily pipeline
@@ -49,7 +54,7 @@ public class MarketPulseService {
          List<SignalState> latestStates = signalStateRepository.findLatestFinalizedForActiveAssets(timeframe, indicatorType, boundary);
         
         if (latestStates.isEmpty()) {
-            log.info("No signal states found to aggregate for MarketPulse");
+            log.info("No signal states found to aggregate for MarketPulse (Indicator: {})", indicatorType);
             return;
         }
 
