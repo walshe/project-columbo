@@ -31,25 +31,25 @@ Story 009 — Add RSI Indicator — Tasks
   - [x] Validate uniqueness and ordering
 
 #### ⚙️ Phase 3 — RSI Computation Service
-- [ ] Implement `RsiCalculator`
-- [ ] Fetch last 15 OHLC closes from `ohlc` table
-- [ ] Compute RSI via 14-period Wilder’s formula:
-  - [ ] `RS = avgGain / avgLoss;`
-  - [ ] `RSI = 100 - (100 / (1 + RS));`
-- [ ] Handle division by zero (no loss period)
-- [ ] Persist computed RSI to `indicator_rsi`
-- [ ] Skip insert if RSI unchanged for same `close_time`
-- [ ] Add unit test:
-  - [ ] Seed synthetic OHLC closes
-  - [ ] Assert correct RSI output for known examples
+- [x] Implement `RsiCalculator`
+- [x] Fetch last 15 OHLC closes from `ohlc` table
+- [x] Compute RSI via 14-period Wilder’s formula:
+  - [x] `RS = avgGain / avgLoss;`
+  - [x] `RSI = 100 - (100 / (1 + RS));`
+- [x] Handle division by zero (no loss period)
+- [x] Persist computed RSI to `indicator_rsi`
+- [x] Skip insert if RSI unchanged for same `close_time`
+- [x] Add unit test:
+  - [x] Seed synthetic OHLC closes
+  - [x] Assert correct RSI output for known examples
 
 #### 🔄 Phase 4 — SignalState Integration
-- [ ] Extend `SignalStateService`:
-  - [ ] Add method `computeForRsi(Asset asset, Timeframe tf, OffsetDateTime closeTime, BigDecimal rsiValue)`
-- [ ] Implement classification:
-  - [ ] `rsi >= 60` → `ABOVE_60`
-  - [ ] `rsi <= 40` → `BELOW_40`
-  - [ ] `otherwise` → `NEUTRAL`
+- [x] Extend `SignalStateService`:
+  - [x] Add method `computeForRsi(Asset asset, Timeframe tf, OffsetDateTime closeTime, BigDecimal rsiValue)`
+- [x] Implement classification:
+  - [x] `rsi >= 60` → `ABOVE_60`
+  - [x] `rsi <= 40` → `BELOW_40`
+  - [x] `otherwise` → `NEUTRAL`
 - [x] Implement event detection:
   - [x] Detect any trend change as an event (e.g., NEUTRAL -> ABOVE_60)
   - [x] `BELOW_40` → `ABOVE_60` → `CROSSED_ABOVE_60`
@@ -63,35 +63,35 @@ Story 009 — Add RSI Indicator — Tasks
   - [x] No trend change generates no event
 
 #### 🕓 Phase 5 — Scheduler & Integration
-- [ ] Update `IndicatorComputationScheduler`:
-  - [ ] After SuperTrend computation → trigger RSI computation
-- [ ] Reuse same asset list and timeframe logic
-- [ ] Skip already-finalized RSI rows
-- [ ] Verify integrated flow:
-  - [ ] `OHLC → RSI → SignalState`
-- [ ] Confirm new rows in both `indicator_rsi` and `signal_state`
-- [ ] Confirm MarketPulse picks up RSI automatically
-- [ ] Validate incremental re-runs (no duplication)
+- [x] Update `IndicatorComputationScheduler`:
+  - [x] After SuperTrend computation → trigger RSI computation
+- [x] Reuse same asset list and timeframe logic
+- [x] Skip already-finalized RSI rows
+- [x] Verify integrated flow:
+  - [x] `OHLC → RSI → SignalState`
+- [x] Confirm new rows in both `indicator_rsi` and `signal_state`
+- [x] Confirm MarketPulse picks up RSI automatically
+- [x] Validate incremental re-runs (no duplication)
 
 #### 🧪 Phase 6 — Testing & Validation
-- [ ] Unit tests:
-  - [ ] RSI formula correctness (compare to known values)
-  - [ ] Classification and event transitions
-- [ ] Repository tests:
-  - [ ] Unique constraint + retrieval ordering
-- [ ] Integration tests (Testcontainers):
-  - [ ] End-to-end flow with seeded OHLC data
-  - [ ] Idempotent re-run verification
-  - [ ] Multi-asset scenario (2+ assets)
-- [ ] Validate output in MarketPulse aggregation
-- [ ] Ensure `indicator_type=RSI` rows contribute correctly
-- [ ] Confirm performance acceptable (<200ms per asset)
+- [x] Unit tests:
+  - [x] RSI formula correctness (compare to known values)
+  - [x] Classification and event transitions
+- [x] Repository tests:
+  - [x] Unique constraint + retrieval ordering
+- [x] Integration tests (Testcontainers):
+  - [x] End-to-end flow with seeded OHLC data
+  - [x] Idempotent re-run verification
+  - [x] Multi-asset scenario (2+ assets)
+- [x] Validate output in MarketPulse aggregation
+- [x] Ensure `indicator_type=RSI` rows contribute correctly
+- [x] Confirm performance acceptable (<200ms per asset)
 
 #### ✅ Deliverables
-- [ ] New Flyway migration for RSI schema
-- [ ] `Rsiindicator` JPA entity + repository
-- [ ] `RsiCCalculator`
-- [ ] Extended `SignalStateService` for RSI events
-- [ ] Updated scheduler to trigger RSI computation
-- [ ] Complete unit + integration test coverage
-- [ ] Verified RSI visible via MarketPulse aggregation
+- [x] New Flyway migration for RSI schema
+- [x] `Rsiindicator` JPA entity + repository
+- [x] `RsiCCalculator`
+- [x] Extended `SignalStateService` for RSI events
+- [x] Updated scheduler to trigger RSI computation
+- [x] Complete unit + integration test coverage
+- [x] Verified RSI visible via MarketPulse aggregation
