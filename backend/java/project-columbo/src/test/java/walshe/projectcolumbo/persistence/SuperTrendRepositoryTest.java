@@ -30,10 +30,14 @@ class SuperTrendRepositoryTest {
     @Autowired
     private CandleRepository candleRepository;
 
+    @Autowired
+    private RsiRepository rsiRepository;
+
     @BeforeEach
     void setUp() {
         signalStateRepository.deleteAll();
         superTrendRepository.deleteAll();
+        rsiRepository.deleteAll();
         candleRepository.deleteAll();
         assetRepository.deleteAll();
     }

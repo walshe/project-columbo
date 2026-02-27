@@ -10,6 +10,7 @@ import walshe.projectcolumbo.persistence.SuperTrendService;
 import walshe.projectcolumbo.persistence.Timeframe;
 import walshe.projectcolumbo.persistence.MarketPulseService;
 import walshe.projectcolumbo.persistence.IndicatorType;
+import walshe.projectcolumbo.persistence.RsiComputationService;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -22,6 +23,7 @@ public class MarketPipelineService {
 
     private final CandleIngestionService candleIngestionService;
     private final SuperTrendService superTrendService;
+    private final RsiComputationService rsiComputationService;
     private final SignalStateService signalStateService;
     private final MarketPulseService marketPulseService;
     private final IngestionRunRepository ingestionRunRepository;
@@ -30,6 +32,7 @@ public class MarketPipelineService {
 
     public MarketPipelineService(CandleIngestionService candleIngestionService,
                                  SuperTrendService superTrendService,
+                                 RsiComputationService rsiComputationService,
                                  SignalStateService signalStateService,
                                  MarketPulseService marketPulseService,
                                  IngestionRunRepository ingestionRunRepository,
@@ -37,6 +40,7 @@ public class MarketPipelineService {
                                  IngestionOrchestrator orchestrator) {
         this.candleIngestionService = candleIngestionService;
         this.superTrendService = superTrendService;
+        this.rsiComputationService = rsiComputationService;
         this.signalStateService = signalStateService;
         this.marketPulseService = marketPulseService;
         this.ingestionRunRepository = ingestionRunRepository;
@@ -79,8 +83,10 @@ public class MarketPipelineService {
             // PHASE 2: Indicator Computation
             logger.info("Starting phase: INDICATOR");
             long indicatorStartTime = System.currentTimeMillis();
-            // Using default parameters for SuperTrend (10, 3.0)
+            // Using default parameters for SuperTrend (10, 2.0)
             superTrendService.processAllActiveAssets(actualTimeframe, 10, new BigDecimal("2.0"), false);
+            // Using default parameter for RSI (14)
+            rsiComputationService.computeForActiveAssets(actualTimeframe, 14, false);
             logger.info("Completed phase: INDICATOR in {}ms", System.currentTimeMillis() - indicatorStartTime);
 
             // PHASE 3: Signal Detection

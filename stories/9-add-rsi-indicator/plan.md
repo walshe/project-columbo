@@ -64,13 +64,13 @@
     * `rsi >= 60 → ABOVE_60`
     * `rsi <= 40 → BELOW_40`
     * otherwise `NEUTRAL`
-* [ ] Event detection:
-
+* [x] Event detection:
+    * Any trend change is an event (NEUTRAL → ABOVE_60, etc.)
     * BELOW_40 → ABOVE_60 → `CROSSED_ABOVE_60`
     * ABOVE_60 → BELOW_40 → `CROSSED_BELOW_40`
     * Else → `NONE`
-* [ ] Persist to shared `signal_state` table
-* [ ] Ensure idempotency and correct event continuity
+* [x] Persist to shared `signal_state` table
+* [x] Ensure idempotency and correct event continuity
 
 ---
 

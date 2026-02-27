@@ -33,12 +33,16 @@ class SignalStateServiceLogicTest {
     @Autowired
     private CandleRepository candleRepository;
 
+    @Autowired
+    private RsiRepository rsiRepository;
+
     private Asset btc;
 
     @BeforeEach
     void setUp() {
         signalStateRepository.deleteAll();
         superTrendRepository.deleteAll();
+        rsiRepository.deleteAll();
         candleRepository.deleteAll();
         assetRepository.deleteAll();
 

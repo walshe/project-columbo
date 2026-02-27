@@ -48,6 +48,9 @@ class MarketPipelineIntegrationTest {
     @Autowired
     private IngestionRunRepository ingestionRunRepository;
 
+    @Autowired
+    private RsiRepository rsiRepository;
+
     @MockitoBean(name = "binanceMarketDataProvider")
     private MarketDataProvider binanceProvider;
 
@@ -55,6 +58,7 @@ class MarketPipelineIntegrationTest {
     void setUp() {
         signalStateRepository.deleteAll();
         superTrendRepository.deleteAll();
+        rsiRepository.deleteAll();
         candleRepository.deleteAll();
         marketBreadthSnapshotRepository.deleteAll();
         ingestionRunRepository.deleteAll();

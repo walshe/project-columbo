@@ -36,6 +36,9 @@ class SuperTrendServiceTest {
     private SignalStateRepository signalStateRepository;
 
     @Autowired
+    private RsiRepository rsiRepository;
+
+    @Autowired
     private EntityManager entityManager;
 
     private Asset btc;
@@ -44,6 +47,7 @@ class SuperTrendServiceTest {
     void setUp() {
         signalStateRepository.deleteAllInBatch();
         superTrendRepository.deleteAllInBatch();
+        rsiRepository.deleteAllInBatch();
         candleRepository.deleteAllInBatch();
         assetRepository.deleteAllInBatch();
 

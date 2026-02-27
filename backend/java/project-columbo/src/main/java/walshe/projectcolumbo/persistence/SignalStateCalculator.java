@@ -2,6 +2,7 @@ package walshe.projectcolumbo.persistence;
 
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,5 +64,39 @@ class SignalStateCalculator {
      */
     private TrendState mapDirection(SuperTrendDirection direction) {
         return direction == SuperTrendDirection.UP ? TrendState.BULLISH : TrendState.BEARISH;
+    }
+    /**
+     * Calculates the RSI trend states and events.
+     */
+    public List<SignalStateResult> calculateRsi(List<RsiIndicator> indicators, TrendState previousTrend) {
+        List<SignalStateResult> results = new ArrayList<>();
+        TrendState lastTrend = previousTrend;
+
+        for (RsiIndicator indicator : indicators) {
+            BigDecimal rsi = indicator.getRsiValue();
+            TrendState currentTrend;
+            
+            if (rsi.compareTo(BigDecimal.valueOf(60)) >= 0) {
+                currentTrend = TrendState.ABOVE_60;
+            } else if (rsi.compareTo(BigDecimal.valueOf(40)) <= 0) {
+                currentTrend = TrendState.BELOW_40;
+            } else {
+                currentTrend = TrendState.NEUTRAL;
+            }
+
+            SignalEvent event = SignalEvent.NONE;
+            if (lastTrend != null && lastTrend != currentTrend) {
+                if (currentTrend == TrendState.ABOVE_60) {
+                    event = SignalEvent.CROSSED_ABOVE_60;
+                } else if (currentTrend == TrendState.BELOW_40) {
+                    event = SignalEvent.CROSSED_BELOW_40;
+                }
+            }
+
+            results.add(new SignalStateResult(indicator.getCloseTime(), currentTrend, event));
+            lastTrend = currentTrend;
+        }
+
+        return results;
     }
 }

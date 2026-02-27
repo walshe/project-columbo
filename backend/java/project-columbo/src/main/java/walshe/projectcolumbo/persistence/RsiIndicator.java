@@ -9,7 +9,7 @@ import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "indicator_rsi")
-class RsiIndicator {
+public class RsiIndicator {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

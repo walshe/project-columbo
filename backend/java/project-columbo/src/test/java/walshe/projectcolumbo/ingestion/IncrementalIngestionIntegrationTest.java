@@ -37,6 +37,9 @@ class IncrementalIngestionIntegrationTest {
     @Autowired
     private CandleRepository candleRepository;
 
+    @Autowired
+    private RsiRepository rsiRepository;
+
     @MockitoBean(name = "binanceMarketDataProvider")
     private MarketDataProvider binanceProvider;
 
@@ -45,6 +48,7 @@ class IncrementalIngestionIntegrationTest {
     @BeforeEach
     void setUp() {
         candleRepository.deleteAll();
+        rsiRepository.deleteAll();
         assetRepository.deleteAll();
 
         when(binanceProvider.getProviderName()).thenReturn("BINANCE");

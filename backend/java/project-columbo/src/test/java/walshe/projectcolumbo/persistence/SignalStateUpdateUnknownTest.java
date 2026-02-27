@@ -30,10 +30,14 @@ class SignalStateUpdateUnknownTest {
     @Autowired
     private AssetRepository assetRepository;
 
+    @Autowired
+    private RsiRepository rsiRepository;
+
     @BeforeEach
     void setUp() {
         signalStateRepository.deleteAll();
         superTrendRepository.deleteAll();
+        rsiRepository.deleteAll();
         candleRepository.deleteAll();
         assetRepository.deleteAll();
     }

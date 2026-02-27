@@ -22,11 +22,23 @@ class RsiRepositoryTest {
     private RsiRepository rsiRepository;
 
     @Autowired
+    private SignalStateRepository signalStateRepository;
+
+    @Autowired
+    private SuperTrendRepository superTrendRepository;
+
+    @Autowired
+    private CandleRepository candleRepository;
+
+    @Autowired
     private AssetRepository assetRepository;
 
     @BeforeEach
     void setUp() {
+        signalStateRepository.deleteAll();
+        superTrendRepository.deleteAll();
         rsiRepository.deleteAll();
+        candleRepository.deleteAll();
         assetRepository.deleteAll();
     }
 

@@ -100,27 +100,25 @@ class SignalQueryServiceTest {
     }
     
     @Test
-    void shouldFallbackToEarliestStateIfNoFlipFound() {
+    void shouldReturnNullFlipTimeIfNoFlipFound() {
         Asset bch = new Asset("BCH", "Bitcoin Cash", MarketProvider.BINANCE, true);
         bch.setId(9L);
         
-        OffsetDateTime earliestTime = boundary.minusDays(30);
         SignalState bchLatest = new SignalState(bch, Timeframe.D1, IndicatorType.SUPERTREND, boundary.minusDays(1), TrendState.BEARISH, SignalEvent.NONE);
-        SignalState bchEarliest = new SignalState(bch, Timeframe.D1, IndicatorType.SUPERTREND, earliestTime, TrendState.BEARISH, SignalEvent.NONE);
 
         when(signalStateRepository.findLatestFinalizedForActiveAssets(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(boundary)))
                 .thenReturn(List.of(bchLatest));
         when(signalStateRepository.findLatestFinalizedFlipsForActiveAssets(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(boundary)))
                 .thenReturn(List.of());
         when(signalStateRepository.findEarliestFinalizedForActiveAssets(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(boundary)))
-                .thenReturn(List.of(bchEarliest));
+                .thenReturn(List.of());
 
         List<SignalStateDto> result = service.listSignals(Timeframe.D1, IndicatorType.SUPERTREND, null, null);
         
         assertThat(result).hasSize(1);
         assertThat(result.get(0).symbol()).isEqualTo("BCH");
-        assertThat(result.get(0).lastFlipTime()).isEqualTo(earliestTime);
-        assertThat(result.get(0).daysSinceFlip()).isNotNull();
+        assertThat(result.get(0).lastFlipTime()).isNull();
+        assertThat(result.get(0).daysSinceFlip()).isNull();
     }
 
     @Test
@@ -179,31 +177,29 @@ class SignalQueryServiceTest {
         OffsetDateTime btcLatestTime = boundary.minusDays(1);
         OffsetDateTime xrpLatestTime = boundary.minusDays(1);
         OffsetDateTime btcFlipTime = boundary.minusDays(5);
-        OffsetDateTime xrpEarliestTime = boundary.minusDays(10);
 
         SignalState btcLatest = new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, btcLatestTime, TrendState.BULLISH, SignalEvent.NONE);
         SignalState xrpLatest = new SignalState(xrp, Timeframe.D1, IndicatorType.SUPERTREND, xrpLatestTime, TrendState.UNKNOWN, SignalEvent.NONE);
 
         SignalState btcFlip = new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, btcFlipTime, TrendState.BULLISH, SignalEvent.BULLISH_REVERSAL);
-        SignalState xrpEarliest = new SignalState(xrp, Timeframe.D1, IndicatorType.SUPERTREND, xrpEarliestTime, TrendState.UNKNOWN, SignalEvent.NONE);
 
         when(signalStateRepository.findLatestFinalizedForActiveAssets(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(boundary)))
                 .thenReturn(List.of(btcLatest, xrpLatest));
         when(signalStateRepository.findLatestFinalizedFlipsForActiveAssets(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(boundary)))
                 .thenReturn(List.of(btcFlip));
         when(signalStateRepository.findEarliestFinalizedForActiveAssets(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(boundary)))
-                .thenReturn(List.of(xrpEarliest));
+                .thenReturn(List.of());
 
-        // Test LAST_FLIP_DESC (newest first)
+        // Test LAST_FLIP_DESC (newest first, nulls last)
         List<SignalStateDto> result = service.listSignals(Timeframe.D1, IndicatorType.SUPERTREND, null, SignalSort.LAST_FLIP_DESC);
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).symbol()).isEqualTo("BTC"); // 5 days ago (newest)
-        assertThat(result.get(1).symbol()).isEqualTo("XRP"); // 10 days ago (oldest)
+        assertThat(result.get(0).symbol()).isEqualTo("BTC"); // 5 days ago
+        assertThat(result.get(1).symbol()).isEqualTo("XRP"); // null
 
-        // Test LAST_FLIP_ASC (oldest first)
+        // Test LAST_FLIP_ASC (oldest first, nulls last)
         result = service.listSignals(Timeframe.D1, IndicatorType.SUPERTREND, null, SignalSort.LAST_FLIP_ASC);
-        assertThat(result.get(0).symbol()).isEqualTo("XRP"); // 10 days ago
-        assertThat(result.get(1).symbol()).isEqualTo("BTC"); // 5 days ago
+        assertThat(result.get(0).symbol()).isEqualTo("BTC"); // 5 days ago
+        assertThat(result.get(1).symbol()).isEqualTo("XRP"); // null
     }
 
     @Test

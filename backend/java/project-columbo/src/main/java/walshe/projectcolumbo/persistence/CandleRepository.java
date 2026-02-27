@@ -19,6 +19,9 @@ public interface CandleRepository extends JpaRepository<Candle, Long> {
 
     Optional<Candle> findFirstByAssetAndTimeframeAndCloseTimeBeforeOrderByCloseTimeDesc(Asset asset, Timeframe timeframe, OffsetDateTime boundary);
 
+    @Query(value = "SELECT * FROM candle WHERE asset_id = :assetId AND timeframe = CAST(:timeframe AS timeframe) ORDER BY close_time DESC LIMIT :limit", nativeQuery = true)
+    List<Candle> findRecentByAssetAndTimeframe(@Param("assetId") Long assetId, @Param("timeframe") String timeframe, @Param("limit") int limit);
+
     @Query(value = "SELECT close_time FROM candle WHERE asset_id = :assetId AND timeframe = CAST(:timeframe AS timeframe) ORDER BY close_time DESC LIMIT 1", nativeQuery = true)
     Optional<Object> findLatestCloseTime(@Param("assetId") Long assetId, @Param("timeframe") String timeframe);
 }

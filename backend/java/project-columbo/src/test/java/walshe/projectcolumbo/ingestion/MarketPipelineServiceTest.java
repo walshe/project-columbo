@@ -22,6 +22,8 @@ class MarketPipelineServiceTest {
     @Mock
     private SuperTrendService superTrendService;
     @Mock
+    private RsiComputationService rsiComputationService;
+    @Mock
     private SignalStateService signalStateService;
     @Mock
     private MarketPulseService marketPulseService;
@@ -40,6 +42,7 @@ class MarketPipelineServiceTest {
         marketPipelineService = new MarketPipelineService(
                 candleIngestionService,
                 superTrendService,
+                rsiComputationService,
                 signalStateService,
                 marketPulseService,
                 ingestionRunRepository,
@@ -70,9 +73,10 @@ class MarketPipelineServiceTest {
         marketPipelineService.runDaily(MarketProvider.BINANCE, Timeframe.D1, RunMode.INCREMENTAL);
 
         // Then
-        InOrder inOrder = inOrder(candleIngestionService, superTrendService, signalStateService, marketPulseService);
+        InOrder inOrder = inOrder(candleIngestionService, superTrendService, rsiComputationService, signalStateService, marketPulseService);
         inOrder.verify(candleIngestionService).ingestDaily();
         inOrder.verify(superTrendService).processAllActiveAssets(eq(Timeframe.D1), anyInt(), any(), eq(false));
+        inOrder.verify(rsiComputationService).computeForActiveAssets(eq(Timeframe.D1), anyInt(), eq(false));
         inOrder.verify(signalStateService).detectDaily();
         inOrder.verify(marketPulseService).computeDaily();
     }
@@ -87,7 +91,7 @@ class MarketPipelineServiceTest {
 
         // Then
         verify(candleIngestionService).ingestDaily();
-        verifyNoInteractions(superTrendService, signalStateService, marketPulseService);
+        verifyNoInteractions(superTrendService, rsiComputationService, signalStateService, marketPulseService);
         
         // Verify orchestrator.finalizeRun was called with error
         verify(orchestrator).finalizeRun(any(IngestionRun.class), isNull(), any(Exception.class));
@@ -105,6 +109,6 @@ class MarketPipelineServiceTest {
         assertThrows(IngestionAlreadyRunningException.class, () -> 
                 marketPipelineService.runDaily(MarketProvider.BINANCE, Timeframe.D1, RunMode.INCREMENTAL));
         
-        verifyNoInteractions(candleIngestionService, superTrendService, signalStateService, marketPulseService);
+        verifyNoInteractions(candleIngestionService, superTrendService, rsiComputationService, signalStateService, marketPulseService);
     }
 }

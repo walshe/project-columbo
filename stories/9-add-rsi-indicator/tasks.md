@@ -50,15 +50,17 @@ Story 009 — Add RSI Indicator — Tasks
   - [ ] `rsi >= 60` → `ABOVE_60`
   - [ ] `rsi <= 40` → `BELOW_40`
   - [ ] `otherwise` → `NEUTRAL`
-- [ ] Implement event detection:
-  - [ ] `BELOW_40` → `ABOVE_60` → `CROSSED_ABOVE_60`
-  - [ ] `ABOVE_60` → `BELOW_40` → `CROSSED_BELOW_40`
-  - [ ] `else` → `NONE`
-- [ ] Upsert into `signal_state` table
-- [ ] Ensure idempotency (identical inputs = no DB diff)
-- [ ] Add test cases:
-  - [ ] Verify correct event transitions
-  - [ ] Neutral transitions generate no event
+- [x] Implement event detection:
+  - [x] Detect any trend change as an event (e.g., NEUTRAL -> ABOVE_60)
+  - [x] `BELOW_40` → `ABOVE_60` → `CROSSED_ABOVE_60`
+  - [x] `ABOVE_60` → `BELOW_40` → `CROSSED_BELOW_40`
+  - [x] `else` → `NONE`
+- [x] Upsert into `signal_state` table
+- [x] Ensure idempotency (identical inputs = no DB diff)
+- [x] Add test cases:
+  - [x] Verify correct event transitions
+  - [x] Neutral to trend states generate events
+  - [x] No trend change generates no event
 
 #### 🕓 Phase 5 — Scheduler & Integration
 - [ ] Update `IndicatorComputationScheduler`:

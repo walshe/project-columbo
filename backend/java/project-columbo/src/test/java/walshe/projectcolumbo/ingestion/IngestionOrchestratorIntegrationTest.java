@@ -11,6 +11,7 @@ import walshe.projectcolumbo.persistence.Asset;
 import walshe.projectcolumbo.persistence.AssetRepository;
 import walshe.projectcolumbo.persistence.MarketProvider;
 import walshe.projectcolumbo.persistence.Timeframe;
+import walshe.projectcolumbo.persistence.RsiRepository;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -32,12 +33,16 @@ class IngestionOrchestratorIntegrationTest {
     @Autowired
     private AssetRepository assetRepository;
 
+    @Autowired
+    private RsiRepository rsiRepository;
+
     @MockitoBean
     private CandleIngestionService candleIngestionService;
 
     @BeforeEach
     void setUp() {
         ingestionRunRepository.deleteAll();
+        rsiRepository.deleteAll();
         assetRepository.deleteAll();
     }
 
