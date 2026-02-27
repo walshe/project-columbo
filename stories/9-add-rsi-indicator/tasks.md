@@ -1,37 +1,37 @@
 Story 009 — Add RSI Indicator — Tasks
 
 #### 🧩 Phase 1 — Data Model & Migration
-- [ ] Create new Flyway migration file: `V009__add_indicator_rsi.sql`
-- [ ] Extend ENUMs:
-  - [ ] Add 'RSI' to `indicator_type`
-  - [ ] Add 'ABOVE_60', 'BELOW_40', 'NEUTRAL' to `trend_state`
-  - [ ] Add 'CROSSED_ABOVE_60', 'CROSSED_BELOW_40' to `event`
-- [ ] Create table `indicator_rsi` with:
-  - [ ] `id` BIGSERIAL PRIMARY KEY
-  - [ ] `asset_id` BIGINT REFERENCES asset(id)
-  - [ ] `timeframe` timeframe NOT NULL
-  - [ ] `close_time` TIMESTAMPTZ NOT NULL
-  - [ ] `rsi_value` NUMERIC(10,4) NOT NULL
-  - [ ] `created_at` TIMESTAMPTZ DEFAULT now()
-- [ ] Unique constraint `(asset_id, timeframe, close_time)`
-- [ ] Add index on `(asset_id, timeframe, close_time DESC)`
-- [ ] Validate migration with local PostgreSQL / Testcontainers
+- [x] Create new Flyway migration file: `V009__add_indicator_rsi.sql`
+- [x] Extend ENUMs:
+  - [x] Add 'RSI' to `indicator_type`
+  - [x] Add 'ABOVE_60', 'BELOW_40', 'NEUTRAL' to `trend_state`
+  - [x] Add 'CROSSED_ABOVE_60', 'CROSSED_BELOW_40' to `event`
+- [x] Create table `indicator_rsi` with:
+  - [x] `id` BIGSERIAL PRIMARY KEY
+  - [x] `asset_id` BIGINT REFERENCES asset(id)
+  - [x] `timeframe` timeframe NOT NULL
+  - [x] `close_time` TIMESTAMPTZ NOT NULL
+  - [x] `rsi_value` NUMERIC(10,4) NOT NULL
+  - [x] `created_at` TIMESTAMPTZ DEFAULT now()
+- [x] Unique constraint `(asset_id, timeframe, close_time)`
+- [x] Add index on `(asset_id, timeframe, close_time DESC)`
+- [x] Validate migration with local PostgreSQL / Testcontainers
 
 #### 🧠 Phase 2 — Domain & Repository
-- [ ] Create `IndicatorRsi` entity in `walshe.projectcolumbo.indicator.rsi`
-- [ ] Annotate with `@Entity` and `@Table(name = "indicator_rsi")`
-- [ ] Map timeframe using `@JdbcTypeCode(SqlTypes.NAMED_ENUM)`
-- [ ] Add relation to `Asset`
-- [ ] Map `rsiValue` as `BigDecimal`
-- [ ] Implement `IndicatorRsiRepository`:
-  - [ ] `Optional<IndicatorRsi> findLatestByAssetAndTimeframe(Asset asset, Timeframe tf)`
-  - [ ] `Optional<IndicatorRsi> findByAssetAndTimeframeAndCloseTime(Asset asset, Timeframe tf, OffsetDateTime closeTime)`
-- [ ] Add repository integration test:
-  - [ ] Persist and query RSI rows
-  - [ ] Validate uniqueness and ordering
+- [x] Create `RsiIndicator` entity in `walshe.projectcolumbo.persistence`
+- [x] Annotate with `@Entity` and `@Table(name = "indicator_rsi")`
+- [x] Map timeframe using `@JdbcTypeCode(SqlTypes.NAMED_ENUM)`
+- [x] Add relation to `Asset`
+- [x] Map `rsiValue` as `BigDecimal`
+- [x] Implement `RsiRepository`:
+  - [x] `Optional<RsiIndicator> findLatestByAssetAndTimeframe(Asset asset, Timeframe tf)`
+  - [x] `Optional<RsiIndicator> findByAssetAndTimeframeAndCloseTime(Asset asset, Timeframe tf, OffsetDateTime closeTime)`
+- [x] Add repository integration test:
+  - [x] Persist and query RSI rows
+  - [x] Validate uniqueness and ordering
 
 #### ⚙️ Phase 3 — RSI Computation Service
-- [ ] Implement `RsiComputationService`
+- [ ] Implement `RsiCalculator`
 - [ ] Fetch last 15 OHLC closes from `ohlc` table
 - [ ] Compute RSI via 14-period Wilder’s formula:
   - [ ] `RS = avgGain / avgLoss;`
@@ -87,8 +87,8 @@ Story 009 — Add RSI Indicator — Tasks
 
 #### ✅ Deliverables
 - [ ] New Flyway migration for RSI schema
-- [ ] `IndicatorRsi` JPA entity + repository
-- [ ] `RsiComputationService`
+- [ ] `Rsiindicator` JPA entity + repository
+- [ ] `RsiCCalculator`
 - [ ] Extended `SignalStateService` for RSI events
 - [ ] Updated scheduler to trigger RSI computation
 - [ ] Complete unit + integration test coverage

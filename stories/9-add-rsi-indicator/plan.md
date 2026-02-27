@@ -2,12 +2,12 @@
 
 ## Phase 1 — Data Model & Migration
 
-* [ ] Extend ENUMs:
+* [x] Extend ENUMs:
 
     * `indicator_type` → add `'RSI'`
     * `trend_state` → add `'ABOVE_60'`, `'BELOW_40'`, `'NEUTRAL'`
     * `event` → add `'CROSSED_ABOVE_60'`, `'CROSSED_BELOW_40'`
-* [ ] Create `indicator_rsi` table:
+* [x] Create `indicator_rsi` table:
 
     * `id BIGSERIAL PRIMARY KEY`
     * `asset_id BIGINT NOT NULL REFERENCES asset(id)`
@@ -16,29 +16,29 @@
     * `rsi_value NUMERIC(10,4) NOT NULL`
     * `created_at TIMESTAMPTZ DEFAULT now()`
     * Unique constraint `(asset_id, timeframe, close_time)`
-* [ ] Add indexes on `(asset_id, timeframe, close_time DESC)`
-* [ ] Verify Flyway migration runs cleanly
+* [x] Add indexes on `(asset_id, timeframe, close_time DESC)`
+* [x] Verify Flyway migration runs cleanly
 
 ---
 
 ## Phase 2 — Domain & Repository
 
-* [ ] Create `IndicatorRsi` JPA entity mirroring schema
-* [ ] Map `timeframe` using `@JdbcTypeCode(SqlTypes.NAMED_ENUM)`
-* [ ] Map relationships:
+* [x] Create `IndicatorRsi` JPA entity mirroring schema
+* [x] Map `timeframe` using `@JdbcTypeCode(SqlTypes.NAMED_ENUM)`
+* [x] Map relationships:
 
     * `asset` as `@ManyToOne(fetch = LAZY)`
-* [ ] Create `IndicatorRsiRepository`
+* [x] Create `RsiRepository`
 
     * `findLatestByAssetAndTimeframe(asset, timeframe)`
     * `findByAssetAndTimeframeAndCloseTime(asset, timeframe, closeTime)`
-* [ ] Add repository integration test using PostgreSQL Testcontainers
+* [x] Add repository integration test using PostgreSQL Testcontainers
 
 ---
 
 ## Phase 3 — RSI Computation Service
 
-* [ ] Create `RsiComputationService`
+* [ ] Create `RsiCalculator`
 
     * `computeForAsset(asset, timeframe)` method
     * Fetch last 15 OHLC close prices
@@ -78,7 +78,7 @@
 
 * [ ] Update `IndicatorComputationScheduler` to include RSI:
 
-    * After SuperTrend computation, call `RsiComputationService.computeForAsset`
+    * After SuperTrend computation, call `RsiCalculator.computeForAsset`
 * [ ] Ensure new `signal_state` rows appear for RSI
 * [ ] Validate integration end-to-end:
 
