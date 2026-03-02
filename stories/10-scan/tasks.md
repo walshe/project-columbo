@@ -1,65 +1,53 @@
 # Story 010 — Composable Market Scan API — Tasks
 
 ## 🧩 Phase 1 — API Contract & DTOs
-
-* [ ] Define REST endpoint:
+1. [x] Define REST endpoint:
   `POST /api/v1/scan`
-* [ ] Create request DTOs in `walshe.projectcolumbo.scan.dto`:
-
-  * [ ] `ScanRequest`
-
+2. [x] Create request DTOs in `walshe.projectcolumbo.scan.dto`:
+  * [x] `ScanRequest`
     * `Timeframe timeframe`
     * `ScanOperator operator`
     * `List<ScanCondition> conditions`
-  * [ ] `ScanCondition`
-
+  * [x] `ScanCondition`
     * `IndicatorType indicatorType`
     * `Event event`
-* [ ] Create response DTOs:
-
-  * [ ] `ScanResponse`
-
+3. [x] Create response DTOs:
+  * [x] `ScanResponse`
     * `Timeframe timeframe`
     * `ScanOperator operator`
     * `List<ScanCondition> conditions`
     * `List<ScanResult> results`
-  * [ ] `ScanResult`
-
+  * [x] `ScanResult`
     * `String assetSymbol`
     * `List<MatchedIndicator> matchedIndicators`
-  * [ ] `MatchedIndicator`
-
+  * [x] `MatchedIndicator`
     * `IndicatorType indicatorType`
     * `Event event`
     * `OffsetDateTime closeTime`
-* [ ] Define ENUM `ScanOperator`:
-
+4. [x] Define ENUM `ScanOperator`:
   ```java
   public enum ScanOperator { AND, OR }
   ```
-* [ ] Annotate request DTOs with `@Valid`, `@NotEmpty` where appropriate
-* [ ] Add OpenAPI annotations for endpoint documentation
+5. [x] Annotate request DTOs with `@Valid`, `@NotEmpty` where appropriate
+6. [x] Add OpenAPI annotations for endpoint documentation
 
 ---
 
 ## ⚙️ Phase 2 — Validation Layer
 
-* [ ] Implement `ScanValidator` component:
-
-  * [ ] Validate non-empty `conditions`
-  * [ ] Verify each `indicatorType` exists in `indicator_type` ENUM
-  * [ ] Validate that `event` is applicable to `indicatorType`
-
+7. [x] Implement `ScanValidator` component:
+  * [x] Validate non-empty `conditions`
+  * [x] Verify each `indicatorType` exists in `indicator_type` ENUM
+  * [x] Validate that `event` is applicable to `indicatorType`
     * SUPERTREND → `BULLISH_REVERSAL`, `BEARISH_REVERSAL`
     * RSI → `CROSSED_ABOVE_60`, `CROSSED_BELOW_40`
-  * [ ] Ensure `timeframe` is valid ENUM
-  * [ ] Ensure `operator` ∈ {`AND`, `OR`}
-  * [ ] Throw `BadRequestException` for invalid payloads
-* [ ] Unit test combinations:
-
-  * [ ] Invalid indicatorType → 400
-  * [ ] Invalid event → 400
-  * [ ] Empty conditions → 400
+  * [x] Ensure `timeframe` is valid ENUM
+  * [x] Ensure `operator` ∈ {`AND`, `OR`}
+  * [x] Throw `BadRequestException` for invalid payloads
+8. [x] Unit test combinations:
+  * [x] Invalid indicatorType → 400
+  * [x] Invalid event → 400
+  * [x] Empty conditions → 400
 
 ---
 
