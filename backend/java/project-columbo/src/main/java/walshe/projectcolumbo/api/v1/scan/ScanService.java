@@ -96,23 +96,50 @@ class ScanService {
         }
 
         List<ScanResult> results = assetMatches.values().stream()
-                .map(am -> new ScanResult(
-                        am.symbol,
-                        am.indicators,
-                        TradingViewUtil.generateUrl(am.provider, am.symbol, request.timeframe())
-                ))
+                .map(am -> {
+                    List<MatchedIndicator> indicators = new ArrayList<>(am.indicators);
+                    // Order indicators: RSI before SUPERTREND
+                    indicators.sort(Comparator.comparing(mi -> mi.indicatorType() == IndicatorType.RSI ? 0 : 1));
+
+                    return new ScanResult(
+                            am.symbol,
+                            indicators,
+                            TradingViewUtil.generateUrl(am.provider, am.symbol, request.timeframe())
+                    );
+                })
                 .sorted((r1, r2) -> {
-                    // Sort by earliest indicator's closeTime (DESC) then symbol (ASC)
-                    OffsetDateTime t1 = r1.matchedIndicators().stream()
-                            .map(MatchedIndicator::closeTime)
-                            .max(Comparator.naturalOrder())
-                            .orElse(OffsetDateTime.MIN);
-                    OffsetDateTime t2 = r2.matchedIndicators().stream()
-                            .map(MatchedIndicator::closeTime)
-                            .max(Comparator.naturalOrder())
-                            .orElse(OffsetDateTime.MIN);
-                    int timeCmp = t2.compareTo(t1);
-                    return timeCmp != 0 ? timeCmp : r1.assetSymbol().compareTo(r2.assetSymbol());
+                    // Sort by daysSinceCross ASC, daysSinceFlip ASC, then symbol ASC
+                    // Get the min daysSinceCross for each result
+                    Integer c1 = r1.matchedIndicators().stream()
+                            .filter(mi -> mi instanceof RsiMatch)
+                            .map(mi -> ((RsiMatch) mi).daysSinceCross())
+                            .min(Comparator.naturalOrder())
+                            .orElse(null);
+                    Integer c2 = r2.matchedIndicators().stream()
+                            .filter(mi -> mi instanceof RsiMatch)
+                            .map(mi -> ((RsiMatch) mi).daysSinceCross())
+                            .min(Comparator.naturalOrder())
+                            .orElse(null);
+
+                    int crossCmp = compareWithNullsLast(c1, c2);
+                    if (crossCmp != 0) return crossCmp;
+
+                    // Get the min daysSinceFlip for each result
+                    Integer f1 = r1.matchedIndicators().stream()
+                            .filter(mi -> mi instanceof SupertrendMatch)
+                            .map(mi -> ((SupertrendMatch) mi).daysSinceFlip())
+                            .min(Comparator.naturalOrder())
+                            .orElse(null);
+                    Integer f2 = r2.matchedIndicators().stream()
+                            .filter(mi -> mi instanceof SupertrendMatch)
+                            .map(mi -> ((SupertrendMatch) mi).daysSinceFlip())
+                            .min(Comparator.naturalOrder())
+                            .orElse(null);
+
+                    int flipCmp = compareWithNullsLast(f1, f2);
+                    if (flipCmp != 0) return flipCmp;
+
+                    return r1.assetSymbol().compareTo(r2.assetSymbol());
                 })
                 .limit(request.limit() != null ? request.limit() : 100)
                 .toList();
@@ -131,6 +158,13 @@ class ScanService {
                 request.conditions(),
                 results
         );
+    }
+
+    private int compareWithNullsLast(Integer a, Integer b) {
+        if (a == null && b == null) return 0;
+        if (a == null) return 1;
+        if (b == null) return -1;
+        return a.compareTo(b);
     }
 
     private OffsetDateTime getLatestFinalizedCloseTime(Timeframe timeframe) {
@@ -171,13 +205,13 @@ class ScanService {
                     .map(RsiIndicator::getRsiValue)
                     .orElse(BigDecimal.ZERO);
 
-            // For RSI, daysSinceCross is 0 if it's the current candle match,
-            // we'll use 0 for now as specified in the requirement "0 = today"
+            // For RSI, calculate daysSinceCross based on the match's closeTime
+            int daysSinceCross = (int) ChronoUnit.DAYS.between(s.getCloseTime(), OffsetDateTime.now(ZoneOffset.UTC));
             return new RsiMatch(
                     IndicatorType.RSI,
                     s.getEvent(),
                     rsiVal.doubleValue(),
-                    0,
+                    daysSinceCross,
                     s.getCloseTime()
             );
         } else {

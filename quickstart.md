@@ -1,15 +1,19 @@
 
 
+
+## /scan
+
+
 ```json
 
     {
       "timeframe": "1D",
-      "operator": "AND",
+      "operator": "AND"   ,
       "conditions": [
         {
               "indicatorType": "SUPERTREND",
               "state": "BULLISH",
-              "maxDaysSinceFlip": 5
+              "maxDaysSinceFlip": 10
             },
         {
           "indicatorType": "RSI",
@@ -31,7 +35,7 @@
         {
               "indicatorType": "SUPERTREND",
               "state": "BEARISH",
-              "maxDaysSinceFlip": 5
+              "maxDaysSinceFlip": 10
             },
         {
           "indicatorType": "RSI",

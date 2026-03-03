@@ -99,6 +99,10 @@ class ScanServiceTest {
         assertThat(response.results()).hasSize(1);
         assertThat(response.results().get(0).assetSymbol()).isEqualTo("BTCUSDT");
         assertThat(response.results().get(0).matchedIndicators()).hasSize(2);
+        
+        // Verify internal indicator order: RSI before SUPERTREND
+        assertThat(response.results().get(0).matchedIndicators().get(0).indicatorType()).isEqualTo(IndicatorType.RSI);
+        assertThat(response.results().get(0).matchedIndicators().get(1).indicatorType()).isEqualTo(IndicatorType.SUPERTREND);
     }
 
     @Test
@@ -184,6 +188,67 @@ class ScanServiceTest {
         SupertrendMatch sm = (SupertrendMatch) mi;
         assertThat(sm.state()).isEqualTo(TrendState.BULLISH);
         assertThat(sm.daysSinceFlip()).isEqualTo(2);
+    }
+
+    @Test
+    void execute_MultipleResults_OrdersCorrectly() {
+        Asset asset1 = new Asset(); asset1.setId(1L); asset1.setSymbol("BTCUSDT");
+        Asset asset2 = new Asset(); asset2.setId(2L); asset2.setSymbol("ETHUSDT");
+        Asset asset3 = new Asset(); asset3.setId(3L); asset3.setSymbol("SOLUSDT");
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+
+        // BTC: RSI cross 2 days ago, Supertrend flip 5 days ago
+        SignalState s1 = createSignal(asset1, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, now.minusDays(2));
+        SignalState s2 = createSignal(asset1, IndicatorType.SUPERTREND, SignalEvent.NONE, now.minusDays(5));
+        s2.setTrendState(TrendState.BULLISH);
+
+        // ETH: RSI cross 1 day ago, Supertrend flip 10 days ago
+        SignalState s3 = createSignal(asset2, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, now.minusDays(1));
+        SignalState s4 = createSignal(asset2, IndicatorType.SUPERTREND, SignalEvent.NONE, now.minusDays(10));
+        s4.setTrendState(TrendState.BULLISH);
+
+        // SOL: No RSI match, Supertrend flip 1 day ago
+        SignalState s5 = createSignal(asset3, IndicatorType.SUPERTREND, SignalEvent.NONE, now.minusDays(1));
+        s5.setTrendState(TrendState.BULLISH);
+
+        when(candleRepository.findLatestCloseTimeForTimeframe("D1")).thenReturn(Optional.of(now));
+        
+        // Mocking signal search - using OR to get all
+        when(signalStateRepository.findEventMatches(eq(IndicatorType.RSI), any(), any(), any(), any()))
+                .thenReturn(List.of(s1, s3));
+        when(signalStateRepository.findStateMatches(eq(IndicatorType.SUPERTREND), any(), any(), any()))
+                .thenReturn(List.of(s2, s4, s5));
+
+        // Mocking flip time searches
+        when(signalStateRepository.findLastDifferentStateTime(any(), any(), any(), any(), any()))
+                .thenReturn(Optional.empty()); // Simple case
+        when(signalStateRepository.findFirstCurrentStateTimeAfter(eq(1L), any(), any(), any(), any(), any()))
+                .thenReturn(Optional.of(now.minusDays(5)));
+        when(signalStateRepository.findFirstCurrentStateTimeAfter(eq(2L), any(), any(), any(), any(), any()))
+                .thenReturn(Optional.of(now.minusDays(10)));
+        when(signalStateRepository.findFirstCurrentStateTimeAfter(eq(3L), any(), any(), any(), any(), any()))
+                .thenReturn(Optional.of(now.minusDays(1)));
+
+        ScanRequest request = new ScanRequest(
+                Timeframe.D1,
+                ScanOperator.OR,
+                List.of(
+                        new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null),
+                        new ScanCondition(IndicatorType.SUPERTREND, null, TrendState.BULLISH, null, null)
+                ),
+                null
+        );
+
+        ScanResponse response = scanService.execute(request);
+
+        // Expected order:
+        // 1. ETH (daysSinceCross: 1)
+        // 2. BTC (daysSinceCross: 2)
+        // 3. SOL (daysSinceCross: null, daysSinceFlip: 1)
+        assertThat(response.results()).hasSize(3);
+        assertThat(response.results().get(0).assetSymbol()).isEqualTo("ETHUSDT");
+        assertThat(response.results().get(1).assetSymbol()).isEqualTo("BTCUSDT");
+        assertThat(response.results().get(2).assetSymbol()).isEqualTo("SOLUSDT");
     }
 
     private SignalState createSignal(Asset asset, IndicatorType type, SignalEvent event, OffsetDateTime time) {

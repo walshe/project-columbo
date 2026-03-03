@@ -7,3 +7,5 @@
 - add a backtester ?
 - add an ATR indicator?
 - add a GAP indicator ? (finds assets that gapped overnight/weekend)
+- change aset names to BTCUSDT etc
+- move entties to entities package, same for services and any other classes that are really services
