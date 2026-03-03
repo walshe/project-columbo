@@ -1,6 +1,7 @@
 package walshe.projectcolumbo.api.v1.mapper;
 
 import walshe.projectcolumbo.api.v1.dto.SignalStateDto;
+import walshe.projectcolumbo.api.v1.util.TradingViewUtil;
 import walshe.projectcolumbo.persistence.SignalState;
 
 import java.time.OffsetDateTime;
@@ -20,7 +21,8 @@ public class SignalStateMapper {
             latest.getAsset().getSymbol(),
             latest.getTrendState(),
             lastFlipTime,
-            daysSinceFlip
+            daysSinceFlip,
+            TradingViewUtil.generateUrl(latest.getAsset().getProvider(), latest.getAsset().getSymbol(), latest.getTimeframe())
         );
     }
 }

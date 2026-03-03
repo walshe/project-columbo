@@ -36,15 +36,12 @@ class SignalController {
     }
 
     @GetMapping("/assets/by-state")
-    ResponseEntity<List<String>> getAssetsByState(
+    ResponseEntity<List<SignalStateDto>> getAssetsByState(
             @RequestParam Timeframe timeframe,
             @RequestParam IndicatorType indicatorType,
             @RequestParam TrendState state) {
         
-        List<String> symbols = signalQueryService.listSignals(timeframe, indicatorType, state, null)
-                .stream()
-                .map(SignalStateDto::symbol)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(symbols);
+        List<SignalStateDto> signals = signalQueryService.listSignals(timeframe, indicatorType, state, null);
+        return ResponseEntity.ok(signals);
     }
 }

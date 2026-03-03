@@ -7,5 +7,6 @@ public record SignalStateDto(
     String symbol,
     TrendState trendState,
     OffsetDateTime lastFlipTime,
-    Long daysSinceFlip
+    Long daysSinceFlip,
+    String tradingviewUrl
 ) {}

@@ -10,5 +10,8 @@ public record ScanResult(
     String assetSymbol,
 
     @Schema(description = "List of indicator events that matched the scan conditions")
-    List<MatchedIndicator> matchedIndicators
+    List<MatchedIndicator> matchedIndicators,
+
+    @Schema(description = "The TradingView chart URL for the asset", example = "https://www.tradingview.com/chart/?symbol=BINANCE+BTCUSDT&interval=1D")
+    String tradingviewUrl
 ) {}

@@ -76,8 +76,10 @@ class ApiIntegrationTest {
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].symbol").value("BTCUSDT"))
                 .andExpect(jsonPath("$[0].trendState").value("BULLISH"))
+                .andExpect(jsonPath("$[0].tradingviewUrl").value("https://www.tradingview.com/chart/?symbol=BINANCE%3ABTCUSDT&interval=1D"))
                 .andExpect(jsonPath("$[1].symbol").value("ETHUSDT"))
-                .andExpect(jsonPath("$[1].trendState").value("BEARISH"));
+                .andExpect(jsonPath("$[1].trendState").value("BEARISH"))
+                .andExpect(jsonPath("$[1].tradingviewUrl").value("https://www.tradingview.com/chart/?symbol=BINANCE%3AETHUSDT&interval=1D"));
     }
 
     @Test
@@ -117,7 +119,8 @@ class ApiIntegrationTest {
                         .param("state", "BEARISH"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0]").value("ETHUSDT"));
+                .andExpect(jsonPath("$[0].symbol").value("ETHUSDT"))
+                .andExpect(jsonPath("$[0].tradingviewUrl").value("https://www.tradingview.com/chart/?symbol=BINANCE%3AETHUSDT&interval=1D"));
     }
 
     @Test

@@ -209,6 +209,7 @@ class ScanIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.results", hasSize(1)))
                 .andExpect(jsonPath("$.results[0].assetSymbol").value("BTCUSDT"))
+                .andExpect(jsonPath("$.results[0].tradingviewUrl").value("https://www.tradingview.com/chart/?symbol=BINANCE%3ABTCUSDT&interval=1D"))
                 .andExpect(jsonPath("$.results[0].matchedIndicators[0].indicatorType").value("RSI"))
                 .andExpect(jsonPath("$.results[0].matchedIndicators[0].rsiValue").value(62.4))
                 .andExpect(jsonPath("$.results[0].matchedIndicators[0].daysSinceCross").value(0));

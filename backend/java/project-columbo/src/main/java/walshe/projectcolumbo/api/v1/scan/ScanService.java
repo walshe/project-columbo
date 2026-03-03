@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StopWatch;
 import walshe.projectcolumbo.api.v1.scan.dto.*;
+import walshe.projectcolumbo.api.v1.util.TradingViewUtil;
 import walshe.projectcolumbo.persistence.*;
 
 import java.math.BigDecimal;
@@ -71,7 +72,7 @@ class ScanService {
             if (request.operator() == ScanOperator.AND) {
                 if (firstCondition) {
                     matches.forEach(s -> {
-                        AssetMatch am = new AssetMatch(s.getAsset().getSymbol());
+                        AssetMatch am = new AssetMatch(s.getAsset().getSymbol(), s.getAsset().getProvider());
                         am.indicators.add(mapToMatchedIndicator(s));
                         assetMatches.put(s.getAsset().getId(), am);
                     });
@@ -87,7 +88,7 @@ class ScanService {
                 if (assetMatches.isEmpty()) break;
             } else { // OR
                 matches.forEach(s -> {
-                    AssetMatch am = assetMatches.computeIfAbsent(s.getAsset().getId(), k -> new AssetMatch(s.getAsset().getSymbol()));
+                    AssetMatch am = assetMatches.computeIfAbsent(s.getAsset().getId(), k -> new AssetMatch(s.getAsset().getSymbol(), s.getAsset().getProvider()));
                     addIndicatorIfNotPresent(am.indicators, mapToMatchedIndicator(s));
                 });
             }
@@ -95,7 +96,11 @@ class ScanService {
         }
 
         List<ScanResult> results = assetMatches.values().stream()
-                .map(am -> new ScanResult(am.symbol, am.indicators))
+                .map(am -> new ScanResult(
+                        am.symbol,
+                        am.indicators,
+                        TradingViewUtil.generateUrl(am.provider, am.symbol, request.timeframe())
+                ))
                 .sorted((r1, r2) -> {
                     // Sort by earliest indicator's closeTime (DESC) then symbol (ASC)
                     OffsetDateTime t1 = r1.matchedIndicators().stream()
@@ -231,10 +236,12 @@ class ScanService {
 
     private static class AssetMatch {
         final String symbol;
+        final MarketProvider provider;
         final List<MatchedIndicator> indicators = new ArrayList<>();
 
-        AssetMatch(String symbol) {
+        AssetMatch(String symbol, MarketProvider provider) {
             this.symbol = symbol;
+            this.provider = provider;
         }
     }
 }
