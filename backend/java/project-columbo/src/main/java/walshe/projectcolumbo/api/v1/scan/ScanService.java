@@ -52,7 +52,8 @@ class ScanService {
                         condition.indicatorType(),
                         condition.event(),
                         request.timeframe(),
-                        latestCloseTime
+                        latestCloseTime,
+                        condition.maxDaysSinceCross()
                 );
             } else {
                 matches = signalStateRepository.findStateMatches(

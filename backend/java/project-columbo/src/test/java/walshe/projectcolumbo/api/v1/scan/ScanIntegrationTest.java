@@ -67,7 +67,7 @@ class ScanIntegrationTest {
         ScanRequest request = new ScanRequest(
                 Timeframe.D1,
                 ScanOperator.AND,
-                List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null)),
+                List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null)),
                 null
         );
 
@@ -98,8 +98,8 @@ class ScanIntegrationTest {
                 Timeframe.D1,
                 ScanOperator.AND,
                 List.of(
-                        new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null),
-                        new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null)
+                        new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null),
+                        new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null)
                 ),
                 null
         );
@@ -127,8 +127,8 @@ class ScanIntegrationTest {
                 Timeframe.D1,
                 ScanOperator.OR,
                 List.of(
-                        new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null),
-                        new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null)
+                        new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null),
+                        new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null)
                 ),
                 null
         );
@@ -146,7 +146,7 @@ class ScanIntegrationTest {
         ScanRequest request = new ScanRequest(
                 Timeframe.D1,
                 ScanOperator.AND,
-                List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.CROSSED_ABOVE_60, null, null)),
+                List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.CROSSED_ABOVE_60, null, null, null)),
                 null // Invalid event for ST
         );
 
@@ -173,7 +173,7 @@ class ScanIntegrationTest {
         ScanRequest request = new ScanRequest(
                 Timeframe.D1,
                 ScanOperator.AND,
-                List.of(new ScanCondition(IndicatorType.SUPERTREND, null, TrendState.BULLISH, 5)),
+                List.of(new ScanCondition(IndicatorType.SUPERTREND, null, TrendState.BULLISH, 5, null)),
                 null
         );
 
@@ -199,7 +199,7 @@ class ScanIntegrationTest {
         ScanRequest request = new ScanRequest(
                 Timeframe.D1,
                 ScanOperator.AND,
-                List.of(new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null)),
+                List.of(new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null)),
                 null
         );
 
@@ -212,6 +212,37 @@ class ScanIntegrationTest {
                 .andExpect(jsonPath("$.results[0].matchedIndicators[0].indicatorType").value("RSI"))
                 .andExpect(jsonPath("$.results[0].matchedIndicators[0].rsiValue").value(62.4))
                 .andExpect(jsonPath("$.results[0].matchedIndicators[0].daysSinceCross").value(0));
+    }
+
+    @Test
+    void shouldFilterByMaxDaysSinceCross() throws Exception {
+        Asset btc = createAsset("BTCUSDT");
+        Asset eth = createAsset("ETHUSDT");
+        OffsetDateTime now = OffsetDateTime.now(java.time.ZoneOffset.UTC).truncatedTo(java.time.temporal.ChronoUnit.DAYS);
+        createCandle(btc, now);
+        createCandle(eth, now);
+
+        // BTC: CROSSED_ABOVE_60 today
+        createSignal(btc, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, now);
+        createRsi(btc, now, 62.4);
+
+        // ETH: CROSSED_ABOVE_60 10 days ago
+        createSignal(eth, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, now.minusDays(10));
+        createRsi(eth, now.minusDays(10), 61.5);
+
+        ScanRequest request = new ScanRequest(
+                Timeframe.D1,
+                ScanOperator.AND,
+                List.of(new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, 5)),
+                null
+        );
+
+        mockMvc.perform(post("/api/v1/scan")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.results", hasSize(1)))
+                .andExpect(jsonPath("$.results[0].assetSymbol").value("BTCUSDT"));
     }
 
     private void createRsi(Asset asset, OffsetDateTime time, double value) {

@@ -19,5 +19,8 @@ public record ScanCondition(
     TrendState state,
 
     @Schema(description = "The maximum number of days since the trend state flipped", example = "5")
-    Integer maxDaysSinceFlip
+    Integer maxDaysSinceFlip,
+
+    @Schema(description = "The maximum number of days since the RSI cross event", example = "5")
+    Integer maxDaysSinceCross
 ) {}

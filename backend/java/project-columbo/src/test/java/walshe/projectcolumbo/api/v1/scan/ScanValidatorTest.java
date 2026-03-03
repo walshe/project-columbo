@@ -25,7 +25,7 @@ class ScanValidatorTest {
         ScanRequest request = new ScanRequest(
             Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null)),
+            List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null)),
             null
         );
 
@@ -37,7 +37,7 @@ class ScanValidatorTest {
         ScanRequest request = new ScanRequest(
             Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.SUPERTREND, null, TrendState.BULLISH, 5)),
+            List.of(new ScanCondition(IndicatorType.SUPERTREND, null, TrendState.BULLISH, 5, null)),
             null
         );
 
@@ -49,7 +49,7 @@ class ScanValidatorTest {
         ScanRequest request = new ScanRequest(
             Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null)),
+            List.of(new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, 5)),
             null
         );
 
@@ -61,7 +61,7 @@ class ScanValidatorTest {
         ScanRequest request = new ScanRequest(
             Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.RSI, null, TrendState.ABOVE_60, null)),
+            List.of(new ScanCondition(IndicatorType.RSI, null, TrendState.ABOVE_60, null, null)),
             null
         );
 
@@ -85,7 +85,7 @@ class ScanValidatorTest {
         ScanRequest request = new ScanRequest(
             Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.SUPERTREND, null, null, null)),
+            List.of(new ScanCondition(IndicatorType.SUPERTREND, null, null, null, null)),
             null
         );
 
@@ -97,7 +97,7 @@ class ScanValidatorTest {
         ScanRequest request = new ScanRequest(
             Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.CROSSED_ABOVE_60, null, null)),
+            List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.CROSSED_ABOVE_60, null, null, null)),
             null
         );
 
@@ -109,7 +109,7 @@ class ScanValidatorTest {
         ScanRequest request = new ScanRequest(
             Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.SUPERTREND, null, TrendState.ABOVE_60, null)),
+            List.of(new ScanCondition(IndicatorType.SUPERTREND, null, TrendState.ABOVE_60, null, null)),
             null
         );
 
@@ -121,7 +121,7 @@ class ScanValidatorTest {
         ScanRequest request = new ScanRequest(
             Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, 5)),
+            List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, 5, null)),
             null
         );
 
@@ -133,7 +133,31 @@ class ScanValidatorTest {
         ScanRequest request = new ScanRequest(
             Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.NONE, null, null)),
+            List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.NONE, null, null, null)),
+            null
+        );
+
+        assertThrows(BadRequestException.class, () -> validator.validate(request));
+    }
+
+    @Test
+    void shouldRejectMaxDaysSinceCrossForNonRsiIndicator() {
+        ScanRequest request = new ScanRequest(
+            Timeframe.D1,
+            ScanOperator.AND,
+            List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, 5)),
+            null
+        );
+
+        assertThrows(BadRequestException.class, () -> validator.validate(request));
+    }
+
+    @Test
+    void shouldRejectMaxDaysSinceCrossForNonCrossEvent() {
+        ScanRequest request = new ScanRequest(
+            Timeframe.D1,
+            ScanOperator.AND,
+            List.of(new ScanCondition(IndicatorType.RSI, null, TrendState.ABOVE_60, null, 5)),
             null
         );
 

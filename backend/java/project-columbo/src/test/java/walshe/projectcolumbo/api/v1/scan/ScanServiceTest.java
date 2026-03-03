@@ -46,13 +46,13 @@ class ScanServiceTest {
         SignalState s1 = createSignal(asset1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, now);
         
         when(candleRepository.findLatestCloseTimeForTimeframe("D1")).thenReturn(Optional.of(now));
-        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now))
+        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now, null))
                 .thenReturn(List.of(s1));
 
         ScanRequest request = new ScanRequest(
                 Timeframe.D1,
                 ScanOperator.AND,
-                List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null)),
+                List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null)),
                 null
         );
 
@@ -79,17 +79,17 @@ class ScanServiceTest {
         SignalState s3 = createSignal(asset1, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, now);
 
         when(candleRepository.findLatestCloseTimeForTimeframe("D1")).thenReturn(Optional.of(now));
-        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now))
+        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now, null))
                 .thenReturn(List.of(s1, s2));
-        when(signalStateRepository.findEventMatches(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, Timeframe.D1, now))
+        when(signalStateRepository.findEventMatches(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, Timeframe.D1, now, null))
                 .thenReturn(List.of(s3));
 
         ScanRequest request = new ScanRequest(
                 Timeframe.D1,
                 ScanOperator.AND,
                 List.of(
-                        new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null),
-                        new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null)
+                        new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null),
+                        new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null)
                 ),
                 null
         );
@@ -111,17 +111,17 @@ class ScanServiceTest {
         SignalState s2 = createSignal(asset2, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, now);
 
         when(candleRepository.findLatestCloseTimeForTimeframe("D1")).thenReturn(Optional.of(now));
-        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now))
+        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now, null))
                 .thenReturn(List.of(s1));
-        when(signalStateRepository.findEventMatches(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, Timeframe.D1, now))
+        when(signalStateRepository.findEventMatches(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, Timeframe.D1, now, null))
                 .thenReturn(List.of(s2));
 
         ScanRequest request = new ScanRequest(
                 Timeframe.D1,
                 ScanOperator.OR,
                 List.of(
-                        new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null),
-                        new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null)
+                        new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null),
+                        new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null)
                 ),
                 null
         );
@@ -136,13 +136,13 @@ class ScanServiceTest {
     void execute_NoMatches_ReturnsEmptyList() {
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         when(candleRepository.findLatestCloseTimeForTimeframe("D1")).thenReturn(Optional.of(now));
-        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now))
+        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now, null))
                 .thenReturn(List.of());
 
         ScanRequest request = new ScanRequest(
                 Timeframe.D1,
                 ScanOperator.AND,
-                List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null)),
+                List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null)),
                 null
         );
 
@@ -171,7 +171,7 @@ class ScanServiceTest {
         ScanRequest request = new ScanRequest(
                 Timeframe.D1,
                 ScanOperator.AND,
-                List.of(new ScanCondition(IndicatorType.SUPERTREND, null, TrendState.BULLISH, 5)),
+                List.of(new ScanCondition(IndicatorType.SUPERTREND, null, TrendState.BULLISH, 5, null)),
                 null
         );
 

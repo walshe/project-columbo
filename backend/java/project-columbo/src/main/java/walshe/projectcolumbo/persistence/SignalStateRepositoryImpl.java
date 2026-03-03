@@ -12,22 +12,38 @@ public class SignalStateRepositoryImpl implements SignalStateRepositoryCustom {
     private EntityManager entityManager;
 
     @Override
-    public List<SignalState> findEventMatches(IndicatorType indicatorType, SignalEvent event, Timeframe timeframe, OffsetDateTime latestCloseTime) {
-        String jpql = """
+    public List<SignalState> findEventMatches(IndicatorType indicatorType, SignalEvent event, Timeframe timeframe, OffsetDateTime latestCloseTime, Integer maxDaysSinceCross) {
+        // Find latest signal_state per active asset
+        String subquery = """
+            SELECT MAX(s2.closeTime)
+            FROM SignalState s2
+            WHERE s2.asset.id = s.asset.id
+              AND s2.indicatorType = :indicatorType
+              AND s2.timeframe = :timeframe
+            """;
+
+        StringBuilder jpql = new StringBuilder("""
             SELECT s FROM SignalState s
             JOIN FETCH s.asset a
             WHERE a.active = true
               AND s.indicatorType = :indicatorType
               AND s.event = :event
               AND s.timeframe = :timeframe
-              AND s.closeTime = :latestCloseTime
-            """;
+              AND s.closeTime = (""").append(subquery).append(")");
 
-        TypedQuery<SignalState> query = entityManager.createQuery(jpql, SignalState.class);
+        if (maxDaysSinceCross != null) {
+            jpql.append(" AND s.closeTime >= :crossBoundary");
+        }
+
+        TypedQuery<SignalState> query = entityManager.createQuery(jpql.toString(), SignalState.class);
         query.setParameter("indicatorType", indicatorType);
         query.setParameter("event", event);
         query.setParameter("timeframe", timeframe);
-        query.setParameter("latestCloseTime", latestCloseTime);
+
+        if (maxDaysSinceCross != null) {
+            OffsetDateTime crossBoundary = OffsetDateTime.now().minusDays(maxDaysSinceCross);
+            query.setParameter("crossBoundary", crossBoundary);
+        }
 
         return query.getResultList();
     }

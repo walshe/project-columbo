@@ -1,5 +1,5 @@
 Follow ./AI_EXECUTION_PROTOCOL.md.
-Story folder: ./stories/10.1
+Story folder: ./stories/10.2
 Implement Phase 3 & 4 only.
 make sure to mark relevant tasks as complete ([x]) as you go along
 Stop after completion.

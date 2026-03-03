@@ -204,7 +204,28 @@ class SignalStateRepositoryTest {
         signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, now, TrendState.BEARISH, SignalEvent.NONE));
 
         // When
-        List<SignalState> matches = signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now);
+        List<SignalState> matches = signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now, null);
+
+        // Then
+        assertThat(matches).hasSize(1);
+        assertThat(matches.get(0).getAsset().getSymbol()).isEqualTo("BTCUSDT");
+    }
+
+    @Test
+    void findEventMatches_WithMaxDaysSinceCross_ShouldFilterCorrectly() {
+        // Given
+        Asset btc = assetRepository.save(new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true));
+        Asset eth = assetRepository.save(new Asset("ETHUSDT", "Ethereum", MarketProvider.BINANCE, true));
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(java.time.temporal.ChronoUnit.DAYS);
+
+        // BTC: CROSSED_ABOVE_60 today
+        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.RSI, now, TrendState.ABOVE_60, SignalEvent.CROSSED_ABOVE_60));
+        
+        // ETH: CROSSED_ABOVE_60 10 days ago
+        signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.RSI, now.minusDays(10), TrendState.ABOVE_60, SignalEvent.CROSSED_ABOVE_60));
+
+        // When
+        List<SignalState> matches = signalStateRepository.findEventMatches(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, Timeframe.D1, now, 5);
 
         // Then
         assertThat(matches).hasSize(1);

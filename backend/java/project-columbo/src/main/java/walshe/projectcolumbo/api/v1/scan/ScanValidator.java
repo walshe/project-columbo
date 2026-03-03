@@ -41,6 +41,7 @@ class ScanValidator {
         SignalEvent event = condition.event();
         TrendState state = condition.state();
         Integer maxDaysSinceFlip = condition.maxDaysSinceFlip();
+        Integer maxDaysSinceCross = condition.maxDaysSinceCross();
 
         if (event == null && state == null) {
             throw new BadRequestException(String.format("Either event or state must be provided for indicator %s", type));
@@ -50,6 +51,14 @@ class ScanValidator {
             Set<SignalEvent> allowedEvents = VALID_EVENTS.get(type);
             if (allowedEvents == null || !allowedEvents.contains(event)) {
                 throw new BadRequestException(String.format("Event %s is not valid for indicator %s", event, type));
+            }
+
+            if (maxDaysSinceCross != null && type != IndicatorType.RSI) {
+                throw new BadRequestException("maxDaysSinceCross can only be used with indicator RSI");
+            }
+
+            if (maxDaysSinceCross != null && (event != SignalEvent.CROSSED_ABOVE_60 && event != SignalEvent.CROSSED_BELOW_40)) {
+                throw new BadRequestException("maxDaysSinceCross can only be used with RSI CROSSED_ABOVE_60 or CROSSED_BELOW_40");
             }
         }
 
@@ -62,6 +71,10 @@ class ScanValidator {
 
         if (maxDaysSinceFlip != null && state == null) {
             throw new BadRequestException("maxDaysSinceFlip can only be used when state is provided");
+        }
+
+        if (maxDaysSinceCross != null && event == null) {
+            throw new BadRequestException("maxDaysSinceCross can only be used when event is provided");
         }
     }
 }
