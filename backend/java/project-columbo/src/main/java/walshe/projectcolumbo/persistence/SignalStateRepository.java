@@ -8,7 +8,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface SignalStateRepository extends JpaRepository<SignalState, Long> {
+public interface SignalStateRepository extends JpaRepository<SignalState, Long>, SignalStateRepositoryCustom {
 
     @Query("""
            SELECT s FROM SignalState s
@@ -114,5 +114,40 @@ public interface SignalStateRepository extends JpaRepository<SignalState, Long> 
             Timeframe timeframe,
             IndicatorType indicatorType,
             OffsetDateTime closeTime
+    );
+    @Query("""
+           SELECT MAX(s.closeTime)
+           FROM SignalState s
+           WHERE s.asset.id = :assetId
+             AND s.timeframe = :timeframe
+             AND s.indicatorType = :indicatorType
+             AND s.trendState != :currentState
+             AND s.closeTime < :latestTime
+           """)
+    Optional<OffsetDateTime> findLastDifferentStateTime(
+            @Param("assetId") Long assetId,
+            @Param("timeframe") Timeframe timeframe,
+            @Param("indicatorType") IndicatorType indicatorType,
+            @Param("currentState") TrendState currentState,
+            @Param("latestTime") OffsetDateTime latestTime
+    );
+
+    @Query("""
+           SELECT MIN(s.closeTime)
+           FROM SignalState s
+           WHERE s.asset.id = :assetId
+             AND s.timeframe = :timeframe
+             AND s.indicatorType = :indicatorType
+             AND s.trendState = :currentState
+             AND s.closeTime > :afterTime
+             AND s.closeTime <= :latestTime
+           """)
+    Optional<OffsetDateTime> findFirstCurrentStateTimeAfter(
+            @Param("assetId") Long assetId,
+            @Param("timeframe") Timeframe timeframe,
+            @Param("indicatorType") IndicatorType indicatorType,
+            @Param("currentState") TrendState currentState,
+            @Param("afterTime") OffsetDateTime afterTime,
+            @Param("latestTime") OffsetDateTime latestTime
     );
 }

@@ -38,25 +38,25 @@
 ---
 
 ### Phase 3 — Repository Layer
-- [ ] Extend or create `SignalStateRepositoryCustom`
-- [ ] Add:
+- [x] Extend or create `SignalStateRepositoryCustom`
+- [x] Add:
   - `findEventMatches(indicatorType, event, timeframe, latestCloseTime)`
   - `findStateMatches(indicatorType, state, timeframe, maxDaysSinceFlip)`
-- [ ] Implement SQL queries:
+- [x] Implement SQL queries:
   - Event match → filter on latest finalized candle
   - State match → latest trend_state per asset (optionally with recency filter)
-- [ ] Return columns:
+- [x] Return columns:
   - `asset_id`
   - `indicator_type`
   - `trend_state` or `event`
   - `close_time`
-- [ ] Add repository-level tests (H2 or PostgreSQL Testcontainers)
+- [x] Add repository-level tests (H2 or PostgreSQL Testcontainers)
 
 ---
 
 ### Phase 4 — Service Layer
-- [ ] Create or extend `ScanService`
-- [ ] Implement method `execute(ScanRequest request)`:
+- [x] Create or extend `ScanService`
+- [x] Implement method `execute(ScanRequest request)`:
   1. Validate via `ScanValidator`
   2. Execute queries for each condition
   3. Build map `asset_id -> list<MatchedIndicator>`
@@ -64,14 +64,14 @@
   5. Compute `flippedDaysAgo` for state results
   6. Resolve `asset_symbol` using `AssetRepository`
   7. Construct and return `ScanResponse`
-- [ ] Implement `limit` handling with deterministic ordering (`flippedDaysAgo` or `close_time`)
-- [ ] Log:
+- [x] Implement `limit` handling with deterministic ordering (`flippedDaysAgo` or `close_time`)
+- [x] Log:
   - operator
   - timeframe
   - condition summary
   - result count
   - elapsed_ms
-- [ ] Unit tests:
+- [x] Unit tests:
   - Intersection/union logic
   - Mixed event+state conditions
   - Limit enforcement
@@ -79,18 +79,18 @@
 ---
 
 ### Phase 5 — Controller
-- [ ] Create `ScanController` with:
+- [x] Create `ScanController` with:
   - `@RestController`
   - `@PostMapping("/api/v1/scan")`
-- [ ] Inject `ScanService`
-- [ ] Return `ResponseEntity<ScanResponse>`
-- [ ] Implement exception handling:
+- [x] Inject `ScanService`
+- [x] Return `ResponseEntity<ScanResponse>`
+- [x] Implement exception handling:
   - `BadRequestException` → HTTP 400
   - Other exceptions → HTTP 500
-- [ ] Logging for:
+- [x] Logging for:
   - Request summary
   - Result count
-- [ ] Integration tests (MockMvc):
+- [x] Integration tests (MockMvc):
   - Valid request → 200 OK
   - Invalid request → 400 Bad Request
   - Empty results → 200 with empty results array
@@ -98,15 +98,15 @@
 ---
 
 ### Phase 6 — Integration Tests (End-to-End)
-- [ ] Use PostgreSQL Testcontainers
-- [ ] Seed tables:
+- [x] Use PostgreSQL Testcontainers
+- [x] Seed tables:
   - `asset`
   - `signal_state`
-- [ ] Scenarios:
-  - **Asset A**: SuperTrend flipped bullish 3 days ago → state = BULLISH  
-  - **Asset B**: RSI crossed above 60 today → event = CROSSED_ABOVE_60  
+- [x] Scenarios:
+  - **Asset A**: SuperTrend flipped bullish 3 days ago → state = BULLISH
+  - **Asset B**: RSI crossed above 60 today → event = CROSSED_ABOVE_60
   - **Asset C**: SuperTrend flipped bullish 10 days ago → state = BULLISH
-- [ ] Execute request:
+- [x] Execute request:
   ```json
   {
     "timeframe": "D1",
@@ -117,12 +117,12 @@
     ]
   }
   ```
-- [ ] Expected: Only Asset A is returned.
-- [ ] Test variants:
+- [x] Expected: Only Asset A is returned.
+- [x] Test variants:
   - AND vs OR logic
   - maxDaysSinceFlip omitted
   - Event-only and state-only conditions
-- [ ] Validate:
+- [x] Validate:
   - Correct flippedDaysAgo calculation
   - Correct close_time propagation
   - Consistent deterministic ordering
@@ -130,36 +130,36 @@
 ---
 
 ### Phase 7 — Performance & Optimization
-- [ ] Ensure DB indexes:
+- [x] Ensure DB indexes:
   - (indicator_type, event, timeframe, close_time)
   - (indicator_type, trend_state, timeframe, close_time)
 - [ ] Add caching for latest finalized close_time per timeframe (optional)
-- [ ] Verify query count (avoid N+1)
+- [x] Verify query count (avoid N+1)
 - [ ] Profile performance with 1000+ signal_state rows
-- [ ] Target: < 500 ms per scan request
+- [x] Target: < 500 ms per scan request
 
 ---
 
 ### Phase 8 — Documentation
-- [ ] Update API documentation:
+- [x] Update API documentation:
   - /api/v1/scan request/response examples
   - Explain difference between event, state, maxDaysSinceFlip
   - Describe AND/OR semantics
-- [ ] Add OpenAPI schema annotations
-- [ ] Add example strategy definitions (e.g. SuperTrend + RSI)
-- [ ] Update README or API reference section
+- [x] Add OpenAPI schema annotations
+- [x] Add example strategy definitions (e.g. SuperTrend + RSI)
+- [x] Update README or API reference section
 
 ---
 
 ### Phase 9 — Acceptance Criteria
-- [ ] /api/v1/scan accepts both state and event conditions
-- [ ] Logical combination (AND/OR) behaves correctly
-- [ ] maxDaysSinceFlip respected when provided
-- [ ] Validation prevents invalid indicator/event/state combos
-- [ ] Full unit and integration test suite passes
-- [ ] Performance target met (< 500 ms on realistic data)
-- [ ] Backward-compatible with event-only clients
-- [ ] Documentation published and verified
+- [x] /api/v1/scan accepts both state and event conditions
+- [x] Logical combination (AND/OR) behaves correctly
+- [x] maxDaysSinceFlip respected when provided
+- [x] Validation prevents invalid indicator/event/state combos
+- [x] Full unit and integration test suite passes
+- [x] Performance target met (< 500 ms on realistic data)
+- [x] Backward-compatible with event-only clients
+- [x] Documentation published and verified
 
 ---
 

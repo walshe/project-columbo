@@ -192,4 +192,64 @@ class SignalStateRepositoryTest {
             assertThat(s.getCloseTime()).isEqualTo(t2);
         });
     }
+
+    @Test
+    void findEventMatches_ShouldReturnCorrectAssets() {
+        // Given
+        Asset btc = assetRepository.save(new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true));
+        Asset eth = assetRepository.save(new Asset("ETHUSDT", "Ethereum", MarketProvider.BINANCE, true));
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+
+        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, now, TrendState.BULLISH, SignalEvent.BULLISH_REVERSAL));
+        signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, now, TrendState.BEARISH, SignalEvent.NONE));
+
+        // When
+        List<SignalState> matches = signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now);
+
+        // Then
+        assertThat(matches).hasSize(1);
+        assertThat(matches.get(0).getAsset().getSymbol()).isEqualTo("BTCUSDT");
+    }
+
+    @Test
+    void findStateMatches_ShouldReturnCorrectAssets() {
+        // Given
+        Asset btc = assetRepository.save(new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true));
+        Asset eth = assetRepository.save(new Asset("ETHUSDT", "Ethereum", MarketProvider.BINANCE, true));
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+
+        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, now, TrendState.BULLISH, SignalEvent.NONE));
+        signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, now, TrendState.BEARISH, SignalEvent.NONE));
+
+        // When
+        List<SignalState> matches = signalStateRepository.findStateMatches(IndicatorType.SUPERTREND, TrendState.BULLISH, Timeframe.D1, null);
+
+        // Then
+        assertThat(matches).hasSize(1);
+        assertThat(matches.get(0).getAsset().getSymbol()).isEqualTo("BTCUSDT");
+    }
+
+    @Test
+    void findStateMatches_WithMaxDaysSinceFlip_ShouldFilterCorrectly() {
+        // Given
+        Asset btc = assetRepository.save(new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true));
+        Asset eth = assetRepository.save(new Asset("ETHUSDT", "Ethereum", MarketProvider.BINANCE, true));
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        OffsetDateTime old = now.minusDays(10);
+
+        // BTC: latest is BULLISH, flipped 2 days ago (actually it's the latest state, the flip happened 2 days ago)
+        // For simplicity, let's say the LATEST state's closeTime is what we check against maxDaysSinceFlip
+        // Wait, the requirement says "latest trend_state per asset (optionally with recency filter)".
+        // My implementation checks s.closeTime >= :flipBoundary where s is the LATEST state.
+        
+        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, now.minusDays(2), TrendState.BULLISH, SignalEvent.BULLISH_REVERSAL));
+        signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, old, TrendState.BULLISH, SignalEvent.BULLISH_REVERSAL));
+
+        // When
+        List<SignalState> matches = signalStateRepository.findStateMatches(IndicatorType.SUPERTREND, TrendState.BULLISH, Timeframe.D1, 5);
+
+        // Then
+        assertThat(matches).hasSize(1);
+        assertThat(matches.get(0).getAsset().getSymbol()).isEqualTo("BTCUSDT");
+    }
 }

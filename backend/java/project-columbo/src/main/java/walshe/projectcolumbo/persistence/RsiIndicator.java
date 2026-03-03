@@ -33,7 +33,7 @@ public class RsiIndicator {
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
-    RsiIndicator() {}
+    public RsiIndicator() {}
 
     public Long getId() {
         return id;

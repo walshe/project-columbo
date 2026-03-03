@@ -21,5 +21,8 @@ public record ScanRequest(
     @NotEmpty(message = "At least one condition must be provided")
     @Valid
     @Schema(description = "The list of conditions to match")
-    List<ScanCondition> conditions
+    List<ScanCondition> conditions,
+
+    @Schema(description = "Maximum number of results to return", example = "50")
+    Integer limit
 ) {}

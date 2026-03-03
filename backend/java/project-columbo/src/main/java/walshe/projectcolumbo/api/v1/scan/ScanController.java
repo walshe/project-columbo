@@ -29,7 +29,6 @@ public class ScanController {
     @PostMapping
     @Operation(summary = "Execute a market scan", description = "Scans all active assets for matches against provided conditions using the specified logical operator")
     ResponseEntity<ScanResponse> scan(@Valid @RequestBody ScanRequest request) {
-        validator.validate(request);
         return ResponseEntity.ok(service.execute(request));
     }
 }
