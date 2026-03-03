@@ -70,7 +70,7 @@ class ScanService {
                     String symbol = signals.get(0).getAsset().getSymbol();
                     
                     List<MatchedIndicator> matchedIndicators = signals.stream()
-                            .map(s -> new MatchedIndicator(s.getIndicatorType(), s.getEvent(), s.getCloseTime()))
+                            .map(s -> new MatchedIndicator(s.getIndicatorType(), s.getEvent(), s.getTrendState(), null, s.getCloseTime()))
                             .toList();
                     
                     return new ScanResult(symbol, matchedIndicators);

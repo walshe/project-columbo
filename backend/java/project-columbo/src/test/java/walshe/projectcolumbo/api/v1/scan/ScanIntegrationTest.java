@@ -58,7 +58,7 @@ class ScanIntegrationTest {
         ScanRequest request = new ScanRequest(
                 Timeframe.D1,
                 ScanOperator.AND,
-                List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL))
+                List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null))
         );
 
         mockMvc.perform(post("/api/v1/scan")
@@ -86,8 +86,8 @@ class ScanIntegrationTest {
                 Timeframe.D1,
                 ScanOperator.AND,
                 List.of(
-                        new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL),
-                        new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60)
+                        new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null),
+                        new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null)
                 )
         );
 
@@ -112,8 +112,8 @@ class ScanIntegrationTest {
                 Timeframe.D1,
                 ScanOperator.OR,
                 List.of(
-                        new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL),
-                        new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60)
+                        new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null),
+                        new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null)
                 )
         );
 
@@ -130,7 +130,7 @@ class ScanIntegrationTest {
         ScanRequest request = new ScanRequest(
                 Timeframe.D1,
                 ScanOperator.AND,
-                List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.CROSSED_ABOVE_60)) // Invalid event for ST
+                List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.CROSSED_ABOVE_60, null, null)) // Invalid event for ST
         );
 
         mockMvc.perform(post("/api/v1/scan")

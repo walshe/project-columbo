@@ -4,15 +4,15 @@
 ---
 
 ### Phase 1 — DTOs & API Contract
-- [ ] Create DTOs:
+- [x] Create DTOs:
   - `ScanRequest`
   - `ScanCondition`
   - `ScanResponse`
   - `ScanResult`
   - `MatchedIndicator`
-- [ ] Add enum `ScanOperator` with values `AND`, `OR`
-- [ ] Reuse existing enums: `IndicatorType`, `Event`, `TrendState`, `Timeframe`
-- [ ] Update OpenAPI/Swagger documentation with example payloads for:
+- [x] Add enum `ScanOperator` with values `AND`, `OR`
+- [x] Reuse existing enums: `IndicatorType`, `Event`, `TrendState`, `Timeframe`
+- [x] Update OpenAPI/Swagger documentation with example payloads for:
   - Event-only
   - State-only
   - Event + State + maxDaysSinceFlip
@@ -20,17 +20,17 @@
 ---
 
 ### Phase 2 — Validation Layer
-- [ ] Implement `ScanValidator` component
-- [ ] Validation rules:
+- [x] Implement `ScanValidator` component
+- [x] Validation rules:
   - `conditions` must be non-empty
   - `indicatorType` must be valid
   - `event` and `state` must belong to valid enum values
   - At least one of `event` or `state` must be present
   - If `maxDaysSinceFlip` is provided, `state` must also be provided
   - `operator` must be `AND` or `OR`
-- [ ] Maintain a mapping: `indicatorType → allowed events/states`
-- [ ] Throw `BadRequestException` with clear structured error body on invalid input
-- [ ] Unit tests:
+- [x] Maintain a mapping: `indicatorType → allowed events/states`
+- [x] Throw `BadRequestException` with clear structured error body on invalid input
+- [x] Unit tests:
   - Invalid indicator/event/state combos
   - Missing required fields
   - Valid permutations accepted

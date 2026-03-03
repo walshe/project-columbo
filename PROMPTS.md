@@ -1,6 +1,6 @@
 Follow ./AI_EXECUTION_PROTOCOL.md.
-Story folder: ./stories/10-scan
-Implement Phase 5 & 6 only.
+Story folder: ./stories/10.1
+Implement Phase 1 & 2 only.
 make sure to mark relevant tasks as complete ([x]) as you go along
 Stop after completion.
 
