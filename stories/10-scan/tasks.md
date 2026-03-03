@@ -53,12 +53,12 @@
 
 ## 🧮 Phase 3 — Query Engine
 
-* [ ] Implement `ScanService`:
+54. [x] Implement `ScanService`:
 
-  * [ ] Inject `SignalStateRepository` and `AssetRepository`
-  * [ ] For each condition:
+  * [x] Inject `SignalStateRepository` and `AssetRepository`
+  * [x] For each condition:
 
-    * [ ] Query latest finalized `signal_state` rows:
+    * [x] Query latest finalized `signal_state` rows:
 
       ```sql
       SELECT asset_id, indicator_type, event, close_time
@@ -72,28 +72,28 @@
           WHERE timeframe = :timeframe
         )
       ```
-  * [ ] Build map of asset_id → list of matched indicator events
-  * [ ] Apply combination logic:
+  * [x] Build map of asset_id → list of matched indicator events
+  * [x] Apply combination logic:
 
     * `AND` → intersection of asset_id sets
     * `OR` → union of asset_id sets
-  * [ ] Resolve asset symbols for final result set
-  * [ ] Construct `ScanResponse`
-* [ ] Add SQL index if missing:
+  * [x] Resolve asset symbols for final result set
+  * [x] Construct `ScanResponse`
+89. [x] Add SQL index if missing:
 
   * `(indicator_type, event, timeframe, close_time)`
-* [ ] Unit test:
+92. [x] Unit test:
 
-  * [ ] One condition → correct results
-  * [ ] Two conditions, AND → intersection
-  * [ ] Two conditions, OR → union
-  * [ ] No matches → empty list
+  * [x] One condition → correct results
+  * [x] Two conditions, AND → intersection
+  * [x] Two conditions, OR → union
+  * [x] No matches → empty list
 
 ---
 
 ## 🧱 Phase 4 — Controller Integration
 
-* [ ] Create `ScanController`:
+* [x] Create `ScanController`:
 
   ```java
   @RestController
@@ -109,14 +109,14 @@
       }
   }
   ```
-* [ ] Add logging of:
+* [x] Add logging of:
 
   * Operator used
   * Timeframe
   * Conditions count
   * Result count
   * Execution duration
-* [ ] Add `@ControllerAdvice` to translate `BadRequestException` → 400 JSON response
+* [x] Add `@ControllerAdvice` to translate `BadRequestException` → 400 JSON response
 
 ---
 
@@ -124,49 +124,45 @@
 
 ### ✅ Unit Tests
 
-* [ ] `ScanValidatorTest`
-
-  * Valid combinations accepted
-  * Invalid combinations rejected
-* [ ] `ScanServiceTest`
-
-  * Simulate multiple `signal_state` entries and verify filtering
-  * Verify AND/OR combination logic
-  * Verify latest close_time logic
+* [x] `ScanValidatorTest`
+  * [x] Valid combinations accepted
+  * [x] Invalid combinations rejected
+* [x] `ScanServiceTest`
+  * [x] Simulate multiple `signal_state` entries and verify filtering
+  * [x] Verify AND/OR combination logic
+  * [x] Verify latest close_time logic
 
 ### ✅ Integration Tests (Testcontainers)
 
-* [ ] Seed `signal_state` with mock SUPERTREND and RSI events
-* [ ] POST `/api/v1/scan`:
-
-  * Single condition → returns expected assets
-  * Multiple conditions → AND/OR logic correct
-* [ ] Validate:
-
-  * HTTP 200 structure matches schema
-  * Execution time < 500ms for 1000 assets
-  * Empty results handled cleanly
+* [x] Seed `signal_state` with mock SUPERTREND and RSI events
+* [x] POST `/api/v1/scan`:
+  * [x] Single condition → returns expected assets
+  * [x] Multiple conditions → AND/OR logic correct
+* [x] Validate:
+  * [x] HTTP 200 structure matches schema
+  * [x] Execution time < 500ms for 1000 assets
+  * [x] Empty results handled cleanly
 
 ---
 
 ## 🚀 Phase 6 — Performance & Extensibility
 
-* [ ] Confirm SQL plan uses indexes efficiently
-* [ ] Add deduplication of assets across indicators
-* [ ] Confirm compatibility with future indicators (MACD, EMA, etc.)
-* [ ] Verify that `ScanOperator` and `conditions` logic remains data-driven (no hardcoding)
+* [x] Confirm SQL plan uses indexes efficiently
+* [x] Add deduplication of assets across indicators
+* [x] Confirm compatibility with future indicators (MACD, EMA, etc.)
+* [x] Verify that `ScanOperator` and `conditions` logic remains data-driven (no hardcoding)
 * [ ] Optional: introduce basic caching of last scan result (by payload hash)
 
 ---
 
 ## ✅ Deliverables
 
-* [ ] `/api/v1/scan` endpoint (JSON POST)
-* [ ] DTOs + ENUMs for composable scan queries
-* [ ] Validation layer for event–indicator compatibility
-* [ ] Query engine with AND/OR logic
-* [ ] Integration-tested controller
-* [ ] Performance-tested and extensible design
+* [x] `/api/v1/scan` endpoint (JSON POST)
+* [x] DTOs + ENUMs for composable scan queries
+* [x] Validation layer for event–indicator compatibility
+* [x] Query engine with AND/OR logic
+* [x] Integration-tested controller
+* [x] Performance-tested and extensible design
 
 ---
 

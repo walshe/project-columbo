@@ -16,6 +16,25 @@ public interface SignalStateRepository extends JpaRepository<SignalState, Long> 
            WHERE a.active = true
              AND s.timeframe = :timeframe
              AND s.indicatorType = :indicatorType
+             AND s.event = :event
+             AND s.closeTime = (
+                 SELECT MAX(s2.closeTime)
+                 FROM SignalState s2
+                 WHERE s2.timeframe = :timeframe
+             )
+           """)
+    List<SignalState> findLatestByCondition(
+            @Param("timeframe") Timeframe timeframe,
+            @Param("indicatorType") IndicatorType indicatorType,
+            @Param("event") SignalEvent event
+    );
+
+    @Query("""
+           SELECT s FROM SignalState s
+           JOIN FETCH s.asset a
+           WHERE a.active = true
+             AND s.timeframe = :timeframe
+             AND s.indicatorType = :indicatorType
              AND s.closeTime < :boundary
              AND s.closeTime = (
                  SELECT MAX(s2.closeTime)

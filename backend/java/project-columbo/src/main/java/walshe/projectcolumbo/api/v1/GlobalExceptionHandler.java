@@ -5,10 +5,19 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import walshe.projectcolumbo.api.exception.BadRequestException;
+import walshe.projectcolumbo.api.v1.scan.ScanController;
 import walshe.projectcolumbo.ingestion.IngestionAlreadyRunningException;
 
-@RestControllerAdvice(assignableTypes = {SignalController.class, MarketPulseController.class, IngestionController.class})
+@RestControllerAdvice(assignableTypes = {SignalController.class, MarketPulseController.class, IngestionController.class, ScanController.class})
 class GlobalExceptionHandler {
+
+    @ExceptionHandler(BadRequestException.class)
+    ProblemDetail handleBadRequestException(BadRequestException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problemDetail.setTitle("Bad Request");
+        return problemDetail;
+    }
 
     @ExceptionHandler(IngestionAlreadyRunningException.class)
     ProblemDetail handleIngestionAlreadyRunningException(IngestionAlreadyRunningException ex) {

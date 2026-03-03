@@ -44,7 +44,7 @@ public class SignalState {
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
-    SignalState() {
+    public SignalState() {
     }
 
     public SignalState(Asset asset, Timeframe timeframe, IndicatorType indicatorType, OffsetDateTime closeTime, TrendState trendState, SignalEvent event) {
