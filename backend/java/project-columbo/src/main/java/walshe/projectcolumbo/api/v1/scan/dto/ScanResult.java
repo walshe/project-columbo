@@ -12,6 +12,9 @@ public record ScanResult(
     @Schema(description = "List of indicator events that matched the scan conditions")
     List<MatchedIndicator> matchedIndicators,
 
+    @Schema(description = "The 7-day average volume for the asset")
+    java.math.BigDecimal avgVolume7d,
+
     @Schema(description = "The TradingView chart URL for the asset", example = "https://www.tradingview.com/chart/?symbol=BINANCE+BTCUSDT&interval=1D")
     String tradingviewUrl
 ) {}

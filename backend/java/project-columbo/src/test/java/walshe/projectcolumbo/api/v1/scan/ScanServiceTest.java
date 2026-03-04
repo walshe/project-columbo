@@ -30,12 +30,15 @@ class ScanServiceTest {
     private ScanValidator scanValidator;
     @Mock
     private RsiRepository rsiRepository;
+    @Mock
+    private AssetLiquidityRepository assetLiquidityRepository;
 
     private ScanService scanService;
 
     @BeforeEach
     void setUp() {
-        scanService = new ScanService(signalStateRepository, candleRepository, scanValidator, rsiRepository);
+        scanService = new ScanService(signalStateRepository, candleRepository, scanValidator, rsiRepository, assetLiquidityRepository);
+        when(assetLiquidityRepository.findAll()).thenReturn(List.of());
     }
 
     @Test

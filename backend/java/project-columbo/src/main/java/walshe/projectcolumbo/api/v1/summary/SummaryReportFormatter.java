@@ -74,7 +74,8 @@ public class SummaryReportFormatter {
             sb.append("None found.\n\n");
         } else {
             for (SignalStateDto s : signals) {
-                sb.append(String.format("- [%s](%s): Flipped %d days ago\n", s.symbol(), s.tradingviewUrl(), s.daysSinceFlip()));
+                sb.append(String.format("- [%s](%s): Flipped %d days ago (Vol: %s)\n", 
+                        s.symbol(), s.tradingviewUrl(), s.daysSinceFlip(), formatVolume(s.avgVolume7d())));
             }
             sb.append("\n");
         }
@@ -92,7 +93,8 @@ public class SummaryReportFormatter {
                             return mi.indicatorType().toString();
                         })
                         .collect(Collectors.joining(", "));
-                sb.append(String.format("- [%s](%s): %s\n", r.assetSymbol(), r.tradingviewUrl(), details));
+                sb.append(String.format("- [%s](%s): %s (Vol: %s)\n", 
+                        r.assetSymbol(), r.tradingviewUrl(), details, formatVolume(r.avgVolume7d())));
             }
             sb.append("\n");
         }
@@ -104,7 +106,8 @@ public class SummaryReportFormatter {
         } else {
             sb.append("<ul>");
             for (SignalStateDto s : signals) {
-                sb.append(String.format("<li><a href=\"%s\">%s</a>: Flipped %d days ago</li>", s.tradingviewUrl(), s.symbol(), s.daysSinceFlip()));
+                sb.append(String.format("<li><a href=\"%s\">%s</a>: Flipped %d days ago (Vol: %s)</li>", 
+                        s.tradingviewUrl(), s.symbol(), s.daysSinceFlip(), formatVolume(s.avgVolume7d())));
             }
             sb.append("</ul>");
         }
@@ -123,9 +126,21 @@ public class SummaryReportFormatter {
                             return mi.indicatorType().toString();
                         })
                         .collect(Collectors.joining(", "));
-                sb.append(String.format("<li><a href=\"%s\">%s</a>: %s</li>", r.tradingviewUrl(), r.assetSymbol(), details));
+                sb.append(String.format("<li><a href=\"%s\">%s</a>: %s (Vol: %s)</li>", 
+                        r.tradingviewUrl(), r.assetSymbol(), details, formatVolume(r.avgVolume7d())));
             }
             sb.append("</ul>");
         }
+    }
+
+    private String formatVolume(java.math.BigDecimal volume) {
+        if (volume == null || volume.compareTo(java.math.BigDecimal.ZERO) == 0) return "N/A";
+        if (volume.compareTo(new java.math.BigDecimal("1000000")) >= 0) {
+            return String.format("%.1fM", volume.doubleValue() / 1000000.0);
+        }
+        if (volume.compareTo(new java.math.BigDecimal("1000")) >= 0) {
+            return String.format("%.1fK", volume.doubleValue() / 1000.0);
+        }
+        return String.format("%.0f", volume.doubleValue());
     }
 }

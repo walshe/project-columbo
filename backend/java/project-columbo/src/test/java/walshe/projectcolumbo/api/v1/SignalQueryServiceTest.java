@@ -27,6 +27,9 @@ class SignalQueryServiceTest {
     private SignalStateRepository signalStateRepository;
 
     @Mock
+    private AssetLiquidityRepository assetLiquidityRepository;
+
+    @Mock
     private TimeProvider timeProvider;
 
     private SignalQueryService service;
@@ -36,7 +39,7 @@ class SignalQueryServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new SignalQueryService(signalStateRepository, timeProvider);
+        service = new SignalQueryService(signalStateRepository, assetLiquidityRepository, timeProvider);
         when(timeProvider.now()).thenReturn(now);
     }
 
@@ -59,6 +62,7 @@ class SignalQueryServiceTest {
                 .thenReturn(List.of(btcFlip, ethFlip));
         when(signalStateRepository.findEarliestFinalizedForActiveAssets(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(boundary)))
                 .thenReturn(List.of());
+        when(assetLiquidityRepository.findAll()).thenReturn(List.of());
 
         // Test ASSET_ASC
         List<SignalStateDto> result = service.listSignals(Timeframe.D1, IndicatorType.SUPERTREND, null, SignalSort.ASSET_ASC);
@@ -93,6 +97,7 @@ class SignalQueryServiceTest {
                 .thenReturn(List.of());
         when(signalStateRepository.findEarliestFinalizedForActiveAssets(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(boundary)))
                 .thenReturn(List.of());
+        when(assetLiquidityRepository.findAll()).thenReturn(List.of());
 
         List<SignalStateDto> result = service.listSignals(Timeframe.D1, IndicatorType.SUPERTREND, TrendState.BULLISH, SignalSort.ASSET_ASC);
         assertThat(result).hasSize(1);
@@ -137,6 +142,7 @@ class SignalQueryServiceTest {
                 .thenReturn(List.of());
         when(signalStateRepository.findEarliestFinalizedForActiveAssets(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(boundary)))
                 .thenReturn(List.of());
+        when(assetLiquidityRepository.findAll()).thenReturn(List.of());
 
         List<SignalStateDto> result = service.listSignals(Timeframe.D1, IndicatorType.SUPERTREND, null, SignalSort.ASSET_ASC);
         assertThat(result).hasSize(2);
@@ -160,6 +166,7 @@ class SignalQueryServiceTest {
                 .thenReturn(List.of());
         when(signalStateRepository.findEarliestFinalizedForActiveAssets(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(boundary)))
                 .thenReturn(List.of());
+        when(assetLiquidityRepository.findAll()).thenReturn(List.of());
 
         List<SignalStateDto> result = service.listSignals(Timeframe.D1, IndicatorType.SUPERTREND, TrendState.UNKNOWN, SignalSort.ASSET_ASC);
         assertThat(result).hasSize(1);
@@ -189,6 +196,7 @@ class SignalQueryServiceTest {
                 .thenReturn(List.of(btcFlip));
         when(signalStateRepository.findEarliestFinalizedForActiveAssets(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(boundary)))
                 .thenReturn(List.of());
+        when(assetLiquidityRepository.findAll()).thenReturn(List.of());
 
         // Test LAST_FLIP_DESC (newest first, nulls last)
         List<SignalStateDto> result = service.listSignals(Timeframe.D1, IndicatorType.SUPERTREND, null, SignalSort.LAST_FLIP_DESC);
@@ -221,6 +229,7 @@ class SignalQueryServiceTest {
                 .thenReturn(List.of());
         when(signalStateRepository.findEarliestFinalizedForActiveAssets(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(boundary)))
                 .thenReturn(List.of());
+        when(assetLiquidityRepository.findAll()).thenReturn(List.of());
 
         List<SignalStateDto> result = service.listSignals(Timeframe.D1, IndicatorType.SUPERTREND, null, SignalSort.TREND_STATE_ASC);
         
@@ -229,5 +238,45 @@ class SignalQueryServiceTest {
         assertThat(result.get(0).trendState()).isEqualTo(TrendState.BULLISH);
         assertThat(result.get(1).trendState()).isEqualTo(TrendState.BEARISH);
         assertThat(result.get(2).trendState()).isEqualTo(TrendState.UNKNOWN);
+    }
+
+    @Test
+    void shouldSortByLiquidityDesc() {
+        Asset btc = new Asset("BTC", "Bitcoin", MarketProvider.BINANCE, true);
+        btc.setId(1L);
+        Asset eth = new Asset("ETH", "Ethereum", MarketProvider.BINANCE, true);
+        eth.setId(2L);
+        Asset xrp = new Asset("XRP", "Ripple", MarketProvider.BINANCE, true);
+        xrp.setId(3L);
+
+        SignalState btcLatest = new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, boundary, TrendState.BULLISH, SignalEvent.NONE);
+        SignalState ethLatest = new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, boundary, TrendState.BEARISH, SignalEvent.NONE);
+        SignalState xrpLatest = new SignalState(xrp, Timeframe.D1, IndicatorType.SUPERTREND, boundary, TrendState.UNKNOWN, SignalEvent.NONE);
+
+        AssetLiquidityView btcLiq = mockAssetLiquidity(1L, new java.math.BigDecimal("1000"));
+        AssetLiquidityView ethLiq = mockAssetLiquidity(2L, new java.math.BigDecimal("5000"));
+        // xrp has no liquidity entry
+
+        when(signalStateRepository.findLatestFinalizedForActiveAssets(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(boundary)))
+                .thenReturn(List.of(btcLatest, ethLatest, xrpLatest));
+        when(signalStateRepository.findLatestFinalizedFlipsForActiveAssets(any(), any(), any()))
+                .thenReturn(List.of());
+        when(signalStateRepository.findEarliestFinalizedForActiveAssets(any(), any(), any()))
+                .thenReturn(List.of());
+        when(assetLiquidityRepository.findAll()).thenReturn(List.of(btcLiq, ethLiq));
+
+        List<SignalStateDto> result = service.listSignals(Timeframe.D1, IndicatorType.SUPERTREND, null, SignalSort.LIQUIDITY_DESC);
+
+        assertThat(result).hasSize(3);
+        assertThat(result.get(0).symbol()).isEqualTo("ETH"); // 5000
+        assertThat(result.get(1).symbol()).isEqualTo("BTC"); // 1000
+        assertThat(result.get(2).symbol()).isEqualTo("XRP"); // 0 (null/missing)
+    }
+
+    private AssetLiquidityView mockAssetLiquidity(Long assetId, java.math.BigDecimal volume) {
+        AssetLiquidityView view = org.mockito.Mockito.mock(AssetLiquidityView.class);
+        when(view.getAssetId()).thenReturn(assetId);
+        when(view.getAvgVolume7d()).thenReturn(volume);
+        return view;
     }
 }

@@ -24,15 +24,18 @@ public class ScanService {
     private final CandleRepository candleRepository;
     private final ScanValidator scanValidator;
     private final RsiRepository rsiRepository;
+    private final AssetLiquidityRepository assetLiquidityRepository;
 
     ScanService(SignalStateRepository signalStateRepository,
                 CandleRepository candleRepository,
                 ScanValidator scanValidator,
-                RsiRepository rsiRepository) {
+                RsiRepository rsiRepository,
+                AssetLiquidityRepository assetLiquidityRepository) {
         this.signalStateRepository = signalStateRepository;
         this.candleRepository = candleRepository;
         this.scanValidator = scanValidator;
         this.rsiRepository = rsiRepository;
+        this.assetLiquidityRepository = assetLiquidityRepository;
     }
 
     @Transactional(readOnly = true)
@@ -42,6 +45,9 @@ public class ScanService {
         stopWatch.start();
 
         OffsetDateTime latestCloseTime = getLatestFinalizedCloseTime(request.timeframe());
+
+        Map<Long, BigDecimal> liquidityMap = assetLiquidityRepository.findAll().stream()
+                .collect(Collectors.toMap(AssetLiquidityView::getAssetId, AssetLiquidityView::getAvgVolume7d));
 
         Map<Long, AssetMatch> assetMatches = new HashMap<>();
         boolean firstCondition = true;
@@ -72,7 +78,7 @@ public class ScanService {
             if (request.operator() == ScanOperator.AND) {
                 if (firstCondition) {
                     matches.forEach(s -> {
-                        AssetMatch am = new AssetMatch(s.getAsset().getSymbol(), s.getAsset().getProvider());
+                        AssetMatch am = new AssetMatch(s.getAsset().getId(), s.getAsset().getSymbol(), s.getAsset().getProvider());
                         am.indicators.add(mapToMatchedIndicator(s));
                         assetMatches.put(s.getAsset().getId(), am);
                     });
@@ -88,7 +94,7 @@ public class ScanService {
                 if (assetMatches.isEmpty()) break;
             } else { // OR
                 matches.forEach(s -> {
-                    AssetMatch am = assetMatches.computeIfAbsent(s.getAsset().getId(), k -> new AssetMatch(s.getAsset().getSymbol(), s.getAsset().getProvider()));
+                    AssetMatch am = assetMatches.computeIfAbsent(s.getAsset().getId(), k -> new AssetMatch(s.getAsset().getId(), s.getAsset().getSymbol(), s.getAsset().getProvider()));
                     addIndicatorIfNotPresent(am.indicators, mapToMatchedIndicator(s));
                 });
             }
@@ -104,6 +110,7 @@ public class ScanService {
                     return new ScanResult(
                             am.symbol,
                             indicators,
+                            liquidityMap.getOrDefault(am.id, BigDecimal.ZERO),
                             TradingViewUtil.generateUrl(am.provider, am.symbol, request.timeframe())
                     );
                 })
@@ -269,11 +276,13 @@ public class ScanService {
     }
 
     private static class AssetMatch {
+        final Long id;
         final String symbol;
         final MarketProvider provider;
         final List<MatchedIndicator> indicators = new ArrayList<>();
 
-        AssetMatch(String symbol, MarketProvider provider) {
+        AssetMatch(Long id, String symbol, MarketProvider provider) {
+            this.id = id;
             this.symbol = symbol;
             this.provider = provider;
         }

@@ -41,10 +41,10 @@ public class SummaryService {
         MarketPulseDto pulse = marketPulseQueryService.getLatestPulse(timeframe, indicatorType).orElse(null);
 
         List<SignalStateDto> bullishSignals = signalQueryService.listSignals(
-                timeframe, indicatorType, TrendState.BULLISH, SignalSort.LAST_FLIP_DESC);
+                timeframe, indicatorType, TrendState.BULLISH, SignalSort.LIQUIDITY_DESC);
 
         List<SignalStateDto> bearishSignals = signalQueryService.listSignals(
-                timeframe, indicatorType, TrendState.BEARISH, SignalSort.LAST_FLIP_DESC);
+                timeframe, indicatorType, TrendState.BEARISH, SignalSort.LIQUIDITY_DESC);
 
         List<ScanResult> bullishRsi = scanService.execute(new ScanRequest(
                 timeframe,
