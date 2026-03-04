@@ -7,8 +7,33 @@ services:
       - 'POSTGRES_USER=emmett'
     ports:
       - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d columbo -U emmett"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # The app service is intended for running on the target machine (e.g. alongside OpenClaw).
+  # It is gated behind the "prod" profile so it never starts during normal dev workflows.
+  # In dev, run the Spring app directly from your IDE or via ./mvnw spring-boot:run,
+  # and let only the postgres service run via Docker as usual.
+  # To start on the target machine: docker compose --profile prod up -d --build
+  app:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '8080:8080'
+    environment:
+      - 'SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/columbo'
+      - 'SPRING_DATASOURCE_USERNAME=emmett'
+      - 'SPRING_DATASOURCE_PASSWORD=secret'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
