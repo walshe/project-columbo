@@ -6,10 +6,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import walshe.projectcolumbo.marketdata.CandleDto;
-import walshe.projectcolumbo.persistence.Asset;
-import walshe.projectcolumbo.persistence.Candle;
-import walshe.projectcolumbo.persistence.CandleRepository;
-import walshe.projectcolumbo.persistence.Timeframe;
+import walshe.projectcolumbo.persistence.entity.Asset;
+import walshe.projectcolumbo.persistence.entity.Candle;
+import walshe.projectcolumbo.persistence.repository.CandleRepository;
+import walshe.projectcolumbo.persistence.model.Timeframe;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;

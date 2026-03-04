@@ -1,11 +1,18 @@
 package walshe.projectcolumbo.ingestion;
+import walshe.projectcolumbo.marketpulse.MarketPulseService;
+import walshe.projectcolumbo.persistence.model.MarketProvider;
+import walshe.projectcolumbo.persistence.model.Timeframe;
+import walshe.projectcolumbo.persistence.repository.AssetRepository;
+import walshe.projectcolumbo.persistence.service.RsiComputationService;
+import walshe.projectcolumbo.persistence.service.SignalStateService;
+import walshe.projectcolumbo.persistence.service.SuperTrendService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import walshe.projectcolumbo.persistence.*;
+
 
 import java.math.BigDecimal;
 import java.util.Optional;

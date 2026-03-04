@@ -7,11 +7,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import walshe.projectcolumbo.TestcontainersConfiguration;
-import walshe.projectcolumbo.persistence.Asset;
-import walshe.projectcolumbo.persistence.AssetRepository;
-import walshe.projectcolumbo.persistence.MarketProvider;
-import walshe.projectcolumbo.persistence.Timeframe;
-import walshe.projectcolumbo.persistence.RsiRepository;
+import walshe.projectcolumbo.persistence.entity.Asset;
+import walshe.projectcolumbo.persistence.repository.AssetRepository;
+import walshe.projectcolumbo.persistence.model.MarketProvider;
+import walshe.projectcolumbo.persistence.model.Timeframe;
+import walshe.projectcolumbo.persistence.repository.RsiRepository;
 
 import java.time.OffsetDateTime;
 import java.util.List;

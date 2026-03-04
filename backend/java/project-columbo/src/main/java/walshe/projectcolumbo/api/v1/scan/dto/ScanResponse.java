@@ -1,7 +1,7 @@
 package walshe.projectcolumbo.api.v1.scan.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import walshe.projectcolumbo.persistence.Timeframe;
+import walshe.projectcolumbo.persistence.model.Timeframe;
 
 import java.util.List;
 

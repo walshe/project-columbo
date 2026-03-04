@@ -7,8 +7,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import walshe.projectcolumbo.api.v1.dto.MarketPulseDto;
-import walshe.projectcolumbo.persistence.IndicatorType;
-import walshe.projectcolumbo.persistence.Timeframe;
+import walshe.projectcolumbo.persistence.model.IndicatorType;
+import walshe.projectcolumbo.persistence.model.Timeframe;
 
 import java.time.OffsetDateTime;
 import java.util.List;

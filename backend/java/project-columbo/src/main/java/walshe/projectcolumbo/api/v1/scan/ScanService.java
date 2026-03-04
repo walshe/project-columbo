@@ -1,4 +1,15 @@
 package walshe.projectcolumbo.api.v1.scan;
+import walshe.projectcolumbo.persistence.entity.AssetLiquidityView;
+import walshe.projectcolumbo.persistence.entity.RsiIndicator;
+import walshe.projectcolumbo.persistence.entity.SignalState;
+import walshe.projectcolumbo.persistence.model.IndicatorType;
+import walshe.projectcolumbo.persistence.model.MarketProvider;
+import walshe.projectcolumbo.persistence.model.SignalEvent;
+import walshe.projectcolumbo.persistence.model.Timeframe;
+import walshe.projectcolumbo.persistence.repository.AssetLiquidityRepository;
+import walshe.projectcolumbo.persistence.repository.CandleRepository;
+import walshe.projectcolumbo.persistence.repository.RsiRepository;
+import walshe.projectcolumbo.persistence.repository.SignalStateRepository;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -6,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StopWatch;
 import walshe.projectcolumbo.api.v1.scan.dto.*;
 import walshe.projectcolumbo.api.v1.util.TradingViewUtil;
-import walshe.projectcolumbo.persistence.*;
+
 
 import java.math.BigDecimal;
 import java.time.Instant;

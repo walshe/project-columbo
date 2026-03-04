@@ -4,9 +4,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import walshe.projectcolumbo.api.v1.dto.MarketPulseDto;
 import walshe.projectcolumbo.api.v1.mapper.MarketPulseMapper;
-import walshe.projectcolumbo.persistence.IndicatorType;
-import walshe.projectcolumbo.persistence.MarketBreadthSnapshotRepository;
-import walshe.projectcolumbo.persistence.Timeframe;
+import walshe.projectcolumbo.persistence.model.IndicatorType;
+import walshe.projectcolumbo.persistence.repository.MarketBreadthSnapshotRepository;
+import walshe.projectcolumbo.persistence.model.Timeframe;
 
 import java.time.OffsetDateTime;
 import java.util.List;

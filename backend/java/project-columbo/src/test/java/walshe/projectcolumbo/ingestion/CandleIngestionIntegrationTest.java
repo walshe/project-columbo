@@ -1,4 +1,13 @@
 package walshe.projectcolumbo.ingestion;
+import walshe.projectcolumbo.persistence.entity.Asset;
+import walshe.projectcolumbo.persistence.entity.Candle;
+import walshe.projectcolumbo.persistence.model.MarketProvider;
+import walshe.projectcolumbo.persistence.model.Timeframe;
+import walshe.projectcolumbo.persistence.repository.AssetRepository;
+import walshe.projectcolumbo.persistence.repository.CandleRepository;
+import walshe.projectcolumbo.persistence.repository.RsiRepository;
+import walshe.projectcolumbo.persistence.repository.SignalStateRepository;
+import walshe.projectcolumbo.persistence.repository.SuperTrendRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -7,7 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import walshe.projectcolumbo.TestcontainersConfiguration;
 import walshe.projectcolumbo.marketdata.CandleDto;
-import walshe.projectcolumbo.persistence.*;
+
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;

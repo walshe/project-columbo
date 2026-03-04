@@ -6,9 +6,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import walshe.projectcolumbo.persistence.AssetRepository;
-import walshe.projectcolumbo.persistence.MarketProvider;
-import walshe.projectcolumbo.persistence.Timeframe;
+import walshe.projectcolumbo.persistence.repository.AssetRepository;
+import walshe.projectcolumbo.persistence.model.MarketProvider;
+import walshe.projectcolumbo.persistence.model.Timeframe;
 
 import java.util.Optional;
 

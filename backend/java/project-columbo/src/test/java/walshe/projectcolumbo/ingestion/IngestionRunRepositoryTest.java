@@ -6,8 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import walshe.projectcolumbo.TestcontainersConfiguration;
-import walshe.projectcolumbo.persistence.MarketProvider;
-import walshe.projectcolumbo.persistence.Timeframe;
+import walshe.projectcolumbo.persistence.model.MarketProvider;
+import walshe.projectcolumbo.persistence.model.Timeframe;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;

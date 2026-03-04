@@ -3,7 +3,7 @@ package walshe.projectcolumbo.api.v1.scan.dto;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.swagger.v3.oas.annotations.media.Schema;
-import walshe.projectcolumbo.persistence.IndicatorType;
+import walshe.projectcolumbo.persistence.model.IndicatorType;
 
 import java.time.OffsetDateTime;
 

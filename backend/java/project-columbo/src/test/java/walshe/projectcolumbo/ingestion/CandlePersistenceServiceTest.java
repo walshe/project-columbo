@@ -1,11 +1,16 @@
 package walshe.projectcolumbo.ingestion;
+import walshe.projectcolumbo.persistence.entity.Asset;
+import walshe.projectcolumbo.persistence.entity.Candle;
+import walshe.projectcolumbo.persistence.model.MarketProvider;
+import walshe.projectcolumbo.persistence.model.Timeframe;
+import walshe.projectcolumbo.persistence.repository.CandleRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import walshe.projectcolumbo.marketdata.CandleDto;
-import walshe.projectcolumbo.persistence.*;
+
 
 import java.math.BigDecimal;
 import java.time.Instant;

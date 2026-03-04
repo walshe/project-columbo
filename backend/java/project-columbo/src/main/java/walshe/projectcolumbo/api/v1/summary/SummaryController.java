@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import walshe.projectcolumbo.api.v1.summary.dto.SummaryReport;
-import walshe.projectcolumbo.persistence.IndicatorType;
-import walshe.projectcolumbo.persistence.Timeframe;
+import walshe.projectcolumbo.persistence.model.IndicatorType;
+import walshe.projectcolumbo.persistence.model.Timeframe;
 
 @RestController
 @RequestMapping("/api/v1/summary")

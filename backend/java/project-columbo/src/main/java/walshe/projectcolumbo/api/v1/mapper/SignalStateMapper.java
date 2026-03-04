@@ -2,7 +2,7 @@ package walshe.projectcolumbo.api.v1.mapper;
 
 import walshe.projectcolumbo.api.v1.dto.SignalStateDto;
 import walshe.projectcolumbo.api.v1.util.TradingViewUtil;
-import walshe.projectcolumbo.persistence.SignalState;
+import walshe.projectcolumbo.persistence.entity.SignalState;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;

@@ -1,6 +1,6 @@
 package walshe.projectcolumbo.api.v1.dto;
 
-import walshe.projectcolumbo.persistence.TrendState;
+import walshe.projectcolumbo.persistence.model.TrendState;
 import java.time.OffsetDateTime;
 
 public record SignalStateDto(

@@ -1,7 +1,7 @@
 package walshe.projectcolumbo.api.v1.mapper;
 
 import walshe.projectcolumbo.api.v1.dto.MarketPulseDto;
-import walshe.projectcolumbo.persistence.MarketBreadthSnapshot;
+import walshe.projectcolumbo.persistence.entity.MarketBreadthSnapshot;
 
 public class MarketPulseMapper {
     public static MarketPulseDto toDto(MarketBreadthSnapshot snapshot) {

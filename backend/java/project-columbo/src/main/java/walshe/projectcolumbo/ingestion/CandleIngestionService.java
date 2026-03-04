@@ -1,4 +1,9 @@
 package walshe.projectcolumbo.ingestion;
+import walshe.projectcolumbo.persistence.entity.Asset;
+import walshe.projectcolumbo.persistence.model.MarketProvider;
+import walshe.projectcolumbo.persistence.model.Timeframe;
+import walshe.projectcolumbo.persistence.repository.AssetRepository;
+import walshe.projectcolumbo.persistence.repository.CandleRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpClientErrorException;
 import walshe.projectcolumbo.marketdata.CandleDto;
 import walshe.projectcolumbo.marketdata.MarketDataProvider;
-import walshe.projectcolumbo.persistence.*;
+
 
 import java.time.Instant;
 import java.time.OffsetDateTime;

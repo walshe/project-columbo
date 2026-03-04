@@ -3,9 +3,9 @@ package walshe.projectcolumbo.ingestion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import walshe.projectcolumbo.persistence.AssetRepository;
-import walshe.projectcolumbo.persistence.MarketProvider;
-import walshe.projectcolumbo.persistence.Timeframe;
+import walshe.projectcolumbo.persistence.repository.AssetRepository;
+import walshe.projectcolumbo.persistence.model.MarketProvider;
+import walshe.projectcolumbo.persistence.model.Timeframe;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;

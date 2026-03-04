@@ -7,9 +7,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import walshe.projectcolumbo.api.v1.dto.SignalSort;
 import walshe.projectcolumbo.api.v1.dto.SignalStateDto;
-import walshe.projectcolumbo.persistence.IndicatorType;
-import walshe.projectcolumbo.persistence.Timeframe;
-import walshe.projectcolumbo.persistence.TrendState;
+import walshe.projectcolumbo.persistence.model.IndicatorType;
+import walshe.projectcolumbo.persistence.model.Timeframe;
+import walshe.projectcolumbo.persistence.model.TrendState;
 
 import java.util.List;
 import java.util.stream.Collectors;

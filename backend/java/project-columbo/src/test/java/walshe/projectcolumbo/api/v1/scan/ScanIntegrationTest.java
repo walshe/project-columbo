@@ -1,4 +1,17 @@
 package walshe.projectcolumbo.api.v1.scan;
+import walshe.projectcolumbo.persistence.entity.Asset;
+import walshe.projectcolumbo.persistence.entity.Candle;
+import walshe.projectcolumbo.persistence.entity.RsiIndicator;
+import walshe.projectcolumbo.persistence.entity.SignalState;
+import walshe.projectcolumbo.persistence.model.IndicatorType;
+import walshe.projectcolumbo.persistence.model.MarketProvider;
+import walshe.projectcolumbo.persistence.model.SignalEvent;
+import walshe.projectcolumbo.persistence.model.Timeframe;
+import walshe.projectcolumbo.persistence.model.TrendState;
+import walshe.projectcolumbo.persistence.repository.AssetRepository;
+import walshe.projectcolumbo.persistence.repository.CandleRepository;
+import walshe.projectcolumbo.persistence.repository.RsiRepository;
+import walshe.projectcolumbo.persistence.repository.SignalStateRepository;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,7 +27,7 @@ import walshe.projectcolumbo.TestcontainersConfiguration;
 import walshe.projectcolumbo.api.v1.scan.dto.ScanCondition;
 import walshe.projectcolumbo.api.v1.scan.dto.ScanOperator;
 import walshe.projectcolumbo.api.v1.scan.dto.ScanRequest;
-import walshe.projectcolumbo.persistence.*;
+
 
 import java.time.OffsetDateTime;
 import java.util.List;

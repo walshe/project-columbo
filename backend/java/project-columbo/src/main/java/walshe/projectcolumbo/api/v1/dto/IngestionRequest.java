@@ -1,7 +1,7 @@
 package walshe.projectcolumbo.api.v1.dto;
 
-import walshe.projectcolumbo.persistence.MarketProvider;
-import walshe.projectcolumbo.persistence.Timeframe;
+import walshe.projectcolumbo.persistence.model.MarketProvider;
+import walshe.projectcolumbo.persistence.model.Timeframe;
 
 public record IngestionRequest(
     MarketProvider provider,

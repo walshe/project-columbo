@@ -1,8 +1,8 @@
 package walshe.projectcolumbo.ingestion;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import walshe.projectcolumbo.persistence.MarketProvider;
-import walshe.projectcolumbo.persistence.Timeframe;
+import walshe.projectcolumbo.persistence.model.MarketProvider;
+import walshe.projectcolumbo.persistence.model.Timeframe;
 
 import java.util.Optional;
 

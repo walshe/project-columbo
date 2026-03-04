@@ -1,9 +1,9 @@
 package walshe.projectcolumbo.api.v1.scan.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import walshe.projectcolumbo.persistence.IndicatorType;
-import walshe.projectcolumbo.persistence.SignalEvent;
-import walshe.projectcolumbo.persistence.TrendState;
+import walshe.projectcolumbo.persistence.model.IndicatorType;
+import walshe.projectcolumbo.persistence.model.SignalEvent;
+import walshe.projectcolumbo.persistence.model.TrendState;
 
 import java.time.OffsetDateTime;
 

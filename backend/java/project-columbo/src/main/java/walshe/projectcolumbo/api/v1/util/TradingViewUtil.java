@@ -1,7 +1,7 @@
 package walshe.projectcolumbo.api.v1.util;
 
-import walshe.projectcolumbo.persistence.MarketProvider;
-import walshe.projectcolumbo.persistence.Timeframe;
+import walshe.projectcolumbo.persistence.model.MarketProvider;
+import walshe.projectcolumbo.persistence.model.Timeframe;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;

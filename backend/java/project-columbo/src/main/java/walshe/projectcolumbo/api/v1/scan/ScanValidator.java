@@ -4,9 +4,9 @@ import org.springframework.stereotype.Component;
 import walshe.projectcolumbo.api.exception.BadRequestException;
 import walshe.projectcolumbo.api.v1.scan.dto.ScanCondition;
 import walshe.projectcolumbo.api.v1.scan.dto.ScanRequest;
-import walshe.projectcolumbo.persistence.IndicatorType;
-import walshe.projectcolumbo.persistence.SignalEvent;
-import walshe.projectcolumbo.persistence.TrendState;
+import walshe.projectcolumbo.persistence.model.IndicatorType;
+import walshe.projectcolumbo.persistence.model.SignalEvent;
+import walshe.projectcolumbo.persistence.model.TrendState;
 
 import java.util.EnumMap;
 import java.util.Map;
