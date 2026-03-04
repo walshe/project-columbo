@@ -98,7 +98,7 @@ class BinanceMarketDataProvider implements MarketDataProvider {
             BigDecimal high = new BigDecimal(row[2].toString());
             BigDecimal low = new BigDecimal(row[3].toString());
             BigDecimal close = new BigDecimal(row[4].toString());
-            BigDecimal volume = new BigDecimal(row[5].toString());
+            BigDecimal volume = new BigDecimal(row[7].toString());
             long closeTimeMs = ((Number) row[6]).longValue();
 
             return new CandleDto(

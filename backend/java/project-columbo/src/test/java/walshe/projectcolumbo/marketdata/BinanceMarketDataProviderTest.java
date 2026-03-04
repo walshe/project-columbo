@@ -64,7 +64,7 @@ class BinanceMarketDataProviderTest {
         assertThat(candle.high()).isEqualByComparingTo("53000.20");
         assertThat(candle.low()).isEqualByComparingTo("51000.30");
         assertThat(candle.close()).isEqualByComparingTo("52500.40");
-        assertThat(candle.volume()).isEqualByComparingTo("100.50");
+        assertThat(candle.volume()).isEqualByComparingTo("5250000.00");
         assertThat(candle.openTime()).isEqualTo(Instant.ofEpochMilli(1708387200000L));
         assertThat(candle.closeTime()).isEqualTo(Instant.ofEpochMilli(1708473599999L));
     }
