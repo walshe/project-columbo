@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Set;
 
 @Component
-class ScanValidator {
+public class ScanValidator {
 
     private static final Map<IndicatorType, Set<SignalEvent>> VALID_EVENTS = new EnumMap<>(IndicatorType.class);
     private static final Map<IndicatorType, Set<TrendState>> VALID_STATES = new EnumMap<>(IndicatorType.class);

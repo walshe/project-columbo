@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
-class ScanService {
+public class ScanService {
 
     private final SignalStateRepository signalStateRepository;
     private final CandleRepository candleRepository;
