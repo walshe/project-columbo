@@ -162,7 +162,9 @@ public class SuperTrendCalculator {
             return List.of(); // already up to date
         }
 
-        int start = Math.max(0, anchorIndex - atrLength - 1);
+        // Start from a warm-up window before the anchor point.
+        // We use atrLength * 10 to ensure the ATR (Wilder's smoothing) has enough history to stabilize.
+        int start = Math.max(0, anchorIndex - (atrLength * 10));
         List<Candle> window = candles.subList(start, candles.size());
         List<SuperTrendResult> windowResults = calculate(window, atrLength, multiplier);
 
