@@ -19,7 +19,7 @@ class MarketPipelineScheduler {
     }
 
     // Single scheduler for the whole market pipeline
-    @Scheduled(cron = "${app.market-pipeline.cron}")
+    @Scheduled(cron = "${app.market-pipeline.cron}", zone = "Europe/Dublin")
     void runDailyPipeline() {
         try {
             log.info("Scheduled pipeline trigger: starting daily market pipeline");
