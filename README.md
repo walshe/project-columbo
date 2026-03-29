@@ -13,6 +13,8 @@ and exposes a flexible API for market scanning, signal tracking, and pulse aggre
 
 It’s designed to power AI-driven systems like *OpenClaw* — a next-generation market assistant that connects context, insight, and automation.
 
+👉 **[Sample API Queries & Responses](docs/sample-api-responses.md)**
+
 ---
 
 ## 🧩 Core Concepts
@@ -20,7 +22,7 @@ It’s designed to power AI-driven systems like *OpenClaw* — a next-generation
 | Concept                   | Description                                                                                                   |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | **Ingestion Run**         | Tracks every import of market candles (1D, 4H, etc.) from Binance with audit data and concurrency protection. |
-| **Indicator Computation** | Runs algorithms like SuperTrend and RSI across assets and timeframes.                                         |
+| **Indicator Computation** | Runs algorithms like [SuperTrend (10, 2.0)](https://www.tradingview.com/support/solutions/43000634738-supertrend/) and RSI (14) across assets and timeframes. |
 | **Signal State**          | Represents the current indicator condition (e.g., BULLISH / BEARISH / NEUTRAL) and last flip event.           |
 | **Market Pulse**          | Aggregates multiple indicators to produce a unified sentiment view.                                           |
 | **Liquidity Rank**        | Derived from quote volume — helps surface the most actively traded assets.                                    |
@@ -193,5 +195,3 @@ That’s what makes it more than a data engine — it’s a market detective.
 MIT – see [`LICENSE`](LICENSE)
 
 ---
-
-Would you like me to generate a short version of this (focused on setup + Swagger) to include as `/docs/README.dev.md` for developers onboarding via Compose?
