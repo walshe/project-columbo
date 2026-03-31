@@ -1,7 +1,13 @@
 # 🕵️‍♂️ Project Columbo
 
+<p align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/4/4c/Columbo_Peter_Falk_1973.JPG" alt="Columbo" width="300" />
+  <br />
+  <em>"Just one more thing..."</em>
+</p>
+
 **AI-Ready Market Intelligence Backend**
-*Built with Spring Boot, PostgreSQL, and Binance Market Data*
+*Built with Spring Boot, PostgreSQL, Supabase, and Binance Market Data*
 
 ---
 
