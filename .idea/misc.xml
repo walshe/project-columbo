@@ -5,6 +5,7 @@
     <option name="originalFiles">
       <list>
         <option value="$PROJECT_DIR$/backend/java/project-columbo/pom.xml" />
+        <option value="$PROJECT_DIR$/backend/java/pom.xml" />
       </list>
     </option>
   </component>
