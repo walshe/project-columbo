@@ -6,6 +6,12 @@
 .DS_Store
 Thumbs.db
 
+# AI tools
+.claude/
+.qwen/
+.gemini/
+.junie/
+
 # IDEs/editors (root level)
 .idea/
 *.iml
