@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum Timeframe {
-    D1("1D");
+    D1("1D"), W1("1W");
 
     private final String value;
 
