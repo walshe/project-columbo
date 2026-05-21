@@ -10,7 +10,7 @@
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|-----------------|
-| 1 | W1 Candle Derivation | Derive and persist complete W1 candles from D1 rollup | CNDL-01–05 | 5 |
+| 1 | W1 Candle Derivation | 3/3 | Complete    | 2026-05-21 |
 | 2 | W1 Indicators & Signals | Compute SuperTrend, RSI, signal state, and market breadth on W1 | INDC-01–03, SGNL-01–02 | 4 |
 | 3 | Pipeline & API Integration | Wire W1 into the daily pipeline and expose via all query endpoints | PIPE-01–03, API-01–03 | 5 |
 
@@ -22,14 +22,23 @@
 
 **Requirements:** CNDL-01, CNDL-02, CNDL-03, CNDL-04, CNDL-05
 
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 01-01-PLAN.md — Add W1 to the PostgreSQL `timeframe` enum (Flyway V13) and the Java `Timeframe` enum
-- [ ] 01-02-PLAN.md — Implement the generic `CandleRollupService` (week grouping, completeness guard, idempotent aggregation) with unit tests
-- [ ] 01-03-PLAN.md — Testcontainers integration tests for DB-enum validity, idempotency, and incremental rollup; full-suite phase gate
+**Wave 1**
+
+- [x] 01-01-PLAN.md — Add W1 to the PostgreSQL `timeframe` enum (Flyway V13) and the Java `Timeframe` enum
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 01-02-PLAN.md — Implement the generic `CandleRollupService` (week grouping, completeness guard, idempotent aggregation) with unit tests
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [x] 01-03-PLAN.md — Testcontainers integration tests for DB-enum validity, idempotency, and incremental rollup; full-suite phase gate
 
 **Success Criteria:**
+
 1. `W1` exists as a valid `Timeframe` enum value and in the DB enum (Flyway migration applied)
 2. Given a set of D1 candles for a full week (Mon–Sun UTC), the rollup service produces one W1 candle with correct O/H/L/C/V (open = Mon open, high = max daily high, low = min daily low, close = Sun close, volume = sum)
 3. Incomplete weeks (current week not yet closed) produce no W1 candle
@@ -45,6 +54,7 @@ Plans:
 **Requirements:** INDC-01, INDC-02, INDC-03, SGNL-01, SGNL-02
 
 **Success Criteria:**
+
 1. After rollup, `SuperTrendIndicator` and `RsiIndicator` rows exist for W1 candles for all active assets
 2. Incremental computation: re-running the W1 indicator pass does not recompute already-stored W1 indicators
 3. `SignalState` rows (BULLISH/BEARISH/UNKNOWN + cross events) exist for W1 per asset
@@ -59,6 +69,7 @@ Plans:
 **Requirements:** PIPE-01, PIPE-02, PIPE-03, API-01, API-02, API-03
 
 **Success Criteria:**
+
 1. A scheduled or manually triggered pipeline run produces W1 candles, indicators, signals, and market breadth without any manual intervention
 2. D1 pipeline behaviour is unchanged — W1 is a new additive phase, not a replacement
 3. `GET /api/v1/market-pulse?timeframe=W1` returns a valid market breadth response
@@ -72,6 +83,7 @@ Plans:
 ### Rollup Architecture
 
 The rollup should be a standalone `CandleRollupService` (or similar) that accepts:
+
 - `sourceTimeframe` — the input candle granularity (e.g. `D1`)
 - `targetTimeframe` — the output candle granularity (e.g. `W1`)
 - `weekStartDay` — configurable (Monday UTC)
@@ -81,6 +93,7 @@ This keeps H4→D1 and H4→W1 as future callers of the same service without ref
 ### Pipeline Ordering
 
 After Phase 3, the daily pipeline phases become:
+
 ```
 Phase 1: INGESTION        (D1 from Binance — unchanged)
 Phase 2: D1 INDICATORS    (SuperTrend, RSI on D1 — unchanged)
