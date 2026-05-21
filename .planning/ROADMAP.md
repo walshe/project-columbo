@@ -53,6 +53,17 @@ Plans:
 
 **Requirements:** INDC-01, INDC-02, INDC-03, SGNL-01, SGNL-02
 
+**Plans:** 2 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 02-01-PLAN.md — Refactor `MarketPulseService` — extract timeframe-parameterized `computeForTimeframe(Timeframe)` from D1-hardcoded `computeDaily()`
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 02-02-PLAN.md — `W1IndicatorService` orchestrator (SuperTrend → RSI → signals → breadth on W1) plus end-to-end integration tests for all five requirements
+
 **Success Criteria:**
 
 1. After rollup, `SuperTrendIndicator` and `RsiIndicator` rows exist for W1 candles for all active assets
@@ -114,3 +125,4 @@ Phase 8: W1 MARKET_PULSE  (market breadth on W1)
 ---
 *Roadmap created: 2026-05-20*
 *Phase 1 planned: 2026-05-20 — 3 plans*
+*Phase 2 planned: 2026-05-21 — 2 plans*
