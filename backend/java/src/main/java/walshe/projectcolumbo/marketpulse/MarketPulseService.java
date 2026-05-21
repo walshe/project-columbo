@@ -37,12 +37,18 @@ public class MarketPulseService {
     }
 
     @Transactional
-    public void computeDaily() {
-        log.info("Starting MarketPulse aggregation (Breadth Snapshots)");
-        Timeframe timeframe = Timeframe.D1;
+    public void computeForTimeframe(Timeframe timeframe) {
+        log.info("Starting MarketPulse aggregation for timeframe {}", timeframe);
+        long start = System.currentTimeMillis();
         for (IndicatorType type : IndicatorType.values()) {
             computePulseForIndicator(timeframe, type);
         }
+        log.info("Completed MarketPulse aggregation for timeframe {} in {}ms", timeframe, System.currentTimeMillis() - start);
+    }
+
+    @Transactional
+    public void computeDaily() {
+        computeForTimeframe(Timeframe.D1);
     }
 
     private void computePulseForIndicator(Timeframe timeframe, IndicatorType indicatorType) {

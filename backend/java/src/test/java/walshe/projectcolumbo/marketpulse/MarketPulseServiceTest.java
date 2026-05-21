@@ -100,4 +100,44 @@ class MarketPulseServiceTest {
         // Then
         verify(snapshotRepository, never()).save(any());
     }
+
+    @Test
+    void computeForTimeframe_D1_delegatesComputeDaily_producesIdenticalSnapshot() {
+        // RED gate: computeForTimeframe(Timeframe) does not exist yet — this test must fail to compile until GREEN
+        // Given
+        when(assetRepository.countByActiveTrue()).thenReturn(60L);
+
+        Asset asset1 = new Asset("BTC", "Bitcoin", MarketProvider.BINANCE, true);
+        OffsetDateTime closeTime = OffsetDateTime.of(2026, 2, 25, 23, 59, 59, 999000000, ZoneOffset.UTC);
+
+        List<SignalState> states = new java.util.ArrayList<>();
+        for (int i = 0; i < 21; i++) {
+            states.add(new SignalState(asset1, Timeframe.D1, IndicatorType.SUPERTREND, closeTime, TrendState.BULLISH, SignalEvent.NONE));
+        }
+        for (int i = 0; i < 20; i++) {
+            states.add(new SignalState(asset1, Timeframe.D1, IndicatorType.SUPERTREND, closeTime, TrendState.BEARISH, SignalEvent.NONE));
+        }
+
+        when(signalStateRepository.findLatestFinalizedForActiveAssets(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), any()))
+                .thenReturn(states);
+        when(snapshotRepository.findByTimeframeAndIndicatorTypeAndSnapshotCloseTime(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), any()))
+                .thenReturn(Optional.empty());
+
+        // When — calling the new timeframe-parameterized entry point directly
+        service.computeForTimeframe(Timeframe.D1);
+
+        // Then — same snapshot produced as computeDaily()
+        ArgumentCaptor<MarketBreadthSnapshot> captor = ArgumentCaptor.forClass(MarketBreadthSnapshot.class);
+        verify(snapshotRepository, atLeastOnce()).save(captor.capture());
+
+        MarketBreadthSnapshot snapshot = captor.getAllValues().stream()
+                .filter(s -> s.getIndicatorType() == IndicatorType.SUPERTREND)
+                .findFirst().orElseThrow();
+
+        assertThat(snapshot.getBullishCount()).isEqualTo(21);
+        assertThat(snapshot.getBearishCount()).isEqualTo(20);
+        assertThat(snapshot.getMissingCount()).isEqualTo(19);
+        assertThat(snapshot.getTotalAssets()).isEqualTo(60);
+        assertThat(snapshot.getBullishRatio()).isEqualByComparingTo("0.5122");
+    }
 }
