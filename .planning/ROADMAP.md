@@ -11,7 +11,7 @@
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|-----------------|
 | 1 | W1 Candle Derivation | 3/3 | Complete    | 2026-05-21 |
-| 2 | W1 Indicators & Signals | Compute SuperTrend, RSI, signal state, and market breadth on W1 | INDC-01–03, SGNL-01–02 | 4 |
+| 2 | W1 Indicators & Signals | 1/2 | In Progress|  |
 | 3 | Pipeline & API Integration | Wire W1 into the daily pipeline and expose via all query endpoints | PIPE-01–03, API-01–03 | 5 |
 
 ---
@@ -53,12 +53,12 @@ Plans:
 
 **Requirements:** INDC-01, INDC-02, INDC-03, SGNL-01, SGNL-02
 
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Refactor `MarketPulseService` — extract timeframe-parameterized `computeForTimeframe(Timeframe)` from D1-hardcoded `computeDaily()`
+- [x] 02-01-PLAN.md — Refactor `MarketPulseService` — extract timeframe-parameterized `computeForTimeframe(Timeframe)` from D1-hardcoded `computeDaily()`
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
