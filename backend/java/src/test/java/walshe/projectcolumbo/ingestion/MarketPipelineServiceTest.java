@@ -1,11 +1,13 @@
 package walshe.projectcolumbo.ingestion;
 import walshe.projectcolumbo.marketpulse.MarketPulseService;
+import walshe.projectcolumbo.marketpulse.W1IndicatorService;
 import walshe.projectcolumbo.persistence.model.MarketProvider;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.repository.AssetRepository;
 import walshe.projectcolumbo.persistence.service.RsiComputationService;
 import walshe.projectcolumbo.persistence.service.SignalStateService;
 import walshe.projectcolumbo.persistence.service.SuperTrendService;
+import walshe.projectcolumbo.rollup.CandleRollupService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +42,10 @@ class MarketPipelineServiceTest {
     private AssetRepository assetRepository;
     @Mock
     private IngestionOrchestrator orchestrator;
+    @Mock
+    private CandleRollupService candleRollupService;
+    @Mock
+    private W1IndicatorService w1IndicatorService;
 
     private MarketPipelineService marketPipelineService;
 
@@ -54,7 +60,9 @@ class MarketPipelineServiceTest {
                 marketPulseService,
                 ingestionRunRepository,
                 assetRepository,
-                orchestrator
+                orchestrator,
+                candleRollupService,
+                w1IndicatorService
         );
 
         // Default behavior: no running ingestion
