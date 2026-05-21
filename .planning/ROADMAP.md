@@ -79,6 +79,14 @@ Plans:
 
 **Requirements:** PIPE-01, PIPE-02, PIPE-03, API-01, API-02, API-03
 
+**Plans:** 2 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 03-01-PLAN.md — Wire W1 rollup + W1 indicator/signal/breadth pass into `MarketPipelineService.runDaily()` as additive phases (PIPE-01/02/03)
+- [ ] 03-02-PLAN.md — W1 API integration tests proving market-pulse, signals, and scan endpoints serve W1 data (API-01/02/03)
+
 **Success Criteria:**
 
 1. A scheduled or manually triggered pipeline run produces W1 candles, indicators, signals, and market breadth without any manual intervention
@@ -126,3 +134,4 @@ Phase 8: W1 MARKET_PULSE  (market breadth on W1)
 *Roadmap created: 2026-05-20*
 *Phase 1 planned: 2026-05-20 — 3 plans*
 *Phase 2 planned: 2026-05-21 — 2 plans*
+*Phase 3 planned: 2026-05-21 — 2 plans*
