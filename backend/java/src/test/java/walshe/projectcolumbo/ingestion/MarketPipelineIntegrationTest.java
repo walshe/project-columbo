@@ -26,6 +26,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -157,5 +158,81 @@ class MarketPipelineIntegrationTest {
         assertEquals(IngestionRunStatus.FAILED, runs.get(0).getStatus());
         assertNotNull(runs.get(0).getErrorSample());
         assertTrue(runs.get(0).getErrorSample().contains("Mocked failure"));
+    }
+
+    @Test
+    void shouldProduceW1OutputsAfterFullPipelineRun() {
+        // Seed the BTC asset
+        Asset btc = assetRepository.save(new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true));
+
+        // Seed 16 complete Mon-Sun weeks of D1 candles (112 days) starting 2024-01-01 (a Monday UTC).
+        // W1 RSI (period 14) needs at least 15 W1 candles, so 16 weeks ensures >= 15 complete weeks.
+        // OHLC values oscillate to produce non-degenerate RSI/SuperTrend output.
+        OffsetDateTime anchor = OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+        int totalDays = 16 * 7; // 112 days
+        List<CandleDto> candles = new ArrayList<>(totalDays);
+        for (int i = 0; i < totalDays; i++) {
+            OffsetDateTime openTime = anchor.plusDays(i);
+            OffsetDateTime closeTime = openTime.plusDays(1).minusNanos(1);
+            // Oscillate close prices: alternating up/down pattern for meaningful indicators
+            double base = 40000.0 + (i % 7) * 500.0;
+            double close = (i % 2 == 0) ? base + 300 : base - 300;
+            candles.add(new CandleDto(
+                new BigDecimal(String.valueOf(base)),
+                new BigDecimal(String.valueOf(base + 1000)),
+                new BigDecimal(String.valueOf(base - 1000)),
+                new BigDecimal(String.valueOf(close)),
+                new BigDecimal("1000"),
+                openTime.toInstant(),
+                closeTime.toInstant()
+            ));
+        }
+        when(binanceProvider.fetchDailyCandles(eq("BTCUSDT"), any(), any())).thenReturn(candles);
+
+        // Run the full six-phase pipeline
+        marketPipelineService.runDaily(MarketProvider.BINANCE, Timeframe.D1, RunMode.INCREMENTAL);
+
+        // 1. D1 still works (PIPE-02): verify D1 candles, indicators, signals, breadth
+        List<?> d1Candles = candleRepository.findByAssetAndTimeframeOrderByCloseTimeAsc(btc, Timeframe.D1);
+        assertTrue(!d1Candles.isEmpty(), "D1 candles should be ingested");
+
+        List<?> d1SuperTrend = superTrendRepository.findByAssetAndTimeframeOrderByCloseTimeAsc(btc, Timeframe.D1);
+        assertTrue(!d1SuperTrend.isEmpty(), "D1 SuperTrend indicators should be computed");
+
+        List<?> d1Signals = signalStateRepository.findAll().stream()
+                .filter(s -> s.getTimeframe() == Timeframe.D1)
+                .toList();
+        assertTrue(!d1Signals.isEmpty(), "D1 signal states should be detected");
+
+        boolean d1BreadthExists = marketBreadthSnapshotRepository.findAll().stream()
+                .anyMatch(s -> s.getTimeframe() == Timeframe.D1);
+        assertTrue(d1BreadthExists, "D1 market breadth snapshot should exist");
+
+        // 2. W1 candles exist (PIPE-01)
+        List<?> w1Candles = candleRepository.findByAssetAndTimeframeOrderByCloseTimeAsc(btc, Timeframe.W1);
+        assertTrue(w1Candles.size() >= 15, "At least 15 W1 candles should be produced; got: " + w1Candles.size());
+
+        // 3. W1 indicators exist
+        List<?> w1SuperTrend = superTrendRepository.findByAssetAndTimeframeOrderByCloseTimeAsc(btc, Timeframe.W1);
+        assertTrue(!w1SuperTrend.isEmpty(), "W1 SuperTrend indicators should be computed");
+
+        List<?> w1Rsi = rsiRepository.findByAssetAndTimeframeOrderByCloseTimeAsc(btc, Timeframe.W1);
+        assertTrue(!w1Rsi.isEmpty(), "W1 RSI indicators should be computed");
+
+        // 4. W1 signals exist
+        boolean w1SignalsExist = signalStateRepository.findAll().stream()
+                .anyMatch(s -> s.getTimeframe() == Timeframe.W1);
+        assertTrue(w1SignalsExist, "W1 signal states should be detected");
+
+        // 5. W1 breadth exists (PIPE-01)
+        boolean w1BreadthExists = marketBreadthSnapshotRepository.findAll().stream()
+                .anyMatch(s -> s.getTimeframe() == Timeframe.W1);
+        assertTrue(w1BreadthExists, "W1 market breadth snapshot should exist");
+
+        // 6. Run tracking reflects W1 (PIPE-03): exactly one IngestionRun, status SUCCESS
+        List<IngestionRun> runs = ingestionRunRepository.findAll();
+        assertEquals(1, runs.size(), "Exactly one IngestionRun should be recorded");
+        assertEquals(IngestionRunStatus.SUCCESS, runs.get(0).getStatus(),
+                "IngestionRun status should be SUCCESS after full six-phase run");
     }
 }
