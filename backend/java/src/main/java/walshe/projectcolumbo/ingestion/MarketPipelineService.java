@@ -127,8 +127,16 @@ public class MarketPipelineService {
             logger.info("Market pipeline completed successfully for {} {} in {}ms", 
                     actualProvider, actualTimeframe, System.currentTimeMillis() - startTime);
         } catch (Exception e) {
-            logger.error("Market pipeline failed at phase during execution: {}", e.getMessage());
-            finalizeRun(run, null, e);
+            logger.error("Market pipeline failed during execution: {}", e.getMessage(), e);
+            try {
+                finalizeRun(run, null, e);
+            } catch (Exception finalizationError) {
+                logger.error("Failed to finalize run after pipeline error; forcing FAILED status", finalizationError);
+                run.setStatus(IngestionRunStatus.FAILED);
+                run.setFinishedAt(OffsetDateTime.now());
+                String msg = e.getMessage();
+                run.setErrorSample(msg != null && msg.length() > 1000 ? msg.substring(0, 1000) : msg);
+            }
         } finally {
             run = ingestionRunRepository.save(run);
         }
