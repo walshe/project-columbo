@@ -70,11 +70,14 @@ public class SummaryReportFormatter {
     }
 
     private void appendSignals(StringBuilder sb, List<SignalStateDto> signals) {
-        if (signals.isEmpty()) {
+        List<SignalStateDto> withFlip = signals.stream()
+                .filter(s -> s.daysSinceFlip() != null)
+                .collect(java.util.stream.Collectors.toList());
+        if (withFlip.isEmpty()) {
             sb.append("None found.\n\n");
         } else {
-            for (SignalStateDto s : signals) {
-                sb.append(String.format("- [%s](%s): Flipped %d days ago (Vol: %s)\n", 
+            for (SignalStateDto s : withFlip) {
+                sb.append(String.format("- [%s](%s): Flipped %d days ago (Vol: %s)\n",
                         s.symbol(), s.tradingviewUrl(), s.daysSinceFlip(), formatVolume(s.avgVolume7d())));
             }
             sb.append("\n");
@@ -101,12 +104,15 @@ public class SummaryReportFormatter {
     }
 
     private void appendSignalsHtml(StringBuilder sb, List<SignalStateDto> signals) {
-        if (signals.isEmpty()) {
+        List<SignalStateDto> withFlip = signals.stream()
+                .filter(s -> s.daysSinceFlip() != null)
+                .collect(java.util.stream.Collectors.toList());
+        if (withFlip.isEmpty()) {
             sb.append("<p>None found.</p>");
         } else {
             sb.append("<ul>");
-            for (SignalStateDto s : signals) {
-                sb.append(String.format("<li><a href=\"%s\">%s</a>: Flipped %d days ago (Vol: %s)</li>", 
+            for (SignalStateDto s : withFlip) {
+                sb.append(String.format("<li><a href=\"%s\">%s</a>: Flipped %d days ago (Vol: %s)</li>",
                         s.tradingviewUrl(), s.symbol(), s.daysSinceFlip(), formatVolume(s.avgVolume7d())));
             }
             sb.append("</ul>");

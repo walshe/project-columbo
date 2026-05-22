@@ -19,7 +19,7 @@ public class SignalStateMapper {
         
         if (lastFlip != null) {
             lastFlipTime = lastFlip.getCloseTime();
-            daysSinceFlip = ChronoUnit.DAYS.between(lastFlipTime, now);
+            daysSinceFlip = ChronoUnit.DAYS.between(lastFlipTime.toLocalDate(), now.toLocalDate());
         }
 
         return new SignalStateDto(

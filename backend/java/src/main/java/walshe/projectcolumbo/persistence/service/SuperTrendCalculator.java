@@ -79,8 +79,8 @@ public class SuperTrendCalculator {
             // 5. SuperTrend
             BigDecimal superTrend;
             if (prevSuperTrend == null) {
-                // Initial direction - assume DOWN if close <= finalUpper, else UP
-                if (close.compareTo(finalUpper) <= 0) {
+                // Match TradingView: default to UP (trend=1); flip to DOWN only if close < lowerBand
+                if (close.compareTo(finalLower) < 0) {
                     superTrend = finalUpper;
                 } else {
                     superTrend = finalLower;
