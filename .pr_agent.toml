@@ -1,0 +1,10 @@
+[config]
+model = "deepseek/deepseek-chat"
+fallback_models = ["deepseek/deepseek-chat"]
+
+[pr_reviewer]
+num_code_suggestions = 3
+inline_code_comments = true
+
+[pr_description]
+publish_labels = false
