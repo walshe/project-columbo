@@ -122,6 +122,33 @@ docker compose logs -f app
 
 ---
 
+## 📦 Initial Data Backfill
+
+On a fresh database, the system fetches historical D1 candles starting from `app.ingestion.backfill-start` (configured in `application.yaml`, currently `2025-01-01`).
+
+**Why the lookback matters:** Weekly SuperTrend uses a 10-period ATR with Wilder's smoothing (RMA). The initial seed value's influence decays as `0.9^n` per week — you need ~44 W1 candles for it to drop below 1%. With fewer candles the bands are too tight and false signals appear.
+
+**Minimum:** ~15 months of D1 data (~65 W1 candles). `2025-01-01` comfortably covers this.
+
+**Binance returns 500 candles per request**, so a full backfill from `2025-01-01` requires **2 ingestion trigger runs**:
+
+```bash
+# Trigger via Swagger or curl — repeat until response shows 0 new candles inserted
+curl -X POST http://localhost:8080/api/v1/internal/ingestion/run \
+  -H 'Content-Type: application/json' \
+  -d '{"provider": "BINANCE", "timeframe": "1D"}'
+```
+
+Check the logs to confirm backfill is complete:
+
+```bash
+docker compose -f backend/java/compose.yaml logs app | grep INGESTION_WINDOW
+```
+
+When all assets show `start >= end` (no new candles to fetch), the backfill is done.
+
+---
+
 ## 🌐 API & Documentation
 
 Once the containers are up and running, all API documentation and testing tools are available via Swagger:

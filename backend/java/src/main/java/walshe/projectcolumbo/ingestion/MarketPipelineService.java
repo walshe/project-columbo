@@ -11,7 +11,10 @@ import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.marketpulse.MarketPulseService;
 import walshe.projectcolumbo.persistence.model.IndicatorType;
 import walshe.projectcolumbo.persistence.service.RsiComputationService;
+import walshe.projectcolumbo.rollup.CandleRollupService;
+import walshe.projectcolumbo.marketpulse.W1IndicatorService;
 
+import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.math.BigDecimal;
@@ -29,6 +32,8 @@ public class MarketPipelineService {
     private final IngestionRunRepository ingestionRunRepository;
     private final AssetRepository assetRepository;
     private final IngestionOrchestrator orchestrator;
+    private final CandleRollupService candleRollupService;
+    private final W1IndicatorService w1IndicatorService;
 
     public MarketPipelineService(CandleIngestionService candleIngestionService,
                                  SuperTrendService superTrendService,
@@ -37,7 +42,9 @@ public class MarketPipelineService {
                                  MarketPulseService marketPulseService,
                                  IngestionRunRepository ingestionRunRepository,
                                  AssetRepository assetRepository,
-                                 IngestionOrchestrator orchestrator) {
+                                 IngestionOrchestrator orchestrator,
+                                 CandleRollupService candleRollupService,
+                                 W1IndicatorService w1IndicatorService) {
         this.candleIngestionService = candleIngestionService;
         this.superTrendService = superTrendService;
         this.rsiComputationService = rsiComputationService;
@@ -46,6 +53,8 @@ public class MarketPipelineService {
         this.ingestionRunRepository = ingestionRunRepository;
         this.assetRepository = assetRepository;
         this.orchestrator = orchestrator;
+        this.candleRollupService = candleRollupService;
+        this.w1IndicatorService = w1IndicatorService;
     }
 
     public IngestionRun runDaily(MarketProvider provider, Timeframe timeframe, RunMode mode) {
@@ -89,10 +98,10 @@ public class MarketPipelineService {
             rsiComputationService.computeForActiveAssets(actualTimeframe, 14, false);
             logger.info("Completed phase: INDICATOR in {}ms", System.currentTimeMillis() - indicatorStartTime);
 
-            // PHASE 3: Signal Detection
+            // PHASE 3: Signal Detection (D1 only; W1 is handled by W1IndicatorService in Phase 6)
             logger.info("Starting phase: SIGNAL");
             long signalStartTime = System.currentTimeMillis();
-            signalStateService.detectDaily();
+            signalStateService.detectForTimeframe(Timeframe.D1);
             logger.info("Completed phase: SIGNAL in {}ms", System.currentTimeMillis() - signalStartTime);
 
             // PHASE 4: Market Pulse Aggregation
@@ -101,13 +110,33 @@ public class MarketPipelineService {
             marketPulseService.computeDaily();
             logger.info("Completed phase: MARKET_PULSE in {}ms", System.currentTimeMillis() - pulseStartTime);
 
+            // PHASE 5: W1 Rollup
+            logger.info("Starting phase: W1_ROLLUP");
+            long w1RollupStartTime = System.currentTimeMillis();
+            candleRollupService.rollupForAllActiveAssets(Timeframe.D1, Timeframe.W1, DayOfWeek.MONDAY);
+            logger.info("Completed phase: W1_ROLLUP in {}ms", System.currentTimeMillis() - w1RollupStartTime);
+
+            // PHASE 6: W1 Indicators/Signals/Pulse
+            logger.info("Starting phase: W1_PROCESSING");
+            long w1ProcessingStartTime = System.currentTimeMillis();
+            w1IndicatorService.processAllActiveAssets();
+            logger.info("Completed phase: W1_PROCESSING in {}ms", System.currentTimeMillis() - w1ProcessingStartTime);
+
             // Success Handling
             finalizeRun(run, stats, null);
             logger.info("Market pipeline completed successfully for {} {} in {}ms", 
                     actualProvider, actualTimeframe, System.currentTimeMillis() - startTime);
         } catch (Exception e) {
-            logger.error("Market pipeline failed at phase during execution: {}", e.getMessage());
-            finalizeRun(run, null, e);
+            logger.error("Market pipeline failed during execution: {}", e.getMessage(), e);
+            try {
+                finalizeRun(run, null, e);
+            } catch (Exception finalizationError) {
+                logger.error("Failed to finalize run after pipeline error; forcing FAILED status", finalizationError);
+                run.setStatus(IngestionRunStatus.FAILED);
+                run.setFinishedAt(OffsetDateTime.now());
+                String msg = e.getMessage();
+                run.setErrorSample(msg != null && msg.length() > 1000 ? msg.substring(0, 1000) : msg);
+            }
         } finally {
             run = ingestionRunRepository.save(run);
         }

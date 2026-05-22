@@ -1,11 +1,13 @@
 package walshe.projectcolumbo.ingestion;
 import walshe.projectcolumbo.marketpulse.MarketPulseService;
+import walshe.projectcolumbo.marketpulse.W1IndicatorService;
 import walshe.projectcolumbo.persistence.model.MarketProvider;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.repository.AssetRepository;
 import walshe.projectcolumbo.persistence.service.RsiComputationService;
 import walshe.projectcolumbo.persistence.service.SignalStateService;
 import walshe.projectcolumbo.persistence.service.SuperTrendService;
+import walshe.projectcolumbo.rollup.CandleRollupService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +42,10 @@ class MarketPipelineServiceTest {
     private AssetRepository assetRepository;
     @Mock
     private IngestionOrchestrator orchestrator;
+    @Mock
+    private CandleRollupService candleRollupService;
+    @Mock
+    private W1IndicatorService w1IndicatorService;
 
     private MarketPipelineService marketPipelineService;
 
@@ -54,7 +60,9 @@ class MarketPipelineServiceTest {
                 marketPulseService,
                 ingestionRunRepository,
                 assetRepository,
-                orchestrator
+                orchestrator,
+                candleRollupService,
+                w1IndicatorService
         );
 
         // Default behavior: no running ingestion
@@ -80,12 +88,15 @@ class MarketPipelineServiceTest {
         marketPipelineService.runDaily(MarketProvider.BINANCE, Timeframe.D1, RunMode.INCREMENTAL);
 
         // Then
-        InOrder inOrder = inOrder(candleIngestionService, superTrendService, rsiComputationService, signalStateService, marketPulseService);
+        InOrder inOrder = inOrder(candleIngestionService, superTrendService, rsiComputationService,
+                signalStateService, marketPulseService, candleRollupService, w1IndicatorService);
         inOrder.verify(candleIngestionService).ingestDaily();
         inOrder.verify(superTrendService).processAllActiveAssets(eq(Timeframe.D1), anyInt(), any(), eq(false));
         inOrder.verify(rsiComputationService).computeForActiveAssets(eq(Timeframe.D1), anyInt(), eq(false));
-        inOrder.verify(signalStateService).detectDaily();
+        inOrder.verify(signalStateService).detectForTimeframe(eq(Timeframe.D1));
         inOrder.verify(marketPulseService).computeDaily();
+        inOrder.verify(candleRollupService).rollupForAllActiveAssets(eq(Timeframe.D1), eq(Timeframe.W1), any());
+        inOrder.verify(w1IndicatorService).processAllActiveAssets();
     }
 
     @Test

@@ -22,6 +22,7 @@ import walshe.projectcolumbo.api.v1.util.TradingViewUtil;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -224,7 +225,7 @@ public class ScanService {
                     .orElse(BigDecimal.ZERO);
 
             // For RSI, calculate daysSinceCross based on the match's closeTime
-            int daysSinceCross = (int) ChronoUnit.DAYS.between(s.getCloseTime(), OffsetDateTime.now(ZoneOffset.UTC));
+            int daysSinceCross = (int) ChronoUnit.DAYS.between(s.getCloseTime().toLocalDate(), LocalDate.now(ZoneOffset.UTC));
             return new RsiMatch(
                     IndicatorType.RSI,
                     s.getEvent(),
@@ -237,7 +238,7 @@ public class ScanService {
             if (s.getEvent() == SignalEvent.NONE || s.getEvent() == null) {
                 // Find when this trend state started
                 OffsetDateTime flipTime = findFlipTime(s);
-                daysSinceFlip = (int) ChronoUnit.DAYS.between(flipTime, OffsetDateTime.now(ZoneOffset.UTC));
+                daysSinceFlip = (int) ChronoUnit.DAYS.between(flipTime.toLocalDate(), LocalDate.now(ZoneOffset.UTC));
             } else {
                 // It's an event, so it happened at s.getCloseTime()
                 daysSinceFlip = 0;

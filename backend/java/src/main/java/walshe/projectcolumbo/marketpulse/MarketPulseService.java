@@ -37,12 +37,18 @@ public class MarketPulseService {
     }
 
     @Transactional
-    public void computeDaily() {
-        log.info("Starting MarketPulse aggregation (Breadth Snapshots)");
-        Timeframe timeframe = Timeframe.D1;
+    public void computeForTimeframe(Timeframe timeframe) {
+        log.info("Starting MarketPulse aggregation for timeframe {}", timeframe);
+        long start = System.currentTimeMillis();
         for (IndicatorType type : IndicatorType.values()) {
             computePulseForIndicator(timeframe, type);
         }
+        log.info("Completed MarketPulse aggregation for timeframe {} in {}ms", timeframe, System.currentTimeMillis() - start);
+    }
+
+    @Transactional
+    public void computeDaily() {
+        computeForTimeframe(Timeframe.D1);
     }
 
     private void computePulseForIndicator(Timeframe timeframe, IndicatorType indicatorType) {
@@ -82,8 +88,9 @@ public class MarketPulseService {
 
         int bullishCount = (int) statesAtTime.stream().filter(s -> s.getTrendState() == TrendState.BULLISH).count();
         int bearishCount = (int) statesAtTime.stream().filter(s -> s.getTrendState() == TrendState.BEARISH).count();
-        int unknownCount = (int) statesAtTime.stream().filter(s -> s.getTrendState() == TrendState.UNKNOWN).count();
-        int missingCount = (int) (totalActiveAssets - bullishCount - bearishCount - unknownCount);
+        // missingCount = all non-bullish, non-bearish assets (includes UNKNOWN trend and assets with no signal row).
+        // This keeps the contract simple: bullishCount + bearishCount + missingCount == totalActiveAssets.
+        int missingCount = (int) (totalActiveAssets - bullishCount - bearishCount);
 
         int presentCount = bullishCount + bearishCount;
         BigDecimal bullishRatio = presentCount > 0 
@@ -114,13 +121,12 @@ public class MarketPulseService {
         if (existingOpt.isPresent()) {
             MarketBreadthSnapshot existing = existingOpt.get();
             if (isSame(existing, snapshot)) {
-                log.info("MarketPulse snapshot already exists and is identical for {}", snapshot.getSnapshotCloseTime());
+                log.debug("MarketPulse snapshot unchanged for {}", snapshot.getSnapshotCloseTime());
             } else {
-                log.warn("REVISION: MarketPulse snapshot changed for {}. Updating.", snapshot.getSnapshotCloseTime());
-                // In a real app we'd update fields here. Since it's a snapshot, we can just replace or update.
-                // For now, let's just log and skip or update if needed.
-                // MarketBreadthSnapshot doesn't have setters yet, so we might need them or just delete/insert.
-                // Given the instructions, I should probably add setters or use a different approach.
+                log.warn("REVISION: MarketPulse snapshot changed for {}. Replacing.", snapshot.getSnapshotCloseTime());
+                snapshotRepository.delete(existing);
+                snapshotRepository.flush(); // ensure delete is flushed before re-insert within the same transaction
+                snapshotRepository.save(snapshot);
             }
         } else {
             snapshotRepository.save(snapshot);

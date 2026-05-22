@@ -53,23 +53,23 @@ class SuperTrendCalculatorTest {
     @Test
     void shouldHandleDirectionSwitch() {
         // atrLength = 1, multiplier = 1
-        // Middle = (H+L)/2
-        // basicUpper = Middle + ATR
-        // basicLower = Middle - ATR
-        
+        // Candle 1: initial seed — close=100 >= lowerBand=80, so defaults UP (matches TradingView)
+        // Candle 2: close=72 drops below prevFinalLower=80, flips to DOWN
+
         List<Candle> candles = List.of(
-                createCandle(100, 110, 90, 100), // TR=20, ATR=20, Mid=100, BU=120, BL=80, Close=100. ST=120 (Down)
-                createCandle(100, 130, 120, 125) // TR=30 (130-100), ATR=(20*0+30)/1=30, Mid=125, BU=155, BL=95. Close=125.
-                                                 // prevST=120, Close=125 > 120 => Switch to UP. ST=BL=95.
+                createCandle(100, 110, 90, 100), // TR=20, ATR=20, Mid=100, BU=120, BL=80. ST=BL=80 (UP)
+                createCandle(100, 85, 70, 72)    // TR=30, ATR=30, Mid=77.5, BU=107.5, BL=47.5.
+                                                  // finalLower stays 80 (basicLower < prev, prevClose >= prev).
+                                                  // Close=72 < finalLower=80 => DOWN. ST=FU=107.5
         );
 
         List<SuperTrendResult> results = calculator.calculate(candles, 1, new BigDecimal("1"));
 
-        assertEquals(SuperTrendDirection.DOWN, results.get(0).direction());
-        assertEquals(new BigDecimal("120.0000000000"), results.get(0).supertrend());
+        assertEquals(SuperTrendDirection.UP, results.get(0).direction());
+        assertEquals(new BigDecimal("80.0000000000"), results.get(0).supertrend());
 
-        assertEquals(SuperTrendDirection.UP, results.get(1).direction());
-        assertEquals(new BigDecimal("95.0000000000"), results.get(1).supertrend());
+        assertEquals(SuperTrendDirection.DOWN, results.get(1).direction());
+        assertEquals(new BigDecimal("107.5000000000"), results.get(1).supertrend());
     }
 
     private List<Candle> createCandles(int count) {
