@@ -120,13 +120,12 @@ public class MarketPulseService {
         if (existingOpt.isPresent()) {
             MarketBreadthSnapshot existing = existingOpt.get();
             if (isSame(existing, snapshot)) {
-                log.info("MarketPulse snapshot already exists and is identical for {}", snapshot.getSnapshotCloseTime());
+                log.debug("MarketPulse snapshot unchanged for {}", snapshot.getSnapshotCloseTime());
             } else {
-                log.warn("REVISION: MarketPulse snapshot changed for {}. Updating.", snapshot.getSnapshotCloseTime());
-                // In a real app we'd update fields here. Since it's a snapshot, we can just replace or update.
-                // For now, let's just log and skip or update if needed.
-                // MarketBreadthSnapshot doesn't have setters yet, so we might need them or just delete/insert.
-                // Given the instructions, I should probably add setters or use a different approach.
+                log.warn("REVISION: MarketPulse snapshot changed for {}. Replacing.", snapshot.getSnapshotCloseTime());
+                snapshotRepository.delete(existing);
+                snapshotRepository.flush(); // ensure delete is flushed before re-insert within the same transaction
+                snapshotRepository.save(snapshot);
             }
         } else {
             snapshotRepository.save(snapshot);
