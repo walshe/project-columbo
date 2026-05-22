@@ -88,12 +88,15 @@ class MarketPipelineServiceTest {
         marketPipelineService.runDaily(MarketProvider.BINANCE, Timeframe.D1, RunMode.INCREMENTAL);
 
         // Then
-        InOrder inOrder = inOrder(candleIngestionService, superTrendService, rsiComputationService, signalStateService, marketPulseService);
+        InOrder inOrder = inOrder(candleIngestionService, superTrendService, rsiComputationService,
+                signalStateService, marketPulseService, candleRollupService, w1IndicatorService);
         inOrder.verify(candleIngestionService).ingestDaily();
         inOrder.verify(superTrendService).processAllActiveAssets(eq(Timeframe.D1), anyInt(), any(), eq(false));
         inOrder.verify(rsiComputationService).computeForActiveAssets(eq(Timeframe.D1), anyInt(), eq(false));
         inOrder.verify(signalStateService).detectForTimeframe(eq(Timeframe.D1));
         inOrder.verify(marketPulseService).computeDaily();
+        inOrder.verify(candleRollupService).rollupForAllActiveAssets(eq(Timeframe.D1), eq(Timeframe.W1), any());
+        inOrder.verify(w1IndicatorService).processAllActiveAssets();
     }
 
     @Test
