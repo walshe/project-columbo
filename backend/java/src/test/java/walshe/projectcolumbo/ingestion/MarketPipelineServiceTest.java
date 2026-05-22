@@ -92,7 +92,7 @@ class MarketPipelineServiceTest {
         inOrder.verify(candleIngestionService).ingestDaily();
         inOrder.verify(superTrendService).processAllActiveAssets(eq(Timeframe.D1), anyInt(), any(), eq(false));
         inOrder.verify(rsiComputationService).computeForActiveAssets(eq(Timeframe.D1), anyInt(), eq(false));
-        inOrder.verify(signalStateService).detectDaily();
+        inOrder.verify(signalStateService).detectForTimeframe(eq(Timeframe.D1));
         inOrder.verify(marketPulseService).computeDaily();
     }
 

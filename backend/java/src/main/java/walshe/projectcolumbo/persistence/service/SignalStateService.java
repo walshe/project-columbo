@@ -101,6 +101,36 @@ public class SignalStateService {
     }
 
     /**
+     * Detect signals for all active assets scoped to a single timeframe.
+     * Use this instead of {@link #detectDaily()} when only one timeframe's
+     * indicators are available (e.g. Phase 3 D1-only, Phase 6 W1-only).
+     */
+    @Transactional
+    public void detectForTimeframe(Timeframe timeframe) {
+        List<Asset> activeAssets = assetRepository.findByActiveTrue();
+        log.info("Starting SignalState detection for {} active assets (timeframe={})", activeAssets.size(), timeframe);
+
+        int totalInserted = 0;
+        int totalUpdated = 0;
+        int totalSkipped = 0;
+
+        for (Asset asset : activeAssets) {
+            try {
+                ProcessingStats stats = this.processAsset(asset, timeframe, false);
+                totalInserted += stats.inserted;
+                totalUpdated += stats.updated;
+                totalSkipped += stats.skipped;
+            } catch (Exception e) {
+                log.error("Failed to detect SignalState for asset {} {}: {}",
+                        asset.getSymbol(), timeframe, e.getMessage(), e);
+            }
+        }
+
+        log.info("SignalState detection completed for timeframe={}. Total: inserted={}, updated={}, skipped={}",
+                timeframe, totalInserted, totalUpdated, totalSkipped);
+    }
+
+    /**
      * Processes a single asset for a specific timeframe to identify trend signals.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)

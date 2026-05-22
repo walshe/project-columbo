@@ -44,8 +44,9 @@ public class W1IndicatorService {
      * Step ordering is load-bearing:
      *   1. SuperTrend W1 — indicators must exist before signal detection
      *   2. RSI W1        — indicators must exist before signal detection
-     *   3. detectDaily() — covers W1 automatically (iterates Timeframe.values());
-     *                      MUST run after both indicators (RESEARCH Pitfall 4)
+     *   3. detectForTimeframe(W1) — scoped to W1 only; avoids spurious D1 re-detection
+     *                               that would have occurred with detectDaily() here.
+     *                               MUST run after both indicators (RESEARCH Pitfall 4)
      *   4. computeForTimeframe(W1) — breadth snapshot requires prior W1 signal states
      *                                (RESEARCH Pitfall 2)
      */
@@ -63,7 +64,7 @@ public class W1IndicatorService {
 
         log.info("Starting phase: W1_SIGNAL");
         long signalStart = System.currentTimeMillis();
-        signalStateService.detectDaily();
+        signalStateService.detectForTimeframe(Timeframe.W1);
         log.info("Completed phase: W1_SIGNAL in {}ms", System.currentTimeMillis() - signalStart);
 
         log.info("Starting phase: W1_MARKET_PULSE");

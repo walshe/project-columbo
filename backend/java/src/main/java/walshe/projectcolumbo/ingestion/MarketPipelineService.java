@@ -98,10 +98,10 @@ public class MarketPipelineService {
             rsiComputationService.computeForActiveAssets(actualTimeframe, 14, false);
             logger.info("Completed phase: INDICATOR in {}ms", System.currentTimeMillis() - indicatorStartTime);
 
-            // PHASE 3: Signal Detection
+            // PHASE 3: Signal Detection (D1 only; W1 is handled by W1IndicatorService in Phase 6)
             logger.info("Starting phase: SIGNAL");
             long signalStartTime = System.currentTimeMillis();
-            signalStateService.detectDaily();
+            signalStateService.detectForTimeframe(Timeframe.D1);
             logger.info("Completed phase: SIGNAL in {}ms", System.currentTimeMillis() - signalStartTime);
 
             // PHASE 4: Market Pulse Aggregation
