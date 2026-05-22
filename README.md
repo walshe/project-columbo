@@ -193,12 +193,18 @@ Swagger is the **canonical interface** for developers integrating with Project C
 
 ## 🕰️ Daily Scheduler
 
-Two internal cron jobs handle the daily market lifecycle:
+A single pipeline (`MarketPipelineScheduler`) runs at **00:05 UTC** every day, executing 6 sequential phases:
 
-| Job                     | Schedule  | Purpose                                    |
-| ----------------------- | --------- | ------------------------------------------ |
-| `ingestDaily()`         | 02:00 UTC | Fetch finalized daily candles from Binance |
-| `computeDailySignals()` | 02:05 UTC | Compute indicators (SuperTrend, RSI)       |
+| Phase | Name               | What it does                                        |
+| ----- | ------------------ | --------------------------------------------------- |
+| 1     | Ingestion          | Fetch finalized D1 candles from Binance             |
+| 2     | D1 Indicators      | Compute SuperTrend (10, 2.0) and RSI (14) for D1   |
+| 3     | D1 Signal Detection| Detect bullish/bearish flips for D1 signals         |
+| 4     | D1 Market Pulse    | Aggregate D1 indicator states into breadth snapshot |
+| 5     | W1 Rollup          | Derive W1 candles from completed Mon–Sun D1 weeks  |
+| 6     | W1 Processing      | Compute W1 indicators, signals, and market pulse    |
+
+The schedule is configured via `app.market-pipeline.cron` in `application.yaml`.
 
 ---
 
@@ -210,6 +216,7 @@ Two internal cron jobs handle the daily market lifecycle:
 * [ ] Implement historical re-backfill
 * [ ] Integrate with OpenClaw AI assistant
 * [ ] Multi-timeframe signal confirmations
+* [ ] 4H timeframe support
 
 ---
 
