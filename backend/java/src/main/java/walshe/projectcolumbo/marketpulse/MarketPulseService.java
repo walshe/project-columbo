@@ -88,8 +88,9 @@ public class MarketPulseService {
 
         int bullishCount = (int) statesAtTime.stream().filter(s -> s.getTrendState() == TrendState.BULLISH).count();
         int bearishCount = (int) statesAtTime.stream().filter(s -> s.getTrendState() == TrendState.BEARISH).count();
-        int unknownCount = (int) statesAtTime.stream().filter(s -> s.getTrendState() == TrendState.UNKNOWN).count();
-        int missingCount = (int) (totalActiveAssets - bullishCount - bearishCount - unknownCount);
+        // missingCount = all non-bullish, non-bearish assets (includes UNKNOWN trend and assets with no signal row).
+        // This keeps the contract simple: bullishCount + bearishCount + missingCount == totalActiveAssets.
+        int missingCount = (int) (totalActiveAssets - bullishCount - bearishCount);
 
         int presentCount = bullishCount + bearishCount;
         BigDecimal bullishRatio = presentCount > 0 
