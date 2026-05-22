@@ -79,13 +79,13 @@ Plans:
 
 **Requirements:** PIPE-01, PIPE-02, PIPE-03, API-01, API-02, API-03
 
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 **Wave 1**
 
-- [ ] 03-01-PLAN.md — Wire W1 rollup + W1 indicator/signal/breadth pass into `MarketPipelineService.runDaily()` as additive phases (PIPE-01/02/03)
-- [ ] 03-02-PLAN.md — W1 API integration tests proving market-pulse, signals, and scan endpoints serve W1 data (API-01/02/03)
+- [x] 03-01-PLAN.md — Wire W1 rollup + W1 indicator/signal/breadth pass into `MarketPipelineService.runDaily()` as additive phases (PIPE-01/02/03)
+- [x] 03-02-PLAN.md — W1 API integration tests proving market-pulse, signals, and scan endpoints serve W1 data (API-01/02/03)
 
 **Success Criteria:**
 
