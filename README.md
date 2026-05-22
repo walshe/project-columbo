@@ -210,6 +210,7 @@ Two internal cron jobs handle the daily market lifecycle:
 * [ ] Implement historical re-backfill
 * [ ] Integrate with OpenClaw AI assistant
 * [ ] Multi-timeframe signal confirmations
+* [ ] 4H timeframe support
 
 ---
 
