@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-last_updated: "2026-05-22T10:00:00.000Z"
+status: complete
+last_updated: "2026-05-22T11:30:00.000Z"
 progress:
   total_phases: 3
   completed_phases: 3
@@ -19,7 +19,7 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-05-20)
 
 **Core value:** Give traders a clear, up-to-date view of trend signals across a crypto asset universe — across multiple timeframes
-**Current focus:** Phase 3 complete — verifying milestone
+**Current focus:** Milestone v1.0 complete ✓
 
 ## Roadmap Progress
 
@@ -29,15 +29,14 @@ See: `.planning/PROJECT.md` (updated 2026-05-20)
 | 2 | W1 Indicators & Signals | ✓ Complete | 2/2 |
 | 3 | Pipeline & API Integration | ✓ Complete | 2/2 |
 
-## Current Phase
+## Milestone Complete
 
-**Phase 3: Pipeline & API Integration**
-Goal: Integrate W1 derivation, indicator computation, and signal detection into the daily pipeline run, and expose W1 data through all existing query and scan endpoints.
+All 3 phases delivered. 7/7 plans complete. 16 requirements satisfied.
 
-Execution complete — all 2/2 plans delivered:
-- 03-01: W1 rollup + indicator phases wired into `MarketPipelineService.runDaily()` (PIPE-01/02/03) ✓
-- 03-02: `W1ApiIntegrationTest` proving market-pulse, signals, scan serve W1 data (API-01/02/03) ✓
+Verification: Phase 3 passed 8/8 must-haves — PIPE-01/02/03 and API-01/02/03 all confirmed.
+
+Open review findings (advisory): 3 critical, 4 warnings in `03-REVIEW.md`.
 
 ---
 *State initialized: 2026-05-20*
-*Phase 3 complete: 2026-05-22*
+*Milestone v1.0 complete: 2026-05-22*
