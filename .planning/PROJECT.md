@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A crypto market analysis backend built in Spring Boot that ingests OHLCV candles from Binance, computes technical indicators (SuperTrend, RSI), detects trend signal state changes, and aggregates market breadth snapshots. It exposes a REST API for querying signals, market pulse, and running multi-condition asset scans.
+A crypto market analysis backend built in Spring Boot that ingests OHLCV candles from Binance, computes technical indicators (SuperTrend, RSI), detects trend signal state changes, and aggregates market breadth snapshots. It exposes a REST API for querying signals, market pulse, and running multi-condition asset scans — including cross-timeframe scans that filter across D1 and W1 in a single query.
 
 ## Core Value
 
@@ -20,13 +20,17 @@ Give traders a clear, up-to-date view of trend signals across a crypto asset uni
 - ✓ REST API: market pulse, signal query, multi-condition scan, summary report — existing
 - ✓ Pipeline run tracking (RUNNING/SUCCESS/PARTIAL/FAILED) with concurrency guard — existing
 - ✓ Flyway-managed PostgreSQL schema — existing
+- ✓ Weekly (W1) candles derived by rolling up daily (D1) candles — Phase 1, v1.0
+- ✓ SuperTrend and RSI computed on W1 candles — Phase 2, v1.0
+- ✓ Signal state detection and market breadth on W1 — Phase 2, v1.0
+- ✓ All query/scan APIs support W1 timeframe — Phase 3, v1.0
 
-### Active
+### Active (v2.0)
 
-- [ ] Weekly (W1) candles derived by rolling up daily (D1) candles — Validated in Phase 1
-- [ ] SuperTrend and RSI computed on W1 candles — Validated in Phase 2
-- [ ] Signal state detection and market breadth on W1 — Validated in Phase 2
-- [ ] All query/scan APIs support W1 timeframe
+- [ ] Scan API supports conditions across different timeframes in a single request (multi-timeframe AND scan)
+- [ ] Each scan condition carries its own timeframe; top-level timeframe is optional (backward-compatible fallback)
+- [ ] Scan response includes timeframe per matched indicator so the caller can see which timeframe each match came from
+- [ ] TradingView URL in scan results uses the highest-granularity timeframe present in the request
 
 ### Out of Scope
 
@@ -34,33 +38,36 @@ Give traders a clear, up-to-date view of trend signals across a crypto asset uni
 - 4hr (H4) base timeframe — planned for later; rollup mechanism designed to support it when added
 - Frontend/UI — API only for now
 - Real-time streaming — daily scheduled pipeline only
+- Summary endpoint multi-timeframe support — excluded from v2.0 scope
 
 ## Context
 
 - Built previously with Junie/Claude/OpenSpec, not originally using GSD
-- `Timeframe` enum now has `D1` and `W1`; pipeline still hardcodes `D1` throughout `MarketPipelineService` — Phase 3 wires W1 in
-- W1 candles derived via `CandleRollupService` (Phase 1 complete); W1 indicators/signals/breadth computable via `W1IndicatorService` (Phase 2 complete)
-- Future direction: 4hr may become the base timeframe, with D1 and W1 derived from it via the same rollup mechanism
+- v1.0 milestone complete (2026-05-22): D1+W1 full pipeline, indicators, signals, breadth, all APIs
+- v2.0 focus: cross-timeframe scan — `ScanCondition` gains a per-condition `timeframe`; `ScanRequest.timeframe` becomes optional as a fallback default; `MatchedIndicator` subtypes gain `timeframe` field
+- Current scan API: single `timeframe` on `ScanRequest` applies to all conditions — v2 removes this constraint
+- Strategies reference: `strategies/bullmania_daily_supertrend.pine` / `.mq5` — Bullmania Multi-Timeframe SuperTrend strategy uses exactly the kind of D1+W1 confluence this API change enables
 - Codebase map: `.planning/codebase/`
 
 ## Constraints
 
 - **Tech stack**: Java 17, Spring Boot 4.0.2, PostgreSQL, Flyway — no changes to these
-- **Architecture**: Rollup must fit the existing 4-phase pipeline (INGESTION → INDICATOR → SIGNAL → MARKET_PULSE)
-- **Data integrity**: Week boundaries must be consistent (Monday open → Sunday close UTC); partial weeks must not produce candles
-- **Backward compatibility**: D1 pipeline must continue to work unchanged
+- **Backward compatibility**: Existing single-timeframe scan requests must continue to work unchanged
+- **API surface**: REST API only — no webhooks, no UI, no streaming
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Derive W1 from D1 rollup (not fetch from Binance) | Internal consistency; sets up cleanly for 4hr → D1 → W1 derivation chain later | Implemented — Phase 1 |
-| Rollup mechanism must be timeframe-generic | When H4 is added, same code should derive D1 and W1 without special-casing | Implemented — Phase 1 |
-| `W1IndicatorService` as thin orchestrator (no calculator logic) | Single clean call site for Phase 3 wiring; keeps services independently testable | Implemented — Phase 2 |
-| `detectDaily()` covers W1 (no new detectW1()) | `detectDaily()` already iterates `Timeframe.values()` — W1 included automatically after Phase 1 adds it to the enum | Implemented — Phase 2 |
+| Derive W1 from D1 rollup (not fetch from Binance) | Internal consistency; sets up cleanly for 4hr → D1 → W1 derivation chain later | Implemented — Phase 1, v1.0 |
+| Rollup mechanism must be timeframe-generic | When H4 is added, same code should derive D1 and W1 without special-casing | Implemented — Phase 1, v1.0 |
+| `W1IndicatorService` as thin orchestrator (no calculator logic) | Single clean call site for Phase 3 wiring; keeps services independently testable | Implemented — Phase 2, v1.0 |
+| `detectDaily()` covers W1 (no new detectW1()) | `detectDaily()` already iterates `Timeframe.values()` — W1 included automatically after Phase 1 adds it to the enum | Implemented — Phase 2, v1.0 |
+| `timeframe` moves to `ScanCondition`, top-level becomes optional fallback | Enables cross-timeframe AND scans; backward-compatible (existing callers still work if they pass top-level timeframe) | v2.0 — Phase 1 |
+| `MatchedIndicator` subtypes gain `timeframe` field | Caller needs to know which timeframe each matched indicator came from to act on results | v2.0 — Phase 1 |
 
 ---
-*Last updated: 2026-05-21 after Phase 2 completion*
+*Last updated: 2026-05-24 — v2.0 milestone initialized*
 
 ## Evolution
 

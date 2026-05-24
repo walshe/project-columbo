@@ -47,21 +47,19 @@ public class SummaryService {
                 timeframe, indicatorType, TrendState.BEARISH, SignalSort.LAST_FLIP_DESC);
 
         List<ScanResult> bullishRsi = scanService.execute(new ScanRequest(
-                timeframe,
                 ScanOperator.AND,
                 List.of(
-                        new ScanCondition(IndicatorType.SUPERTREND, null, TrendState.BULLISH, 10, null),
-                        new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, 10)
+                        new ScanCondition(timeframe, IndicatorType.SUPERTREND, null, TrendState.BULLISH, 10, null),
+                        new ScanCondition(timeframe, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, 10)
                 ),
                 null
         )).results();
 
         List<ScanResult> bearishRsi = scanService.execute(new ScanRequest(
-                timeframe,
                 ScanOperator.AND,
                 List.of(
-                        new ScanCondition(IndicatorType.SUPERTREND, null, TrendState.BEARISH, 10, null),
-                        new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_BELOW_40, null, null, 10)
+                        new ScanCondition(timeframe, IndicatorType.SUPERTREND, null, TrendState.BEARISH, 10, null),
+                        new ScanCondition(timeframe, IndicatorType.RSI, SignalEvent.CROSSED_BELOW_40, null, null, 10)
                 ),
                 null
         )).results();

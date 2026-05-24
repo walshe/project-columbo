@@ -3,6 +3,7 @@ package walshe.projectcolumbo.api.v1.scan.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import walshe.projectcolumbo.persistence.model.IndicatorType;
 import walshe.projectcolumbo.persistence.model.SignalEvent;
+import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.model.TrendState;
 
 import java.time.OffsetDateTime;
@@ -11,6 +12,9 @@ import java.time.OffsetDateTime;
 public record SupertrendMatch(
     @Schema(description = "The type of indicator", example = "SUPERTREND")
     IndicatorType indicatorType,
+
+    @Schema(description = "The timeframe this indicator was evaluated on", example = "1W")
+    Timeframe timeframe,
 
     @Schema(description = "The trend state associated with the indicator", example = "BULLISH")
     TrendState state,

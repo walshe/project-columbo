@@ -32,6 +32,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ScanService {
 
+    private static final Map<Timeframe, Integer> TIMEFRAME_PRIORITY = Map.of(
+        Timeframe.D1, 1,
+        Timeframe.W1, 2
+    );
+
     private final SignalStateRepository signalStateRepository;
     private final CandleRepository candleRepository;
     private final ScanValidator scanValidator;
@@ -56,7 +61,13 @@ public class ScanService {
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
 
-        OffsetDateTime latestCloseTime = getLatestFinalizedCloseTime(request.timeframe());
+        Set<Timeframe> uniqueTimeframes = request.conditions().stream()
+            .map(ScanCondition::timeframe)
+            .collect(Collectors.toSet());
+        Map<Timeframe, OffsetDateTime> closeTimeByTimeframe = new EnumMap<>(Timeframe.class);
+        for (Timeframe tf : uniqueTimeframes) {
+            closeTimeByTimeframe.put(tf, getLatestFinalizedCloseTime(tf));
+        }
 
         Map<Long, BigDecimal> liquidityMap = assetLiquidityRepository.findAll().stream()
                 .collect(Collectors.toMap(AssetLiquidityView::getAssetId, AssetLiquidityView::getAvgVolume7d));
@@ -65,12 +76,14 @@ public class ScanService {
         boolean firstCondition = true;
 
         for (ScanCondition condition : request.conditions()) {
+            Timeframe effectiveTf = condition.timeframe();
+            OffsetDateTime latestCloseTime = closeTimeByTimeframe.get(effectiveTf);
             List<SignalState> matches;
             if (condition.event() != null) {
                 matches = signalStateRepository.findEventMatches(
                         condition.indicatorType(),
                         condition.event(),
-                        request.timeframe(),
+                        effectiveTf,
                         latestCloseTime,
                         condition.maxDaysSinceCross()
                 );
@@ -78,7 +91,7 @@ public class ScanService {
                 matches = signalStateRepository.findStateMatches(
                         condition.indicatorType(),
                         condition.state(),
-                        request.timeframe(),
+                        effectiveTf,
                         condition.maxDaysSinceFlip()
                 );
             }
@@ -123,7 +136,7 @@ public class ScanService {
                             am.symbol,
                             indicators,
                             liquidityMap.getOrDefault(am.id, BigDecimal.ZERO),
-                            TradingViewUtil.generateUrl(am.provider, am.symbol, request.timeframe())
+                            TradingViewUtil.generateUrl(am.provider, am.symbol, highestTimeframe(indicators))
                     );
                 })
                 .sorted((r1, r2) -> {
@@ -164,15 +177,13 @@ public class ScanService {
                 .toList();
 
         stopWatch.stop();
-        log.info("Scan completed in {}ms. Operator: {}, Timeframe: {}, Conditions: {}, Results: {}",
+        log.info("Scan completed in {}ms. Operator: {}, Conditions: {}, Results: {}",
                 stopWatch.getTotalTimeMillis(),
                 request.operator(),
-                request.timeframe(),
                 request.conditions().size(),
                 results.size());
 
         return new ScanResponse(
-                request.timeframe(),
                 request.operator(),
                 request.conditions(),
                 results
@@ -184,6 +195,14 @@ public class ScanService {
         if (a == null) return 1;
         if (b == null) return -1;
         return a.compareTo(b);
+    }
+
+    private Timeframe highestTimeframe(List<MatchedIndicator> indicators) {
+        return indicators.stream()
+            .map(MatchedIndicator::timeframe)
+            .filter(Objects::nonNull)
+            .max(Comparator.comparingInt(tf -> TIMEFRAME_PRIORITY.getOrDefault(tf, 0)))
+            .orElse(Timeframe.D1);
     }
 
     private OffsetDateTime getLatestFinalizedCloseTime(Timeframe timeframe) {
@@ -205,6 +224,7 @@ public class ScanService {
         boolean present = indicators.stream()
                 .anyMatch(mi -> {
                     if (mi.indicatorType() != newIndicator.indicatorType()) return false;
+                    if (mi.timeframe() != newIndicator.timeframe()) return false;
                     if (mi instanceof SupertrendMatch s1 && newIndicator instanceof SupertrendMatch s2) {
                         return s1.event() == s2.event() && s1.state() == s2.state();
                     }
@@ -228,6 +248,7 @@ public class ScanService {
             int daysSinceCross = (int) ChronoUnit.DAYS.between(s.getCloseTime().toLocalDate(), LocalDate.now(ZoneOffset.UTC));
             return new RsiMatch(
                     IndicatorType.RSI,
+                    s.getTimeframe(),
                     s.getEvent(),
                     rsiVal.doubleValue(),
                     daysSinceCross,
@@ -245,6 +266,7 @@ public class ScanService {
             }
             return new SupertrendMatch(
                     s.getIndicatorType(),
+                    s.getTimeframe(),
                     s.getTrendState(),
                     s.getEvent(),
                     daysSinceFlip,

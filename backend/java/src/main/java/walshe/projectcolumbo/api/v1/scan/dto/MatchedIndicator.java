@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import walshe.projectcolumbo.persistence.model.IndicatorType;
+import walshe.projectcolumbo.persistence.model.Timeframe;
 
 import java.time.OffsetDateTime;
 
@@ -24,5 +25,7 @@ import java.time.OffsetDateTime;
 })
 public sealed interface MatchedIndicator permits SupertrendMatch, RsiMatch {
     IndicatorType indicatorType();
+    @Schema(description = "The timeframe this indicator was evaluated on", example = "1W")
+    Timeframe timeframe();
     OffsetDateTime closeTime();
 }
