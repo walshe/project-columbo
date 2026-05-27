@@ -201,7 +201,15 @@ public class ScanService {
         return indicators.stream()
             .map(MatchedIndicator::timeframe)
             .filter(Objects::nonNull)
-            .max(Comparator.comparingInt(tf -> TIMEFRAME_PRIORITY.getOrDefault(tf, 0)))
+            .max(Comparator.comparingInt(tf -> {
+                Integer priority = TIMEFRAME_PRIORITY.get(tf);
+                if (priority == null) {
+                    throw new IllegalArgumentException(
+                        "No TradingView priority defined for timeframe: " + tf +
+                        ". Add it to TIMEFRAME_PRIORITY.");
+                }
+                return priority;
+            }))
             .orElse(Timeframe.D1);
     }
 
