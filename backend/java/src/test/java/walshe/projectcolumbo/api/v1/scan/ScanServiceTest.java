@@ -316,13 +316,14 @@ class ScanServiceTest {
         SignalState s1 = createSignal(asset1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, flipTime);
 
         when(candleRepository.findLatestCloseTimeForTimeframe("D1")).thenReturn(Optional.of(now));
-        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now, null))
+        // maxDaysSinceFlip=20 → passed as maxDaysSinceEvent to findEventMatches
+        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now, 20))
                 .thenReturn(List.of(s1));
         when(assetLiquidityRepository.findAll()).thenReturn(List.of());
 
         ScanRequest request = new ScanRequest(
                 ScanOperator.AND,
-                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null)),
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, 20, null)),
                 null
         );
 
@@ -330,6 +331,28 @@ class ScanServiceTest {
 
         SupertrendMatch sm = (SupertrendMatch) response.results().get(0).matchedIndicators().get(0);
         assertThat(sm.daysSinceFlip()).isEqualTo(17);
+    }
+
+    @Test
+    void execute_SupertrendEventMatch_MaxDaysSinceFlipPassedToRepository() {
+        // Regression: maxDaysSinceFlip was ignored for event queries — maxDaysSinceCross (null) was passed instead
+        Asset asset1 = new Asset(); asset1.setId(1L); asset1.setSymbol("BTCUSDT");
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+
+        when(candleRepository.findLatestCloseTimeForTimeframe("D1")).thenReturn(Optional.of(now));
+        when(assetLiquidityRepository.findAll()).thenReturn(List.of());
+
+        ScanRequest request = new ScanRequest(
+                ScanOperator.AND,
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, 16, null)),
+                null
+        );
+
+        scanService.execute(request);
+
+        // Verify maxDaysSinceFlip=16 is passed to the repo, NOT null (maxDaysSinceCross)
+        verify(signalStateRepository).findEventMatches(
+                IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now, 16);
     }
 
     private SignalState createSignal(Asset asset, IndicatorType type, SignalEvent event, OffsetDateTime time) {

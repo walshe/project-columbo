@@ -82,12 +82,15 @@ public class ScanService {
             OffsetDateTime latestCloseTime = closeTimeByTimeframe.get(effectiveTf);
             List<SignalState> matches;
             if (condition.event() != null) {
+                Integer maxDaysSinceEvent = condition.indicatorType() == IndicatorType.RSI
+                        ? condition.maxDaysSinceCross()
+                        : condition.maxDaysSinceFlip();
                 matches = signalStateRepository.findEventMatches(
                         condition.indicatorType(),
                         condition.event(),
                         effectiveTf,
                         latestCloseTime,
-                        condition.maxDaysSinceCross()
+                        maxDaysSinceEvent
                 );
             } else {
                 matches = signalStateRepository.findStateMatches(
