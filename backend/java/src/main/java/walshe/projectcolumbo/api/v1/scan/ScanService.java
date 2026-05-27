@@ -253,13 +253,18 @@ public class ScanService {
 
     /**
      * Returns the effective "signal date" for display purposes — the date a trader would
-     * see the signal appear on a TradingView chart. For daily candles this is the close date.
-     * For weekly candles TradingView labels the signal at the OPEN of the reversal candle
-     * (Monday), which is 6 days before the Sunday close stored in closeTime.
+     * see the signal appear on a TradingView chart.
+     *
+     * For daily candles this is the close date (TradingView labels the Buy on the same day
+     * the reversal candle closes).
+     *
+     * For weekly candles, TradingView labels the Buy on the Monday AFTER the reversal candle
+     * closes (Sunday). That Monday is the first day a trader can act on the confirmed signal,
+     * and it is closeTime + 1 day.
      */
     private LocalDate signalDate(OffsetDateTime closeTime, Timeframe timeframe) {
         LocalDate closeDate = closeTime.toLocalDate();
-        return timeframe == Timeframe.W1 ? closeDate.minusDays(6) : closeDate;
+        return timeframe == Timeframe.W1 ? closeDate.plusDays(1) : closeDate;
     }
 
     private MatchedIndicator mapToMatchedIndicator(SignalState s) {
