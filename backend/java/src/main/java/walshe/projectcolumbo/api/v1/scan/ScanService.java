@@ -70,7 +70,9 @@ public class ScanService {
         }
 
         Map<Long, BigDecimal> liquidityMap = assetLiquidityRepository.findAll().stream()
-                .collect(Collectors.toMap(AssetLiquidityView::getAssetId, AssetLiquidityView::getAvgVolume7d));
+                .collect(Collectors.toMap(
+                        AssetLiquidityView::getAssetId,
+                        v -> v.getAvgVolume7d() != null ? v.getAvgVolume7d() : BigDecimal.ZERO));
 
         Map<Long, AssetMatch> assetMatches = new HashMap<>();
         boolean firstCondition = true;
