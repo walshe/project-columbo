@@ -267,6 +267,12 @@ public class ScanService {
     }
 
     private MatchedIndicator mapToMatchedIndicator(SignalState s) {
+        // For W1, display the Monday open rather than the Sunday close so that the
+        // returned closeTime is consistent with daysSinceFlip and matches TradingView's label.
+        OffsetDateTime displayTime = s.getTimeframe() == Timeframe.W1
+                ? s.getCloseTime().minusDays(6)
+                : s.getCloseTime();
+
         if (s.getIndicatorType() == IndicatorType.RSI) {
             BigDecimal rsiVal = rsiRepository.findByAssetAndTimeframeAndCloseTime(s.getAsset(), s.getTimeframe(), s.getCloseTime())
                     .map(RsiIndicator::getRsiValue)
@@ -280,7 +286,7 @@ public class ScanService {
                     s.getEvent(),
                     rsiVal.doubleValue(),
                     daysSinceCross,
-                    s.getCloseTime()
+                    displayTime
             );
         } else {
             int daysSinceFlip;
@@ -300,7 +306,7 @@ public class ScanService {
                     s.getTrendState(),
                     s.getEvent(),
                     daysSinceFlip,
-                    s.getCloseTime()
+                    displayTime
             );
         }
     }
