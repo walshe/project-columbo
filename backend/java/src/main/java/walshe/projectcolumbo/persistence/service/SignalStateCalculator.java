@@ -44,12 +44,12 @@ class SignalStateCalculator {
             if (lastDirection == null) {
                 // If this is the very first piece of data we have, we don't know yet if a change happened.
                 event = SignalEvent.NONE;
-            } else if (lastDirection == SuperTrendDirection.DOWN && currentDirection == SuperTrendDirection.UP) {
+            } else if (lastDirection == SuperTrendDirection.SUPERTREND_DOWN && currentDirection == SuperTrendDirection.SUPERTREND_UP) {
                 // The price was trending down but is now trending up — a "Bullish Reversal"
-                event = SignalEvent.BULLISH_REVERSAL;
-            } else if (lastDirection == SuperTrendDirection.UP && currentDirection == SuperTrendDirection.DOWN) {
+                event = SignalEvent.SUPERTREND_BULLISH_REVERSAL;
+            } else if (lastDirection == SuperTrendDirection.SUPERTREND_UP && currentDirection == SuperTrendDirection.SUPERTREND_DOWN) {
                 // The price was trending up but is now trending down — a "Bearish Reversal"
-                event = SignalEvent.BEARISH_REVERSAL;
+                event = SignalEvent.SUPERTREND_BEARISH_REVERSAL;
             } else {
                 // No change in direction; the current trend is simply continuing.
                 event = SignalEvent.NONE;
@@ -69,7 +69,7 @@ class SignalStateCalculator {
      * Simple helper to translate technical SuperTrend directions into user-friendly trend names.
      */
     private TrendState mapDirection(SuperTrendDirection direction) {
-        return direction == SuperTrendDirection.UP ? TrendState.BULLISH : TrendState.BEARISH;
+        return direction == SuperTrendDirection.SUPERTREND_UP ? TrendState.SUPERTREND_BULLISH : TrendState.SUPERTREND_BEARISH;
     }
     /**
      * Calculates the RSI trend states and events.
@@ -83,19 +83,19 @@ class SignalStateCalculator {
             TrendState currentTrend;
             
             if (rsi.compareTo(BigDecimal.valueOf(60)) >= 0) {
-                currentTrend = TrendState.ABOVE_60;
+                currentTrend = TrendState.RSI_ABOVE_60;
             } else if (rsi.compareTo(BigDecimal.valueOf(40)) <= 0) {
-                currentTrend = TrendState.BELOW_40;
+                currentTrend = TrendState.RSI_BELOW_40;
             } else {
-                currentTrend = TrendState.NEUTRAL;
+                currentTrend = TrendState.RSI_NEUTRAL;
             }
 
             SignalEvent event = SignalEvent.NONE;
             if (lastTrend != null && lastTrend != currentTrend) {
-                if (currentTrend == TrendState.ABOVE_60) {
-                    event = SignalEvent.CROSSED_ABOVE_60;
-                } else if (currentTrend == TrendState.BELOW_40) {
-                    event = SignalEvent.CROSSED_BELOW_40;
+                if (currentTrend == TrendState.RSI_ABOVE_60) {
+                    event = SignalEvent.RSI_CROSSED_ABOVE_60;
+                } else if (currentTrend == TrendState.RSI_BELOW_40) {
+                    event = SignalEvent.RSI_CROSSED_BELOW_40;
                 }
             }
 

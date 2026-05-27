@@ -19,18 +19,18 @@ class SignalStateCalculatorTest {
 
     @Test
     void shouldInitializeFirstRowWithNone() {
-        SuperTrendIndicator indicator = createIndicator(SuperTrendDirection.UP);
+        SuperTrendIndicator indicator = createIndicator(SuperTrendDirection.SUPERTREND_UP);
         List<SignalStateResult> results = calculator.calculate(List.of(indicator));
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).event()).isEqualTo(SignalEvent.NONE);
-        assertThat(results.get(0).trendState()).isEqualTo(TrendState.BULLISH);
+        assertThat(results.get(0).trendState()).isEqualTo(TrendState.SUPERTREND_BULLISH);
     }
 
     @Test
     void shouldProduceNoneOnSameDirection() {
-        SuperTrendIndicator i1 = createIndicator(SuperTrendDirection.UP);
-        SuperTrendIndicator i2 = createIndicator(SuperTrendDirection.UP);
+        SuperTrendIndicator i1 = createIndicator(SuperTrendDirection.SUPERTREND_UP);
+        SuperTrendIndicator i2 = createIndicator(SuperTrendDirection.SUPERTREND_UP);
         List<SignalStateResult> results = calculator.calculate(List.of(i1, i2));
 
         assertThat(results).hasSize(2);
@@ -40,39 +40,39 @@ class SignalStateCalculatorTest {
 
     @Test
     void shouldProduceBullishReversalOnDownToUp() {
-        SuperTrendIndicator i1 = createIndicator(SuperTrendDirection.DOWN);
-        SuperTrendIndicator i2 = createIndicator(SuperTrendDirection.UP);
+        SuperTrendIndicator i1 = createIndicator(SuperTrendDirection.SUPERTREND_DOWN);
+        SuperTrendIndicator i2 = createIndicator(SuperTrendDirection.SUPERTREND_UP);
         List<SignalStateResult> results = calculator.calculate(List.of(i1, i2));
 
         assertThat(results).hasSize(2);
-        assertThat(results.get(1).event()).isEqualTo(SignalEvent.BULLISH_REVERSAL);
-        assertThat(results.get(1).trendState()).isEqualTo(TrendState.BULLISH);
+        assertThat(results.get(1).event()).isEqualTo(SignalEvent.SUPERTREND_BULLISH_REVERSAL);
+        assertThat(results.get(1).trendState()).isEqualTo(TrendState.SUPERTREND_BULLISH);
     }
 
     @Test
     void shouldProduceBearishReversalOnUpToDown() {
-        SuperTrendIndicator i1 = createIndicator(SuperTrendDirection.UP);
-        SuperTrendIndicator i2 = createIndicator(SuperTrendDirection.DOWN);
+        SuperTrendIndicator i1 = createIndicator(SuperTrendDirection.SUPERTREND_UP);
+        SuperTrendIndicator i2 = createIndicator(SuperTrendDirection.SUPERTREND_DOWN);
         List<SignalStateResult> results = calculator.calculate(List.of(i1, i2));
 
         assertThat(results).hasSize(2);
-        assertThat(results.get(1).event()).isEqualTo(SignalEvent.BEARISH_REVERSAL);
-        assertThat(results.get(1).trendState()).isEqualTo(TrendState.BEARISH);
+        assertThat(results.get(1).event()).isEqualTo(SignalEvent.SUPERTREND_BEARISH_REVERSAL);
+        assertThat(results.get(1).trendState()).isEqualTo(TrendState.SUPERTREND_BEARISH);
     }
 
     @Test
     void shouldHandleIncrementalStart() {
-        SuperTrendIndicator i1 = createIndicator(SuperTrendDirection.UP);
-        List<SignalStateResult> results = calculator.calculate(List.of(i1), SuperTrendDirection.DOWN);
+        SuperTrendIndicator i1 = createIndicator(SuperTrendDirection.SUPERTREND_UP);
+        List<SignalStateResult> results = calculator.calculate(List.of(i1), SuperTrendDirection.SUPERTREND_DOWN);
 
         assertThat(results).hasSize(1);
-        assertThat(results.get(0).event()).isEqualTo(SignalEvent.BULLISH_REVERSAL);
+        assertThat(results.get(0).event()).isEqualTo(SignalEvent.SUPERTREND_BULLISH_REVERSAL);
     }
 
     @Test
     void shouldHandleIncrementalNoChange() {
-        SuperTrendIndicator i1 = createIndicator(SuperTrendDirection.UP);
-        List<SignalStateResult> results = calculator.calculate(List.of(i1), SuperTrendDirection.UP);
+        SuperTrendIndicator i1 = createIndicator(SuperTrendDirection.SUPERTREND_UP);
+        List<SignalStateResult> results = calculator.calculate(List.of(i1), SuperTrendDirection.SUPERTREND_UP);
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).event()).isEqualTo(SignalEvent.NONE);

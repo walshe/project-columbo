@@ -75,11 +75,11 @@ class ApiIntegrationTest {
         OffsetDateTime t1 = now.minusDays(2);
         OffsetDateTime t2 = now.minusDays(1);
 
-        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.BULLISH, SignalEvent.BULLISH_REVERSAL));
-        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, t2, TrendState.BULLISH, SignalEvent.NONE));
+        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.SUPERTREND_BULLISH, SignalEvent.SUPERTREND_BULLISH_REVERSAL));
+        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, t2, TrendState.SUPERTREND_BULLISH, SignalEvent.NONE));
 
-        signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.BEARISH, SignalEvent.BEARISH_REVERSAL));
-        signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, t2, TrendState.BEARISH, SignalEvent.NONE));
+        signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.SUPERTREND_BEARISH, SignalEvent.SUPERTREND_BEARISH_REVERSAL));
+        signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, t2, TrendState.SUPERTREND_BEARISH, SignalEvent.NONE));
 
         mockMvc.perform(get("/api/v1/signals")
                         .param("timeframe", "D1")
@@ -88,10 +88,10 @@ class ApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].symbol").value("BTCUSDT"))
-                .andExpect(jsonPath("$[0].trendState").value("BULLISH"))
+                .andExpect(jsonPath("$[0].trendState").value("SUPERTREND_BULLISH"))
                 .andExpect(jsonPath("$[0].tradingviewUrl").value("https://www.tradingview.com/chart/?symbol=BINANCE%3ABTCUSDT&interval=1D"))
                 .andExpect(jsonPath("$[1].symbol").value("ETHUSDT"))
-                .andExpect(jsonPath("$[1].trendState").value("BEARISH"))
+                .andExpect(jsonPath("$[1].trendState").value("SUPERTREND_BEARISH"))
                 .andExpect(jsonPath("$[1].tradingviewUrl").value("https://www.tradingview.com/chart/?symbol=BINANCE%3AETHUSDT&interval=1D"));
     }
 
@@ -103,13 +103,13 @@ class ApiIntegrationTest {
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(java.time.temporal.ChronoUnit.DAYS);
         OffsetDateTime t1 = now.minusDays(1);
 
-        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.BULLISH, SignalEvent.BULLISH_REVERSAL));
-        signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.BEARISH, SignalEvent.BEARISH_REVERSAL));
+        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.SUPERTREND_BULLISH, SignalEvent.SUPERTREND_BULLISH_REVERSAL));
+        signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.SUPERTREND_BEARISH, SignalEvent.SUPERTREND_BEARISH_REVERSAL));
 
         mockMvc.perform(get("/api/v1/signals")
                         .param("timeframe", "D1")
                         .param("indicatorType", "SUPERTREND")
-                        .param("state", "BULLISH"))
+                        .param("state", "SUPERTREND_BULLISH"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].symbol").value("BTCUSDT"));
@@ -123,13 +123,13 @@ class ApiIntegrationTest {
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(java.time.temporal.ChronoUnit.DAYS);
         OffsetDateTime t1 = now.minusDays(1);
 
-        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.BULLISH, SignalEvent.BULLISH_REVERSAL));
-        signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.BEARISH, SignalEvent.BEARISH_REVERSAL));
+        signalStateRepository.save(new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.SUPERTREND_BULLISH, SignalEvent.SUPERTREND_BULLISH_REVERSAL));
+        signalStateRepository.save(new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.SUPERTREND_BEARISH, SignalEvent.SUPERTREND_BEARISH_REVERSAL));
 
         mockMvc.perform(get("/api/v1/assets/by-state")
                         .param("timeframe", "D1")
                         .param("indicatorType", "SUPERTREND")
-                        .param("state", "BEARISH"))
+                        .param("state", "SUPERTREND_BEARISH"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].symbol").value("ETHUSDT"))

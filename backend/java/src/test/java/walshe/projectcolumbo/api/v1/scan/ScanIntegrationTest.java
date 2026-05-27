@@ -75,11 +75,11 @@ class ScanIntegrationTest {
         Asset btc = createAsset("BTCUSDT");
         OffsetDateTime now = OffsetDateTime.now(java.time.ZoneOffset.UTC).truncatedTo(java.time.temporal.ChronoUnit.DAYS);
         createCandle(btc, now);
-        createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, now);
+        createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, now);
 
         ScanRequest request = new ScanRequest(
                 ScanOperator.AND,
-                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null)),
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, null, null, null)),
                 null
         );
 
@@ -100,17 +100,17 @@ class ScanIntegrationTest {
         createCandle(eth, now);
 
         // BTC matches both
-        createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, now);
-        createSignal(btc, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, now);
+        createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, now);
+        createSignal(btc, IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, now);
 
         // ETH matches only one
-        createSignal(eth, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, now);
+        createSignal(eth, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, now);
 
         ScanRequest request = new ScanRequest(
                 ScanOperator.AND,
                 List.of(
-                        new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null),
-                        new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null)
+                        new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, null, null, null),
+                        new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, null, null, null)
                 ),
                 null
         );
@@ -131,14 +131,14 @@ class ScanIntegrationTest {
         createCandle(btc, now);
         createCandle(eth, now);
 
-        createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, now);
-        createSignal(eth, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, now);
+        createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, now);
+        createSignal(eth, IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, now);
 
         ScanRequest request = new ScanRequest(
                 ScanOperator.OR,
                 List.of(
-                        new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null),
-                        new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null)
+                        new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, null, null, null),
+                        new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, null, null, null)
                 ),
                 null
         );
@@ -155,7 +155,7 @@ class ScanIntegrationTest {
     void shouldReturn400ForInvalidRequest() throws Exception {
         ScanRequest request = new ScanRequest(
                 ScanOperator.AND,
-                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.CROSSED_ABOVE_60, null, null, null)),
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.RSI_CROSSED_ABOVE_60, null, null, null)),
                 null // Invalid event for ST
         );
 
@@ -174,14 +174,14 @@ class ScanIntegrationTest {
         createCandle(eth, now);
 
         // BTC: BULLISH, flipped 2 days ago
-        createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.NONE, now.minusDays(2), TrendState.BULLISH);
+        createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.NONE, now.minusDays(2), TrendState.SUPERTREND_BULLISH);
 
         // ETH: BULLISH, flipped 10 days ago
-        createSignal(eth, IndicatorType.SUPERTREND, SignalEvent.NONE, now.minusDays(10), TrendState.BULLISH);
+        createSignal(eth, IndicatorType.SUPERTREND, SignalEvent.NONE, now.minusDays(10), TrendState.SUPERTREND_BULLISH);
 
         ScanRequest request = new ScanRequest(
                 ScanOperator.AND,
-                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, null, TrendState.BULLISH, 5, null)),
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, null, TrendState.SUPERTREND_BULLISH, 5, null)),
                 null
         );
 
@@ -201,12 +201,12 @@ class ScanIntegrationTest {
         OffsetDateTime now = OffsetDateTime.now(java.time.ZoneOffset.UTC).truncatedTo(java.time.temporal.ChronoUnit.DAYS);
         createCandle(btc, now);
 
-        createSignal(btc, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, now);
+        createSignal(btc, IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, now);
         createRsi(btc, now, 62.4);
 
         ScanRequest request = new ScanRequest(
                 ScanOperator.AND,
-                List.of(new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null)),
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, null, null, null)),
                 null
         );
 
@@ -231,16 +231,16 @@ class ScanIntegrationTest {
         createCandle(eth, now);
 
         // BTC: CROSSED_ABOVE_60 today
-        createSignal(btc, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, now);
+        createSignal(btc, IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, now);
         createRsi(btc, now, 62.4);
 
         // ETH: CROSSED_ABOVE_60 10 days ago
-        createSignal(eth, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, now.minusDays(10));
+        createSignal(eth, IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, now.minusDays(10));
         createRsi(eth, now.minusDays(10), 61.5);
 
         ScanRequest request = new ScanRequest(
                 ScanOperator.AND,
-                List.of(new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, 5)),
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, null, null, 5)),
                 null
         );
 
@@ -262,19 +262,19 @@ class ScanIntegrationTest {
         // BTC: W1 candle + W1 BULLISH signal + D1 candle + D1 BULLISH signal
         createCandle(btc, now, Timeframe.W1);
         createCandle(btc, now, Timeframe.D1);
-        createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.NONE, now, TrendState.BULLISH, Timeframe.W1);
-        createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.NONE, now, TrendState.BULLISH, Timeframe.D1);
+        createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.NONE, now, TrendState.SUPERTREND_BULLISH, Timeframe.W1);
+        createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.NONE, now, TrendState.SUPERTREND_BULLISH, Timeframe.D1);
 
         // ETH: D1 candle + D1 BULLISH signal only (no W1 data)
         createCandle(eth, now, Timeframe.D1);
-        createSignal(eth, IndicatorType.SUPERTREND, SignalEvent.NONE, now, TrendState.BULLISH, Timeframe.D1);
+        createSignal(eth, IndicatorType.SUPERTREND, SignalEvent.NONE, now, TrendState.SUPERTREND_BULLISH, Timeframe.D1);
 
         // Multi-timeframe scan: W1 BULLISH AND D1 BULLISH
         ScanRequest request = new ScanRequest(
                 ScanOperator.AND,
                 List.of(
-                        new ScanCondition(Timeframe.W1, IndicatorType.SUPERTREND, null, TrendState.BULLISH, null, null),
-                        new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, null, TrendState.BULLISH, null, null)
+                        new ScanCondition(Timeframe.W1, IndicatorType.SUPERTREND, null, TrendState.SUPERTREND_BULLISH, null, null),
+                        new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, null, TrendState.SUPERTREND_BULLISH, null, null)
                 ),
                 null
         );
@@ -306,7 +306,7 @@ class ScanIntegrationTest {
     }
 
     private void createSignal(Asset asset, IndicatorType type, SignalEvent event, OffsetDateTime time) {
-        createSignal(asset, type, event, time, TrendState.BULLISH);
+        createSignal(asset, type, event, time, TrendState.SUPERTREND_BULLISH);
     }
 
     private void createSignal(Asset asset, IndicatorType type, SignalEvent event, OffsetDateTime time, TrendState state) {

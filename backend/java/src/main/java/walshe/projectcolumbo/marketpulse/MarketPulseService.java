@@ -86,8 +86,8 @@ public class MarketPulseService {
                 .filter(s -> s.getCloseTime().equals(latestCloseTime))
                 .toList();
 
-        int bullishCount = (int) statesAtTime.stream().filter(s -> s.getTrendState() == TrendState.BULLISH).count();
-        int bearishCount = (int) statesAtTime.stream().filter(s -> s.getTrendState() == TrendState.BEARISH).count();
+        int bullishCount = (int) statesAtTime.stream().filter(s -> s.getTrendState() == TrendState.SUPERTREND_BULLISH).count();
+        int bearishCount = (int) statesAtTime.stream().filter(s -> s.getTrendState() == TrendState.SUPERTREND_BEARISH).count();
         // missingCount = all non-bullish, non-bearish assets (includes UNKNOWN trend and assets with no signal row).
         // This keeps the contract simple: bullishCount + bearishCount + missingCount == totalActiveAssets.
         int missingCount = (int) (totalActiveAssets - bullishCount - bearishCount);

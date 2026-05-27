@@ -41,16 +41,16 @@ public class SummaryService {
         MarketPulseDto pulse = marketPulseQueryService.getLatestPulse(timeframe, indicatorType).orElse(null);
 
         List<SignalStateDto> bullishSignals = signalQueryService.listSignals(
-                timeframe, indicatorType, TrendState.BULLISH, SignalSort.LAST_FLIP_DESC);
+                timeframe, indicatorType, TrendState.SUPERTREND_BULLISH, SignalSort.LAST_FLIP_DESC);
 
         List<SignalStateDto> bearishSignals = signalQueryService.listSignals(
-                timeframe, indicatorType, TrendState.BEARISH, SignalSort.LAST_FLIP_DESC);
+                timeframe, indicatorType, TrendState.SUPERTREND_BEARISH, SignalSort.LAST_FLIP_DESC);
 
         List<ScanResult> bullishRsi = scanService.execute(new ScanRequest(
                 ScanOperator.AND,
                 List.of(
-                        new ScanCondition(timeframe, IndicatorType.SUPERTREND, null, TrendState.BULLISH, 10, null),
-                        new ScanCondition(timeframe, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, 10)
+                        new ScanCondition(timeframe, IndicatorType.SUPERTREND, null, TrendState.SUPERTREND_BULLISH, 10, null),
+                        new ScanCondition(timeframe, IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, null, null, 10)
                 ),
                 null
         )).results();
@@ -58,8 +58,8 @@ public class SummaryService {
         List<ScanResult> bearishRsi = scanService.execute(new ScanRequest(
                 ScanOperator.AND,
                 List.of(
-                        new ScanCondition(timeframe, IndicatorType.SUPERTREND, null, TrendState.BEARISH, 10, null),
-                        new ScanCondition(timeframe, IndicatorType.RSI, SignalEvent.CROSSED_BELOW_40, null, null, 10)
+                        new ScanCondition(timeframe, IndicatorType.SUPERTREND, null, TrendState.SUPERTREND_BEARISH, 10, null),
+                        new ScanCondition(timeframe, IndicatorType.RSI, SignalEvent.RSI_CROSSED_BELOW_40, null, null, 10)
                 ),
                 null
         )).results();
