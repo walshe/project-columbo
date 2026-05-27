@@ -53,7 +53,9 @@ public class SignalQueryService {
                 .collect(Collectors.toMap(s -> s.getAsset().getId(), s -> s));
 
         Map<Long, BigDecimal> liquidityMap = assetLiquidityRepository.findAll().stream()
-                .collect(Collectors.toMap(AssetLiquidityView::getAssetId, AssetLiquidityView::getAvgVolume7d));
+                .collect(Collectors.toMap(
+                        AssetLiquidityView::getAssetId,
+                        v -> v.getAvgVolume7d() != null ? v.getAvgVolume7d() : BigDecimal.ZERO));
 
         List<SignalStateDto> dtos = latestSignals.stream()
                 .filter(s -> stateFilter == null || s.getTrendState() == stateFilter)
