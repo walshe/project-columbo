@@ -47,7 +47,11 @@ public class SignalStateRepositoryImpl implements SignalStateRepositoryCustom {
         query.setParameter("timeframe", timeframe);
 
         if (maxDaysSinceCross != null) {
-            OffsetDateTime crossBoundary = OffsetDateTime.now().minusDays(maxDaysSinceCross);
+            // For W1 candles the closeTime is Sunday but TradingView shows the signal on Monday
+            // (6 days earlier). Offset the boundary so the filter aligns with the displayed
+            // daysSinceFlip value rather than the raw closeTime.
+            int w1Offset = (timeframe == Timeframe.W1) ? 6 : 0;
+            OffsetDateTime crossBoundary = OffsetDateTime.now().minusDays(maxDaysSinceCross).plusDays(w1Offset);
             query.setParameter("crossBoundary", crossBoundary);
         }
 

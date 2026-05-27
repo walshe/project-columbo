@@ -251,14 +251,25 @@ public class ScanService {
         }
     }
 
+    /**
+     * Returns the effective "signal date" for display purposes — the date a trader would
+     * see the signal appear on a TradingView chart. For daily candles this is the close date.
+     * For weekly candles TradingView labels the signal at the OPEN of the reversal candle
+     * (Monday), which is 6 days before the Sunday close stored in closeTime.
+     */
+    private LocalDate signalDate(OffsetDateTime closeTime, Timeframe timeframe) {
+        LocalDate closeDate = closeTime.toLocalDate();
+        return timeframe == Timeframe.W1 ? closeDate.minusDays(6) : closeDate;
+    }
+
     private MatchedIndicator mapToMatchedIndicator(SignalState s) {
         if (s.getIndicatorType() == IndicatorType.RSI) {
             BigDecimal rsiVal = rsiRepository.findByAssetAndTimeframeAndCloseTime(s.getAsset(), s.getTimeframe(), s.getCloseTime())
                     .map(RsiIndicator::getRsiValue)
                     .orElse(BigDecimal.ZERO);
 
-            // For RSI, calculate daysSinceCross based on the match's closeTime
-            int daysSinceCross = (int) ChronoUnit.DAYS.between(s.getCloseTime().toLocalDate(), LocalDate.now(ZoneOffset.UTC));
+            int daysSinceCross = (int) ChronoUnit.DAYS.between(
+                    signalDate(s.getCloseTime(), s.getTimeframe()), LocalDate.now(ZoneOffset.UTC));
             return new RsiMatch(
                     IndicatorType.RSI,
                     s.getTimeframe(),
@@ -272,10 +283,12 @@ public class ScanService {
             if (s.getEvent() == SignalEvent.NONE || s.getEvent() == null) {
                 // Find when this trend state started
                 OffsetDateTime flipTime = findFlipTime(s);
-                daysSinceFlip = (int) ChronoUnit.DAYS.between(flipTime.toLocalDate(), LocalDate.now(ZoneOffset.UTC));
+                daysSinceFlip = (int) ChronoUnit.DAYS.between(
+                        signalDate(flipTime, s.getTimeframe()), LocalDate.now(ZoneOffset.UTC));
             } else {
-                // It's an event — calculate days between when it happened and now
-                daysSinceFlip = (int) ChronoUnit.DAYS.between(s.getCloseTime().toLocalDate(), LocalDate.now(ZoneOffset.UTC));
+                // It's an event — calculate days between when it appeared on chart and now
+                daysSinceFlip = (int) ChronoUnit.DAYS.between(
+                        signalDate(s.getCloseTime(), s.getTimeframe()), LocalDate.now(ZoneOffset.UTC));
             }
             return new SupertrendMatch(
                     s.getIndicatorType(),
