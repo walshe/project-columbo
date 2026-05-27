@@ -283,6 +283,34 @@ class SignalQueryServiceTest {
         assertThat(result.get(2).symbol()).isEqualTo("XRP"); // 0 (null/missing)
     }
 
+    @Test
+    void shouldNotThrowWhenAvgVolume7dIsNull() {
+        OffsetDateTime now = OffsetDateTime.now();
+        when(timeProvider.now()).thenReturn(now);
+        OffsetDateTime boundary = now.truncatedTo(java.time.temporal.ChronoUnit.DAYS);
+
+        Asset btc = new Asset("BTC", "Bitcoin", MarketProvider.BINANCE, true);
+        btc.setId(1L);
+
+        SignalState btcLatest = new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, boundary, TrendState.BULLISH, SignalEvent.NONE);
+
+        // Asset has a liquidity row but avg_volume_7d is null (no recent trades)
+        AssetLiquidityView btcLiq = mockAssetLiquidity(1L, null);
+
+        when(signalStateRepository.findLatestFinalizedForActiveAssets(any(), any(), any()))
+                .thenReturn(List.of(btcLatest));
+        when(signalStateRepository.findLatestFinalizedFlipsForActiveAssets(any(), any(), any()))
+                .thenReturn(List.of());
+        when(signalStateRepository.findEarliestFinalizedForActiveAssets(any(), any(), any()))
+                .thenReturn(List.of());
+        when(assetLiquidityRepository.findAll()).thenReturn(List.of(btcLiq));
+
+        List<SignalStateDto> result = service.listSignals(Timeframe.D1, IndicatorType.SUPERTREND, null, null);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).avgVolume7d()).isEqualByComparingTo(java.math.BigDecimal.ZERO);
+    }
+
     private AssetLiquidityView mockAssetLiquidity(Long assetId, java.math.BigDecimal volume) {
         AssetLiquidityView view = org.mockito.Mockito.mock(AssetLiquidityView.class);
         when(view.getAssetId()).thenReturn(assetId);

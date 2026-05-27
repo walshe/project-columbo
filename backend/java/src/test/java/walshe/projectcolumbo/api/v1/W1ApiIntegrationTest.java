@@ -175,9 +175,8 @@ class W1ApiIntegrationTest {
         signalStateRepository.save(d1Signal);
 
         ScanRequest request = new ScanRequest(
-                Timeframe.W1,
                 ScanOperator.AND,
-                List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null)),
+                List.of(new ScanCondition(Timeframe.W1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null)),
                 null
         );
 
@@ -185,7 +184,6 @@ class W1ApiIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.timeframe").value("1W"))
                 .andExpect(jsonPath("$.results", hasSize(1)))
                 .andExpect(jsonPath("$.results[0].assetSymbol").value("BTCUSDT"));
     }

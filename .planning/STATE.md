@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
+milestone: v2.0
+milestone_name: Multi-Timeframe Scan
 status: complete
-last_updated: "2026-05-22T11:30:00.000Z"
+last_updated: "2026-05-24T00:00:00.000Z"
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_phases: 1
+  completed_phases: 1
+  total_plans: 3
+  completed_plans: 3
   percent: 100
 ---
 
@@ -16,27 +16,32 @@ progress:
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-05-20)
+See: `.planning/PROJECT.md` (updated 2026-05-24)
 
 **Core value:** Give traders a clear, up-to-date view of trend signals across a crypto asset universe — across multiple timeframes
-**Current focus:** Milestone v1.0 complete ✓
+**Current focus:** Milestone v2.0 complete ✓
 
-## Roadmap Progress
+## Previous Milestone
+
+**v1.0 — Weekly Timeframe** — Complete (2026-05-22)
+- 3 phases, 7 plans, 16 requirements
+
+## Roadmap Progress (v2.0)
 
 | Phase | Name | Status | Plans |
 |-------|------|--------|-------|
-| 1 | W1 Candle Derivation | ✓ Complete | 3/3 |
-| 2 | W1 Indicators & Signals | ✓ Complete | 2/2 |
-| 3 | Pipeline & API Integration | ✓ Complete | 2/2 |
+| 4 | Multi-Timeframe Scan | ✓ Complete | 3/3 |
 
 ## Milestone Complete
 
-All 3 phases delivered. 7/7 plans complete. 16 requirements satisfied.
+All 3 plans delivered. 13/13 requirements satisfied. 162 tests, 0 failures.
 
-Verification: Phase 3 passed 8/8 must-haves — PIPE-01/02/03 and API-01/02/03 all confirmed.
-
-Open review findings (advisory): 3 critical, 4 warnings in `03-REVIEW.md`.
+Execution notes:
+- Plan 04-01: `SummaryService` (main source) also needed ScanCondition arg fix — caught and fixed
+- Plan 04-03: `ScanService.addIndicatorIfNotPresent` bug fixed — was deduplicating W1 vs D1 matches for same indicator type, which would have silently dropped cross-timeframe matched indicators
+- Plan 04-03: `W1ApiIntegrationTest` also had stale 5-arg ScanCondition — fixed
 
 ---
-*State initialized: 2026-05-20*
-*Milestone v1.0 complete: 2026-05-22*
+*v1.0 complete: 2026-05-22*
+*v2.0 initialized: 2026-05-24*
+*v2.0 complete: 2026-05-24*

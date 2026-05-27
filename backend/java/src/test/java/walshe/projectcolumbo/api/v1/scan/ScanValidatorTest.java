@@ -7,8 +7,8 @@ import walshe.projectcolumbo.api.v1.scan.dto.ScanOperator;
 import walshe.projectcolumbo.api.v1.scan.dto.ScanRequest;
 import walshe.projectcolumbo.persistence.model.IndicatorType;
 import walshe.projectcolumbo.persistence.model.SignalEvent;
-import walshe.projectcolumbo.persistence.model.TrendState;
 import walshe.projectcolumbo.persistence.model.Timeframe;
+import walshe.projectcolumbo.persistence.model.TrendState;
 
 import java.util.Collections;
 import java.util.List;
@@ -23,9 +23,8 @@ class ScanValidatorTest {
     @Test
     void shouldAcceptValidSuperTrendEventCondition() {
         ScanRequest request = new ScanRequest(
-            Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null)),
+            List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null)),
             null
         );
 
@@ -35,9 +34,8 @@ class ScanValidatorTest {
     @Test
     void shouldAcceptValidSuperTrendStateCondition() {
         ScanRequest request = new ScanRequest(
-            Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.SUPERTREND, null, TrendState.BULLISH, 5, null)),
+            List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, null, TrendState.BULLISH, 5, null)),
             null
         );
 
@@ -47,9 +45,8 @@ class ScanValidatorTest {
     @Test
     void shouldAcceptValidRsiEventCondition() {
         ScanRequest request = new ScanRequest(
-            Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, 5)),
+            List.of(new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, 5)),
             null
         );
 
@@ -59,9 +56,8 @@ class ScanValidatorTest {
     @Test
     void shouldAcceptValidRsiStateCondition() {
         ScanRequest request = new ScanRequest(
-            Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.RSI, null, TrendState.ABOVE_60, null, null)),
+            List.of(new ScanCondition(Timeframe.D1, IndicatorType.RSI, null, TrendState.ABOVE_60, null, null)),
             null
         );
 
@@ -71,7 +67,6 @@ class ScanValidatorTest {
     @Test
     void shouldRejectEmptyConditions() {
         ScanRequest request = new ScanRequest(
-            Timeframe.D1,
             ScanOperator.AND,
             Collections.emptyList(),
             null
@@ -83,9 +78,8 @@ class ScanValidatorTest {
     @Test
     void shouldRejectMissingEventAndState() {
         ScanRequest request = new ScanRequest(
-            Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.SUPERTREND, null, null, null, null)),
+            List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, null, null, null, null)),
             null
         );
 
@@ -95,9 +89,8 @@ class ScanValidatorTest {
     @Test
     void shouldRejectInvalidEventForSuperTrend() {
         ScanRequest request = new ScanRequest(
-            Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.CROSSED_ABOVE_60, null, null, null)),
+            List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.CROSSED_ABOVE_60, null, null, null)),
             null
         );
 
@@ -107,9 +100,8 @@ class ScanValidatorTest {
     @Test
     void shouldRejectInvalidStateForSuperTrend() {
         ScanRequest request = new ScanRequest(
-            Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.SUPERTREND, null, TrendState.ABOVE_60, null, null)),
+            List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, null, TrendState.ABOVE_60, null, null)),
             null
         );
 
@@ -119,9 +111,8 @@ class ScanValidatorTest {
     @Test
     void shouldRejectMaxDaysSinceFlipWithoutState() {
         ScanRequest request = new ScanRequest(
-            Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, 5, null)),
+            List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, 5, null)),
             null
         );
 
@@ -131,9 +122,8 @@ class ScanValidatorTest {
     @Test
     void shouldRejectNoneEvent() {
         ScanRequest request = new ScanRequest(
-            Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.NONE, null, null, null)),
+            List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.NONE, null, null, null)),
             null
         );
 
@@ -143,9 +133,8 @@ class ScanValidatorTest {
     @Test
     void shouldRejectMaxDaysSinceCrossForNonRsiIndicator() {
         ScanRequest request = new ScanRequest(
-            Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, 5)),
+            List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, 5)),
             null
         );
 
@@ -155,12 +144,22 @@ class ScanValidatorTest {
     @Test
     void shouldRejectMaxDaysSinceCrossForNonCrossEvent() {
         ScanRequest request = new ScanRequest(
-            Timeframe.D1,
             ScanOperator.AND,
-            List.of(new ScanCondition(IndicatorType.RSI, null, TrendState.ABOVE_60, null, 5)),
+            List.of(new ScanCondition(Timeframe.D1, IndicatorType.RSI, null, TrendState.ABOVE_60, null, 5)),
             null
         );
 
         assertThrows(BadRequestException.class, () -> validator.validate(request));
+    }
+
+    @Test
+    void shouldAcceptConditionWithPerConditionTimeframe() {
+        ScanRequest request = new ScanRequest(
+            ScanOperator.AND,
+            List.of(new ScanCondition(Timeframe.W1, IndicatorType.SUPERTREND, null, TrendState.BULLISH, 5, null)),
+            null
+        );
+
+        assertDoesNotThrow(() -> validator.validate(request));
     }
 }

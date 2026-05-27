@@ -78,9 +78,8 @@ class ScanIntegrationTest {
         createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, now);
 
         ScanRequest request = new ScanRequest(
-                Timeframe.D1,
                 ScanOperator.AND,
-                List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null)),
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null)),
                 null
         );
 
@@ -108,11 +107,10 @@ class ScanIntegrationTest {
         createSignal(eth, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, now);
 
         ScanRequest request = new ScanRequest(
-                Timeframe.D1,
                 ScanOperator.AND,
                 List.of(
-                        new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null),
-                        new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null)
+                        new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null),
+                        new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null)
                 ),
                 null
         );
@@ -137,11 +135,10 @@ class ScanIntegrationTest {
         createSignal(eth, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, now);
 
         ScanRequest request = new ScanRequest(
-                Timeframe.D1,
                 ScanOperator.OR,
                 List.of(
-                        new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null),
-                        new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null)
+                        new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null),
+                        new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null)
                 ),
                 null
         );
@@ -157,9 +154,8 @@ class ScanIntegrationTest {
     @Test
     void shouldReturn400ForInvalidRequest() throws Exception {
         ScanRequest request = new ScanRequest(
-                Timeframe.D1,
                 ScanOperator.AND,
-                List.of(new ScanCondition(IndicatorType.SUPERTREND, SignalEvent.CROSSED_ABOVE_60, null, null, null)),
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.CROSSED_ABOVE_60, null, null, null)),
                 null // Invalid event for ST
         );
 
@@ -179,14 +175,13 @@ class ScanIntegrationTest {
 
         // BTC: BULLISH, flipped 2 days ago
         createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.NONE, now.minusDays(2), TrendState.BULLISH);
-        
+
         // ETH: BULLISH, flipped 10 days ago
         createSignal(eth, IndicatorType.SUPERTREND, SignalEvent.NONE, now.minusDays(10), TrendState.BULLISH);
 
         ScanRequest request = new ScanRequest(
-                Timeframe.D1,
                 ScanOperator.AND,
-                List.of(new ScanCondition(IndicatorType.SUPERTREND, null, TrendState.BULLISH, 5, null)),
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, null, TrendState.BULLISH, 5, null)),
                 null
         );
 
@@ -210,9 +205,8 @@ class ScanIntegrationTest {
         createRsi(btc, now, 62.4);
 
         ScanRequest request = new ScanRequest(
-                Timeframe.D1,
                 ScanOperator.AND,
-                List.of(new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null)),
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null)),
                 null
         );
 
@@ -245,9 +239,8 @@ class ScanIntegrationTest {
         createRsi(eth, now.minusDays(10), 61.5);
 
         ScanRequest request = new ScanRequest(
-                Timeframe.D1,
                 ScanOperator.AND,
-                List.of(new ScanCondition(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, 5)),
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, 5)),
                 null
         );
 
@@ -257,6 +250,45 @@ class ScanIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.results", hasSize(1)))
                 .andExpect(jsonPath("$.results[0].assetSymbol").value("BTCUSDT"));
+    }
+
+    @Test
+    void shouldExecuteMultiTimeframeScan() throws Exception {
+        Asset btc = createAsset("BTCUSDT");
+        Asset eth = createAsset("ETHUSDT");
+        OffsetDateTime now = OffsetDateTime.now(java.time.ZoneOffset.UTC)
+                .truncatedTo(java.time.temporal.ChronoUnit.DAYS);
+
+        // BTC: W1 candle + W1 BULLISH signal + D1 candle + D1 BULLISH signal
+        createCandle(btc, now, Timeframe.W1);
+        createCandle(btc, now, Timeframe.D1);
+        createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.NONE, now, TrendState.BULLISH, Timeframe.W1);
+        createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.NONE, now, TrendState.BULLISH, Timeframe.D1);
+
+        // ETH: D1 candle + D1 BULLISH signal only (no W1 data)
+        createCandle(eth, now, Timeframe.D1);
+        createSignal(eth, IndicatorType.SUPERTREND, SignalEvent.NONE, now, TrendState.BULLISH, Timeframe.D1);
+
+        // Multi-timeframe scan: W1 BULLISH AND D1 BULLISH
+        ScanRequest request = new ScanRequest(
+                ScanOperator.AND,
+                List.of(
+                        new ScanCondition(Timeframe.W1, IndicatorType.SUPERTREND, null, TrendState.BULLISH, null, null),
+                        new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, null, TrendState.BULLISH, null, null)
+                ),
+                null
+        );
+
+        mockMvc.perform(post("/api/v1/scan")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.results", hasSize(1)))
+                .andExpect(jsonPath("$.results[0].assetSymbol").value("BTCUSDT"))
+                // Each matched indicator carries its timeframe
+                .andExpect(jsonPath("$.results[0].matchedIndicators", hasSize(2)))
+                .andExpect(jsonPath("$.results[0].matchedIndicators[?(@.timeframe=='1W')]", hasSize(1)))
+                .andExpect(jsonPath("$.results[0].matchedIndicators[?(@.timeframe=='1D')]", hasSize(1)));
     }
 
     private void createRsi(Asset asset, OffsetDateTime time, double value) {
@@ -278,20 +310,29 @@ class ScanIntegrationTest {
     }
 
     private void createSignal(Asset asset, IndicatorType type, SignalEvent event, OffsetDateTime time, TrendState state) {
+        createSignal(asset, type, event, time, state, Timeframe.D1);
+    }
+
+    private void createSignal(Asset asset, IndicatorType type, SignalEvent event,
+                               OffsetDateTime time, TrendState state, Timeframe timeframe) {
         SignalState s = new SignalState();
         s.setAsset(asset);
         s.setIndicatorType(type);
         s.setEvent(event);
         s.setCloseTime(time);
-        s.setTimeframe(Timeframe.D1);
+        s.setTimeframe(timeframe);
         s.setTrendState(state);
         signalStateRepository.save(s);
     }
 
     private void createCandle(Asset asset, OffsetDateTime closeTime) {
+        createCandle(asset, closeTime, Timeframe.D1);
+    }
+
+    private void createCandle(Asset asset, OffsetDateTime closeTime, Timeframe timeframe) {
         Candle candle = new Candle();
         candle.setAsset(asset);
-        candle.setTimeframe(Timeframe.D1);
+        candle.setTimeframe(timeframe);
         candle.setOpenTime(closeTime.minusDays(1));
         candle.setCloseTime(closeTime);
         candle.setOpen(java.math.BigDecimal.valueOf(100));

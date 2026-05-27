@@ -32,6 +32,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ScanService {
 
+    private static final Map<Timeframe, Integer> TIMEFRAME_PRIORITY = Map.of(
+        Timeframe.D1, 1,
+        Timeframe.W1, 2
+    );
+
     private final SignalStateRepository signalStateRepository;
     private final CandleRepository candleRepository;
     private final ScanValidator scanValidator;
@@ -56,29 +61,42 @@ public class ScanService {
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
 
-        OffsetDateTime latestCloseTime = getLatestFinalizedCloseTime(request.timeframe());
+        Set<Timeframe> uniqueTimeframes = request.conditions().stream()
+            .map(ScanCondition::timeframe)
+            .collect(Collectors.toSet());
+        Map<Timeframe, OffsetDateTime> closeTimeByTimeframe = new EnumMap<>(Timeframe.class);
+        for (Timeframe tf : uniqueTimeframes) {
+            closeTimeByTimeframe.put(tf, getLatestFinalizedCloseTime(tf));
+        }
 
         Map<Long, BigDecimal> liquidityMap = assetLiquidityRepository.findAll().stream()
-                .collect(Collectors.toMap(AssetLiquidityView::getAssetId, AssetLiquidityView::getAvgVolume7d));
+                .collect(Collectors.toMap(
+                        AssetLiquidityView::getAssetId,
+                        v -> v.getAvgVolume7d() != null ? v.getAvgVolume7d() : BigDecimal.ZERO));
 
         Map<Long, AssetMatch> assetMatches = new HashMap<>();
         boolean firstCondition = true;
 
         for (ScanCondition condition : request.conditions()) {
+            Timeframe effectiveTf = condition.timeframe();
+            OffsetDateTime latestCloseTime = closeTimeByTimeframe.get(effectiveTf);
             List<SignalState> matches;
             if (condition.event() != null) {
+                Integer maxDaysSinceEvent = condition.indicatorType() == IndicatorType.RSI
+                        ? condition.maxDaysSinceCross()
+                        : condition.maxDaysSinceFlip();
                 matches = signalStateRepository.findEventMatches(
                         condition.indicatorType(),
                         condition.event(),
-                        request.timeframe(),
+                        effectiveTf,
                         latestCloseTime,
-                        condition.maxDaysSinceCross()
+                        maxDaysSinceEvent
                 );
             } else {
                 matches = signalStateRepository.findStateMatches(
                         condition.indicatorType(),
                         condition.state(),
-                        request.timeframe(),
+                        effectiveTf,
                         condition.maxDaysSinceFlip()
                 );
             }
@@ -123,7 +141,7 @@ public class ScanService {
                             am.symbol,
                             indicators,
                             liquidityMap.getOrDefault(am.id, BigDecimal.ZERO),
-                            TradingViewUtil.generateUrl(am.provider, am.symbol, request.timeframe())
+                            TradingViewUtil.generateUrl(am.provider, am.symbol, highestTimeframe(indicators))
                     );
                 })
                 .sorted((r1, r2) -> {
@@ -164,15 +182,13 @@ public class ScanService {
                 .toList();
 
         stopWatch.stop();
-        log.info("Scan completed in {}ms. Operator: {}, Timeframe: {}, Conditions: {}, Results: {}",
+        log.info("Scan completed in {}ms. Operator: {}, Conditions: {}, Results: {}",
                 stopWatch.getTotalTimeMillis(),
                 request.operator(),
-                request.timeframe(),
                 request.conditions().size(),
                 results.size());
 
         return new ScanResponse(
-                request.timeframe(),
                 request.operator(),
                 request.conditions(),
                 results
@@ -184,6 +200,22 @@ public class ScanService {
         if (a == null) return 1;
         if (b == null) return -1;
         return a.compareTo(b);
+    }
+
+    private Timeframe highestTimeframe(List<MatchedIndicator> indicators) {
+        return indicators.stream()
+            .map(MatchedIndicator::timeframe)
+            .filter(Objects::nonNull)
+            .max(Comparator.comparingInt(tf -> {
+                Integer priority = TIMEFRAME_PRIORITY.get(tf);
+                if (priority == null) {
+                    throw new IllegalArgumentException(
+                        "No TradingView priority defined for timeframe: " + tf +
+                        ". Add it to TIMEFRAME_PRIORITY.");
+                }
+                return priority;
+            }))
+            .orElse(Timeframe.D1);
     }
 
     private OffsetDateTime getLatestFinalizedCloseTime(Timeframe timeframe) {
@@ -205,6 +237,7 @@ public class ScanService {
         boolean present = indicators.stream()
                 .anyMatch(mi -> {
                     if (mi.indicatorType() != newIndicator.indicatorType()) return false;
+                    if (mi.timeframe() != newIndicator.timeframe()) return false;
                     if (mi instanceof SupertrendMatch s1 && newIndicator instanceof SupertrendMatch s2) {
                         return s1.event() == s2.event() && s1.state() == s2.state();
                     }
@@ -218,37 +251,62 @@ public class ScanService {
         }
     }
 
+    /**
+     * Returns the effective "signal date" for display purposes — the date a trader would
+     * see the signal appear on a TradingView chart.
+     *
+     * For daily candles this is the close date (TradingView labels the Buy on the same day
+     * the reversal candle closes).
+     *
+     * For weekly candles, TradingView labels the Buy at the OPEN of the reversal candle
+     * (Monday), which is 6 days before the Sunday close stored in closeTime.
+     */
+    private LocalDate signalDate(OffsetDateTime closeTime, Timeframe timeframe) {
+        LocalDate closeDate = closeTime.toLocalDate();
+        return timeframe == Timeframe.W1 ? closeDate.minusDays(6) : closeDate;
+    }
+
     private MatchedIndicator mapToMatchedIndicator(SignalState s) {
+        // For W1, display the Monday open rather than the Sunday close so that the
+        // returned closeTime is consistent with daysSinceFlip and matches TradingView's label.
+        OffsetDateTime displayTime = s.getTimeframe() == Timeframe.W1
+                ? s.getCloseTime().minusDays(6)
+                : s.getCloseTime();
+
         if (s.getIndicatorType() == IndicatorType.RSI) {
             BigDecimal rsiVal = rsiRepository.findByAssetAndTimeframeAndCloseTime(s.getAsset(), s.getTimeframe(), s.getCloseTime())
                     .map(RsiIndicator::getRsiValue)
                     .orElse(BigDecimal.ZERO);
 
-            // For RSI, calculate daysSinceCross based on the match's closeTime
-            int daysSinceCross = (int) ChronoUnit.DAYS.between(s.getCloseTime().toLocalDate(), LocalDate.now(ZoneOffset.UTC));
+            int daysSinceCross = (int) ChronoUnit.DAYS.between(
+                    signalDate(s.getCloseTime(), s.getTimeframe()), LocalDate.now(ZoneOffset.UTC));
             return new RsiMatch(
                     IndicatorType.RSI,
+                    s.getTimeframe(),
                     s.getEvent(),
                     rsiVal.doubleValue(),
                     daysSinceCross,
-                    s.getCloseTime()
+                    displayTime
             );
         } else {
             int daysSinceFlip;
             if (s.getEvent() == SignalEvent.NONE || s.getEvent() == null) {
                 // Find when this trend state started
                 OffsetDateTime flipTime = findFlipTime(s);
-                daysSinceFlip = (int) ChronoUnit.DAYS.between(flipTime.toLocalDate(), LocalDate.now(ZoneOffset.UTC));
+                daysSinceFlip = (int) ChronoUnit.DAYS.between(
+                        signalDate(flipTime, s.getTimeframe()), LocalDate.now(ZoneOffset.UTC));
             } else {
-                // It's an event, so it happened at s.getCloseTime()
-                daysSinceFlip = 0;
+                // It's an event — calculate days between when it appeared on chart and now
+                daysSinceFlip = (int) ChronoUnit.DAYS.between(
+                        signalDate(s.getCloseTime(), s.getTimeframe()), LocalDate.now(ZoneOffset.UTC));
             }
             return new SupertrendMatch(
                     s.getIndicatorType(),
+                    s.getTimeframe(),
                     s.getTrendState(),
                     s.getEvent(),
                     daysSinceFlip,
-                    s.getCloseTime()
+                    displayTime
             );
         }
     }
