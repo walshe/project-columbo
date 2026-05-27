@@ -306,6 +306,32 @@ class ScanServiceTest {
         assertThat(matched).anyMatch(mi -> mi.timeframe() == Timeframe.D1);
     }
 
+    @Test
+    void execute_EventMatch_DaysSinceFlipReflectsCloseTime() {
+        // Regression test: daysSinceFlip was hardcoded to 0 for event-based matches
+        Asset asset1 = new Asset(); asset1.setId(1L); asset1.setSymbol("BTCUSDT");
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        OffsetDateTime flipTime = now.minusDays(17);
+
+        SignalState s1 = createSignal(asset1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, flipTime);
+
+        when(candleRepository.findLatestCloseTimeForTimeframe("D1")).thenReturn(Optional.of(now));
+        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now, null))
+                .thenReturn(List.of(s1));
+        when(assetLiquidityRepository.findAll()).thenReturn(List.of());
+
+        ScanRequest request = new ScanRequest(
+                ScanOperator.AND,
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null)),
+                null
+        );
+
+        ScanResponse response = scanService.execute(request);
+
+        SupertrendMatch sm = (SupertrendMatch) response.results().get(0).matchedIndicators().get(0);
+        assertThat(sm.daysSinceFlip()).isEqualTo(17);
+    }
+
     private SignalState createSignal(Asset asset, IndicatorType type, SignalEvent event, OffsetDateTime time) {
         SignalState s = new SignalState();
         s.setAsset(asset);

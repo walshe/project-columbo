@@ -271,8 +271,8 @@ public class ScanService {
                 OffsetDateTime flipTime = findFlipTime(s);
                 daysSinceFlip = (int) ChronoUnit.DAYS.between(flipTime.toLocalDate(), LocalDate.now(ZoneOffset.UTC));
             } else {
-                // It's an event, so it happened at s.getCloseTime()
-                daysSinceFlip = 0;
+                // It's an event — calculate days between when it happened and now
+                daysSinceFlip = (int) ChronoUnit.DAYS.between(s.getCloseTime().toLocalDate(), LocalDate.now(ZoneOffset.UTC));
             }
             return new SupertrendMatch(
                     s.getIndicatorType(),
