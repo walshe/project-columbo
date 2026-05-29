@@ -1,5 +1,7 @@
 package walshe.projectcolumbo.api.v1.scan.dto;
 
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.DiscriminatorMapping;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
@@ -9,7 +11,15 @@ public record ScanResult(
     @Schema(description = "The symbol of the matched asset", example = "BTCUSDT")
     String assetSymbol,
 
-    @Schema(description = "List of indicator events that matched the scan conditions")
+    @ArraySchema(schema = @Schema(
+        description = "Indicator event or state that matched the scan condition",
+        oneOf = {SupertrendMatch.class, RsiMatch.class},
+        discriminatorProperty = "indicatorType",
+        discriminatorMapping = {
+            @DiscriminatorMapping(value = "SUPERTREND", schema = SupertrendMatch.class),
+            @DiscriminatorMapping(value = "RSI", schema = RsiMatch.class)
+        }
+    ))
     List<MatchedIndicator> matchedIndicators,
 
     @Schema(description = "The 7-day average volume for the asset")

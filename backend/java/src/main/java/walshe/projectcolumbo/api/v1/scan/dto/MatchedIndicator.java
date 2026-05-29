@@ -8,11 +8,7 @@ import walshe.projectcolumbo.persistence.model.Timeframe;
 
 import java.time.OffsetDateTime;
 
-@Schema(
-    description = "Indicator event or state that matched the scan condition for an asset",
-    discriminatorProperty = "indicatorType",
-    oneOf = {SupertrendMatch.class, RsiMatch.class}
-)
+@Schema(description = "Indicator event or state that matched the scan condition for an asset")
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
     include = JsonTypeInfo.As.EXISTING_PROPERTY,
