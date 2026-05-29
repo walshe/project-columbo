@@ -118,12 +118,12 @@ class W1ApiIntegrationTest {
         // Seed D1 signal — BEARISH (should NOT appear in W1 response)
         signalStateRepository.save(new SignalState(
                 btc, Timeframe.D1, IndicatorType.SUPERTREND, signalCloseTime,
-                TrendState.BEARISH, SignalEvent.BEARISH_REVERSAL));
+                TrendState.SUPERTREND_BEARISH, SignalEvent.SUPERTREND_BEARISH_REVERSAL));
 
         // Seed W1 signal — BULLISH (should appear in W1 response)
         signalStateRepository.save(new SignalState(
                 btc, Timeframe.W1, IndicatorType.SUPERTREND, signalCloseTime,
-                TrendState.BULLISH, SignalEvent.BULLISH_REVERSAL));
+                TrendState.SUPERTREND_BULLISH, SignalEvent.SUPERTREND_BULLISH_REVERSAL));
 
         mockMvc.perform(get("/api/v1/signals")
                         .param("timeframe", "W1")
@@ -131,7 +131,7 @@ class W1ApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].symbol").value("BTCUSDT"))
-                .andExpect(jsonPath("$[0].trendState").value("BULLISH"));
+                .andExpect(jsonPath("$[0].trendState").value("SUPERTREND_BULLISH"));
     }
 
     @Test
@@ -159,8 +159,8 @@ class W1ApiIntegrationTest {
         w1Signal.setAsset(btc);
         w1Signal.setTimeframe(Timeframe.W1);
         w1Signal.setIndicatorType(IndicatorType.SUPERTREND);
-        w1Signal.setEvent(SignalEvent.BULLISH_REVERSAL);
-        w1Signal.setTrendState(TrendState.BULLISH);
+        w1Signal.setEvent(SignalEvent.SUPERTREND_BULLISH_REVERSAL);
+        w1Signal.setTrendState(TrendState.SUPERTREND_BULLISH);
         w1Signal.setCloseTime(now);
         signalStateRepository.save(w1Signal);
 
@@ -169,14 +169,14 @@ class W1ApiIntegrationTest {
         d1Signal.setAsset(btc);
         d1Signal.setTimeframe(Timeframe.D1);
         d1Signal.setIndicatorType(IndicatorType.SUPERTREND);
-        d1Signal.setEvent(SignalEvent.BULLISH_REVERSAL);
-        d1Signal.setTrendState(TrendState.BULLISH);
+        d1Signal.setEvent(SignalEvent.SUPERTREND_BULLISH_REVERSAL);
+        d1Signal.setTrendState(TrendState.SUPERTREND_BULLISH);
         d1Signal.setCloseTime(now);
         signalStateRepository.save(d1Signal);
 
         ScanRequest request = new ScanRequest(
                 ScanOperator.AND,
-                List.of(new ScanCondition(Timeframe.W1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null)),
+                List.of(new ScanCondition(Timeframe.W1, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, null, null, null)),
                 null
         );
 

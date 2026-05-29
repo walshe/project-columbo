@@ -19,11 +19,11 @@ public class ScanValidator {
     private static final Map<IndicatorType, Set<TrendState>> VALID_STATES = new EnumMap<>(IndicatorType.class);
 
     static {
-        VALID_EVENTS.put(IndicatorType.SUPERTREND, Set.of(SignalEvent.BULLISH_REVERSAL, SignalEvent.BEARISH_REVERSAL));
-        VALID_EVENTS.put(IndicatorType.RSI, Set.of(SignalEvent.CROSSED_ABOVE_60, SignalEvent.CROSSED_BELOW_40));
+        VALID_EVENTS.put(IndicatorType.SUPERTREND, Set.of(SignalEvent.SUPERTREND_BULLISH_REVERSAL, SignalEvent.SUPERTREND_BEARISH_REVERSAL));
+        VALID_EVENTS.put(IndicatorType.RSI, Set.of(SignalEvent.RSI_CROSSED_ABOVE_60, SignalEvent.RSI_CROSSED_BELOW_40));
 
-        VALID_STATES.put(IndicatorType.SUPERTREND, Set.of(TrendState.BULLISH, TrendState.BEARISH));
-        VALID_STATES.put(IndicatorType.RSI, Set.of(TrendState.ABOVE_60, TrendState.BELOW_40, TrendState.NEUTRAL));
+        VALID_STATES.put(IndicatorType.SUPERTREND, Set.of(TrendState.SUPERTREND_BULLISH, TrendState.SUPERTREND_BEARISH));
+        VALID_STATES.put(IndicatorType.RSI, Set.of(TrendState.RSI_ABOVE_60, TrendState.RSI_BELOW_40, TrendState.RSI_NEUTRAL));
     }
 
     void validate(ScanRequest request) {
@@ -57,7 +57,7 @@ public class ScanValidator {
                 throw new BadRequestException("maxDaysSinceCross can only be used with indicator RSI");
             }
 
-            if (maxDaysSinceCross != null && (event != SignalEvent.CROSSED_ABOVE_60 && event != SignalEvent.CROSSED_BELOW_40)) {
+            if (maxDaysSinceCross != null && (event != SignalEvent.RSI_CROSSED_ABOVE_60 && event != SignalEvent.RSI_CROSSED_BELOW_40)) {
                 throw new BadRequestException("maxDaysSinceCross can only be used with RSI CROSSED_ABOVE_60 or CROSSED_BELOW_40");
             }
         }

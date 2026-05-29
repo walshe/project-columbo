@@ -69,7 +69,7 @@ class SuperTrendRepositoryTest {
         st1.setUpperBand(new BigDecimal("41000.0"));
         st1.setLowerBand(new BigDecimal("39000.0"));
         st1.setSupertrend(new BigDecimal("39000.0"));
-        st1.setDirection(SuperTrendDirection.UP);
+        st1.setDirection(SuperTrendDirection.SUPERTREND_UP);
         superTrendRepository.save(st1);
 
         SuperTrendIndicator st2 = new SuperTrendIndicator();
@@ -80,7 +80,7 @@ class SuperTrendRepositoryTest {
         st2.setUpperBand(new BigDecimal("42000.0"));
         st2.setLowerBand(new BigDecimal("40000.0"));
         st2.setSupertrend(new BigDecimal("40000.0"));
-        st2.setDirection(SuperTrendDirection.UP);
+        st2.setDirection(SuperTrendDirection.SUPERTREND_UP);
         superTrendRepository.save(st2);
 
         // When
@@ -90,6 +90,6 @@ class SuperTrendRepositoryTest {
         assertThat(latest).isPresent();
         assertThat(latest.get().getCloseTime()).isEqualTo(t2);
         assertThat(latest.get().getAtr()).isEqualByComparingTo("110.0");
-        assertThat(latest.get().getDirection()).isEqualTo(SuperTrendDirection.UP);
+        assertThat(latest.get().getDirection()).isEqualTo(SuperTrendDirection.SUPERTREND_UP);
     }
 }

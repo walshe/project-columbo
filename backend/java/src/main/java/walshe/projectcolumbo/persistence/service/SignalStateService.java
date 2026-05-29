@@ -178,7 +178,7 @@ public class SignalStateService {
                             timeframe,
                             indicatorType,
                             closeTime,
-                            TrendState.UNKNOWN,
+                            TrendState.SUPERTREND_UNKNOWN,
                             SignalEvent.NONE
                     );
                     signalStateRepository.save(newState);
@@ -188,7 +188,7 @@ public class SignalStateService {
                     // If it was previously UNKNOWN, we update its time to the latest candle 
                     // so it stays current in our reports even without a trend.
                     SignalState stored = latestStored.get();
-                    if (stored.getTrendState() == TrendState.UNKNOWN && stored.getCloseTime().isBefore(closeTime)) {
+                    if (stored.getTrendState() == TrendState.SUPERTREND_UNKNOWN && stored.getCloseTime().isBefore(closeTime)) {
                         stored.setCloseTime(closeTime);
                         signalStateRepository.save(stored);
                         return new ProcessingStats(0, 1, 0);

@@ -99,20 +99,20 @@ class RsiCalculatorLogicTest {
         
         // Then
         assertThat(results).hasSize(5);
-        assertThat(results.get(0).trendState()).isEqualTo(TrendState.NEUTRAL);
+        assertThat(results.get(0).trendState()).isEqualTo(TrendState.RSI_NEUTRAL);
         assertThat(results.get(0).event()).isEqualTo(SignalEvent.NONE);
         
-        assertThat(results.get(1).trendState()).isEqualTo(TrendState.ABOVE_60);
-        assertThat(results.get(1).event()).isEqualTo(SignalEvent.CROSSED_ABOVE_60);
+        assertThat(results.get(1).trendState()).isEqualTo(TrendState.RSI_ABOVE_60);
+        assertThat(results.get(1).event()).isEqualTo(SignalEvent.RSI_CROSSED_ABOVE_60);
         
-        assertThat(results.get(2).trendState()).isEqualTo(TrendState.NEUTRAL);
+        assertThat(results.get(2).trendState()).isEqualTo(TrendState.RSI_NEUTRAL);
         assertThat(results.get(2).event()).isEqualTo(SignalEvent.NONE);
         
-        assertThat(results.get(3).trendState()).isEqualTo(TrendState.BELOW_40);
-        assertThat(results.get(3).event()).isEqualTo(SignalEvent.CROSSED_BELOW_40);
+        assertThat(results.get(3).trendState()).isEqualTo(TrendState.RSI_BELOW_40);
+        assertThat(results.get(3).event()).isEqualTo(SignalEvent.RSI_CROSSED_BELOW_40);
         
-        assertThat(results.get(4).trendState()).isEqualTo(TrendState.ABOVE_60);
-        assertThat(results.get(4).event()).isEqualTo(SignalEvent.CROSSED_ABOVE_60);
+        assertThat(results.get(4).trendState()).isEqualTo(TrendState.RSI_ABOVE_60);
+        assertThat(results.get(4).event()).isEqualTo(SignalEvent.RSI_CROSSED_ABOVE_60);
     }
 
     private RsiIndicator createRsiIndicator(Asset asset, String value, int day) {

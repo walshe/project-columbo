@@ -67,7 +67,7 @@ class SignalStateUpdateUnknownTest {
 
         // Day 1: Asset has 5 candles, UNKNOWN state created
         saveCandle(asset, t1);
-        signalStateRepository.save(new SignalState(asset, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.UNKNOWN, SignalEvent.NONE));
+        signalStateRepository.save(new SignalState(asset, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.SUPERTREND_UNKNOWN, SignalEvent.NONE));
 
         // Day 2: Asset has 6 candles, still UNKNOWN. It should update to t2.
         saveCandle(asset, t2);
@@ -83,7 +83,7 @@ class SignalStateUpdateUnknownTest {
         assertThat(latest).isPresent();
         // The issue is that it should be at t2, but currently it stays at t1
         assertThat(latest.get().getCloseTime()).isEqualTo(t2);
-        assertThat(latest.get().getTrendState()).isEqualTo(TrendState.UNKNOWN);
+        assertThat(latest.get().getTrendState()).isEqualTo(TrendState.SUPERTREND_UNKNOWN);
     }
 
     @Test
@@ -95,7 +95,7 @@ class SignalStateUpdateUnknownTest {
 
         // Day 1: UNKNOWN state
         saveCandle(asset, t1);
-        signalStateRepository.save(new SignalState(asset, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.UNKNOWN, SignalEvent.NONE));
+        signalStateRepository.save(new SignalState(asset, Timeframe.D1, IndicatorType.SUPERTREND, t1, TrendState.SUPERTREND_UNKNOWN, SignalEvent.NONE));
 
         // Day 2: Now we have a SuperTrend indicator at t2
         saveCandle(asset, t2);
@@ -107,7 +107,7 @@ class SignalStateUpdateUnknownTest {
         indicator.setUpperBand(BigDecimal.TEN);
         indicator.setLowerBand(BigDecimal.ONE);
         indicator.setSupertrend(BigDecimal.TEN);
-        indicator.setDirection(SuperTrendDirection.DOWN);
+        indicator.setDirection(SuperTrendDirection.SUPERTREND_DOWN);
         superTrendRepository.save(indicator);
 
         // When
@@ -120,7 +120,7 @@ class SignalStateUpdateUnknownTest {
         );
 
         assertThat(latest).isPresent();
-        assertThat(latest.get().getTrendState()).isEqualTo(TrendState.BEARISH);
+        assertThat(latest.get().getTrendState()).isEqualTo(TrendState.SUPERTREND_BEARISH);
 
         // And the old UNKNOWN state at t1 should still exist (or be deleted/ignored)
         // Actually our logic adds new SignalState for new indicator results.
@@ -128,7 +128,7 @@ class SignalStateUpdateUnknownTest {
                 asset, Timeframe.D1, IndicatorType.SUPERTREND, t1
         );
         assertThat(old).isPresent();
-        assertThat(old.get().getTrendState()).isEqualTo(TrendState.UNKNOWN);
+        assertThat(old.get().getTrendState()).isEqualTo(TrendState.SUPERTREND_UNKNOWN);
     }
 
     @Autowired

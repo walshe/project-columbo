@@ -57,15 +57,15 @@ class ScanServiceTest {
         Asset asset1 = new Asset(); asset1.setId(1L); asset1.setSymbol("BTCUSDT");
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
-        SignalState s1 = createSignal(asset1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, now);
+        SignalState s1 = createSignal(asset1, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, now);
 
         when(candleRepository.findLatestCloseTimeForTimeframe("D1")).thenReturn(Optional.of(now));
-        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now, null))
+        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, Timeframe.D1, now, null))
                 .thenReturn(List.of(s1));
 
         ScanRequest request = new ScanRequest(
                 ScanOperator.AND,
-                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null)),
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, null, null, null)),
                 null
         );
 
@@ -77,7 +77,7 @@ class ScanServiceTest {
         MatchedIndicator mi = response.results().get(0).matchedIndicators().get(0);
         assertThat(mi).isInstanceOf(SupertrendMatch.class);
         SupertrendMatch sm = (SupertrendMatch) mi;
-        assertThat(sm.event()).isEqualTo(SignalEvent.BULLISH_REVERSAL);
+        assertThat(sm.event()).isEqualTo(SignalEvent.SUPERTREND_BULLISH_REVERSAL);
         verify(scanValidator).validate(request);
     }
 
@@ -87,21 +87,21 @@ class ScanServiceTest {
         Asset asset2 = new Asset(); asset2.setId(2L); asset2.setSymbol("ETHUSDT");
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
-        SignalState s1 = createSignal(asset1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, now);
-        SignalState s2 = createSignal(asset2, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, now);
-        SignalState s3 = createSignal(asset1, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, now);
+        SignalState s1 = createSignal(asset1, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, now);
+        SignalState s2 = createSignal(asset2, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, now);
+        SignalState s3 = createSignal(asset1, IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, now);
 
         when(candleRepository.findLatestCloseTimeForTimeframe("D1")).thenReturn(Optional.of(now));
-        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now, null))
+        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, Timeframe.D1, now, null))
                 .thenReturn(List.of(s1, s2));
-        when(signalStateRepository.findEventMatches(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, Timeframe.D1, now, null))
+        when(signalStateRepository.findEventMatches(IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, Timeframe.D1, now, null))
                 .thenReturn(List.of(s3));
 
         ScanRequest request = new ScanRequest(
                 ScanOperator.AND,
                 List.of(
-                        new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null),
-                        new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null)
+                        new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, null, null, null),
+                        new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, null, null, null)
                 ),
                 null
         );
@@ -123,20 +123,20 @@ class ScanServiceTest {
         Asset asset2 = new Asset(); asset2.setId(2L); asset2.setSymbol("ETHUSDT");
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
-        SignalState s1 = createSignal(asset1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, now);
-        SignalState s2 = createSignal(asset2, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, now);
+        SignalState s1 = createSignal(asset1, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, now);
+        SignalState s2 = createSignal(asset2, IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, now);
 
         when(candleRepository.findLatestCloseTimeForTimeframe("D1")).thenReturn(Optional.of(now));
-        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now, null))
+        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, Timeframe.D1, now, null))
                 .thenReturn(List.of(s1));
-        when(signalStateRepository.findEventMatches(IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, Timeframe.D1, now, null))
+        when(signalStateRepository.findEventMatches(IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, Timeframe.D1, now, null))
                 .thenReturn(List.of(s2));
 
         ScanRequest request = new ScanRequest(
                 ScanOperator.OR,
                 List.of(
-                        new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null),
-                        new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null)
+                        new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, null, null, null),
+                        new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, null, null, null)
                 ),
                 null
         );
@@ -151,12 +151,12 @@ class ScanServiceTest {
     void execute_NoMatches_ReturnsEmptyList() {
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         when(candleRepository.findLatestCloseTimeForTimeframe("D1")).thenReturn(Optional.of(now));
-        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now, null))
+        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, Timeframe.D1, now, null))
                 .thenReturn(List.of());
 
         ScanRequest request = new ScanRequest(
                 ScanOperator.AND,
-                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, null, null)),
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, null, null, null)),
                 null
         );
 
@@ -170,21 +170,21 @@ class ScanServiceTest {
         Asset asset1 = new Asset(); asset1.setId(1L); asset1.setSymbol("BTCUSDT");
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         SignalState s1 = createSignal(asset1, IndicatorType.SUPERTREND, SignalEvent.NONE, now.minusDays(2));
-        s1.setTrendState(TrendState.BULLISH);
+        s1.setTrendState(TrendState.SUPERTREND_BULLISH);
 
         when(candleRepository.findLatestCloseTimeForTimeframe("D1")).thenReturn(Optional.of(now));
-        when(signalStateRepository.findStateMatches(IndicatorType.SUPERTREND, TrendState.BULLISH, Timeframe.D1, 5))
+        when(signalStateRepository.findStateMatches(IndicatorType.SUPERTREND, TrendState.SUPERTREND_BULLISH, Timeframe.D1, 5))
                 .thenReturn(List.of(s1));
 
         // Mocking flip time search
-        when(signalStateRepository.findLastDifferentStateTime(eq(1L), eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(TrendState.BULLISH), any()))
+        when(signalStateRepository.findLastDifferentStateTime(eq(1L), eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(TrendState.SUPERTREND_BULLISH), any()))
                 .thenReturn(Optional.of(now.minusDays(3)));
-        when(signalStateRepository.findFirstCurrentStateTimeAfter(eq(1L), eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(TrendState.BULLISH), any(), any()))
+        when(signalStateRepository.findFirstCurrentStateTimeAfter(eq(1L), eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(TrendState.SUPERTREND_BULLISH), any(), any()))
                 .thenReturn(Optional.of(now.minusDays(2)));
 
         ScanRequest request = new ScanRequest(
                 ScanOperator.AND,
-                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, null, TrendState.BULLISH, 5, null)),
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, null, TrendState.SUPERTREND_BULLISH, 5, null)),
                 null
         );
 
@@ -195,7 +195,7 @@ class ScanServiceTest {
         MatchedIndicator mi = response.results().get(0).matchedIndicators().get(0);
         assertThat(mi).isInstanceOf(SupertrendMatch.class);
         SupertrendMatch sm = (SupertrendMatch) mi;
-        assertThat(sm.state()).isEqualTo(TrendState.BULLISH);
+        assertThat(sm.state()).isEqualTo(TrendState.SUPERTREND_BULLISH);
         assertThat(sm.daysSinceFlip()).isEqualTo(2);
     }
 
@@ -207,18 +207,18 @@ class ScanServiceTest {
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
         // BTC: RSI cross 2 days ago, Supertrend flip 5 days ago
-        SignalState s1 = createSignal(asset1, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, now.minusDays(2));
+        SignalState s1 = createSignal(asset1, IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, now.minusDays(2));
         SignalState s2 = createSignal(asset1, IndicatorType.SUPERTREND, SignalEvent.NONE, now.minusDays(5));
-        s2.setTrendState(TrendState.BULLISH);
+        s2.setTrendState(TrendState.SUPERTREND_BULLISH);
 
         // ETH: RSI cross 1 day ago, Supertrend flip 10 days ago
-        SignalState s3 = createSignal(asset2, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, now.minusDays(1));
+        SignalState s3 = createSignal(asset2, IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, now.minusDays(1));
         SignalState s4 = createSignal(asset2, IndicatorType.SUPERTREND, SignalEvent.NONE, now.minusDays(10));
-        s4.setTrendState(TrendState.BULLISH);
+        s4.setTrendState(TrendState.SUPERTREND_BULLISH);
 
         // SOL: No RSI match, Supertrend flip 1 day ago
         SignalState s5 = createSignal(asset3, IndicatorType.SUPERTREND, SignalEvent.NONE, now.minusDays(1));
-        s5.setTrendState(TrendState.BULLISH);
+        s5.setTrendState(TrendState.SUPERTREND_BULLISH);
 
         when(candleRepository.findLatestCloseTimeForTimeframe("D1")).thenReturn(Optional.of(now));
 
@@ -241,8 +241,8 @@ class ScanServiceTest {
         ScanRequest request = new ScanRequest(
                 ScanOperator.OR,
                 List.of(
-                        new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.CROSSED_ABOVE_60, null, null, null),
-                        new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, null, TrendState.BULLISH, null, null)
+                        new ScanCondition(Timeframe.D1, IndicatorType.RSI, SignalEvent.RSI_CROSSED_ABOVE_60, null, null, null),
+                        new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, null, TrendState.SUPERTREND_BULLISH, null, null)
                 ),
                 null
         );
@@ -267,19 +267,19 @@ class ScanServiceTest {
 
         // BTC has W1 BULLISH + D1 BULLISH → should match
         SignalState btcW1 = createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.NONE, now);
-        btcW1.setTimeframe(Timeframe.W1); btcW1.setTrendState(TrendState.BULLISH);
+        btcW1.setTimeframe(Timeframe.W1); btcW1.setTrendState(TrendState.SUPERTREND_BULLISH);
         SignalState btcD1 = createSignal(btc, IndicatorType.SUPERTREND, SignalEvent.NONE, now);
-        btcD1.setTimeframe(Timeframe.D1); btcD1.setTrendState(TrendState.BULLISH);
+        btcD1.setTimeframe(Timeframe.D1); btcD1.setTrendState(TrendState.SUPERTREND_BULLISH);
 
         // ETH has W1 BULLISH but NOT D1 BULLISH → should NOT match after AND intersection
         SignalState ethW1 = createSignal(eth, IndicatorType.SUPERTREND, SignalEvent.NONE, now);
-        ethW1.setTimeframe(Timeframe.W1); ethW1.setTrendState(TrendState.BULLISH);
+        ethW1.setTimeframe(Timeframe.W1); ethW1.setTrendState(TrendState.SUPERTREND_BULLISH);
 
         when(candleRepository.findLatestCloseTimeForTimeframe("W1")).thenReturn(Optional.of(now));
         when(candleRepository.findLatestCloseTimeForTimeframe("D1")).thenReturn(Optional.of(now));
-        when(signalStateRepository.findStateMatches(IndicatorType.SUPERTREND, TrendState.BULLISH, Timeframe.W1, null))
+        when(signalStateRepository.findStateMatches(IndicatorType.SUPERTREND, TrendState.SUPERTREND_BULLISH, Timeframe.W1, null))
                 .thenReturn(List.of(btcW1, ethW1));
-        when(signalStateRepository.findStateMatches(IndicatorType.SUPERTREND, TrendState.BULLISH, Timeframe.D1, null))
+        when(signalStateRepository.findStateMatches(IndicatorType.SUPERTREND, TrendState.SUPERTREND_BULLISH, Timeframe.D1, null))
                 .thenReturn(List.of(btcD1));
         when(signalStateRepository.findLastDifferentStateTime(any(), any(), any(), any(), any()))
                 .thenReturn(Optional.empty());
@@ -289,8 +289,8 @@ class ScanServiceTest {
         ScanRequest request = new ScanRequest(
                 ScanOperator.AND,
                 List.of(
-                        new ScanCondition(Timeframe.W1, IndicatorType.SUPERTREND, null, TrendState.BULLISH, null, null),
-                        new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, null, TrendState.BULLISH, null, null)
+                        new ScanCondition(Timeframe.W1, IndicatorType.SUPERTREND, null, TrendState.SUPERTREND_BULLISH, null, null),
+                        new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, null, TrendState.SUPERTREND_BULLISH, null, null)
                 ),
                 null
         );
@@ -313,17 +313,17 @@ class ScanServiceTest {
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         OffsetDateTime flipTime = now.minusDays(17);
 
-        SignalState s1 = createSignal(asset1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, flipTime);
+        SignalState s1 = createSignal(asset1, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, flipTime);
 
         when(candleRepository.findLatestCloseTimeForTimeframe("D1")).thenReturn(Optional.of(now));
         // maxDaysSinceFlip=20 → passed as maxDaysSinceEvent to findEventMatches
-        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now, 20))
+        when(signalStateRepository.findEventMatches(IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, Timeframe.D1, now, 20))
                 .thenReturn(List.of(s1));
         when(assetLiquidityRepository.findAll()).thenReturn(List.of());
 
         ScanRequest request = new ScanRequest(
                 ScanOperator.AND,
-                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, 20, null)),
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, null, 20, null)),
                 null
         );
 
@@ -344,7 +344,7 @@ class ScanServiceTest {
 
         ScanRequest request = new ScanRequest(
                 ScanOperator.AND,
-                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, null, 16, null)),
+                List.of(new ScanCondition(Timeframe.D1, IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, null, 16, null)),
                 null
         );
 
@@ -352,7 +352,7 @@ class ScanServiceTest {
 
         // Verify maxDaysSinceFlip=16 is passed to the repo, NOT null (maxDaysSinceCross)
         verify(signalStateRepository).findEventMatches(
-                IndicatorType.SUPERTREND, SignalEvent.BULLISH_REVERSAL, Timeframe.D1, now, 16);
+                IndicatorType.SUPERTREND, SignalEvent.SUPERTREND_BULLISH_REVERSAL, Timeframe.D1, now, 16);
     }
 
     private SignalState createSignal(Asset asset, IndicatorType type, SignalEvent event, OffsetDateTime time) {

@@ -56,10 +56,10 @@ class MarketPulseServiceTest {
         
         List<SignalState> states = new java.util.ArrayList<>();
         for (int i = 0; i < 21; i++) {
-            states.add(new SignalState(asset1, Timeframe.D1, IndicatorType.SUPERTREND, closeTime, TrendState.BULLISH, SignalEvent.NONE));
+            states.add(new SignalState(asset1, Timeframe.D1, IndicatorType.SUPERTREND, closeTime, TrendState.SUPERTREND_BULLISH, SignalEvent.NONE));
         }
         for (int i = 0; i < 20; i++) {
-            states.add(new SignalState(asset1, Timeframe.D1, IndicatorType.SUPERTREND, closeTime, TrendState.BEARISH, SignalEvent.NONE));
+            states.add(new SignalState(asset1, Timeframe.D1, IndicatorType.SUPERTREND, closeTime, TrendState.SUPERTREND_BEARISH, SignalEvent.NONE));
         }
         
         // Mocking for SUPERTREND (the only indicator for now)
@@ -112,10 +112,10 @@ class MarketPulseServiceTest {
 
         List<SignalState> states = new java.util.ArrayList<>();
         for (int i = 0; i < 21; i++) {
-            states.add(new SignalState(asset1, Timeframe.D1, IndicatorType.SUPERTREND, closeTime, TrendState.BULLISH, SignalEvent.NONE));
+            states.add(new SignalState(asset1, Timeframe.D1, IndicatorType.SUPERTREND, closeTime, TrendState.SUPERTREND_BULLISH, SignalEvent.NONE));
         }
         for (int i = 0; i < 20; i++) {
-            states.add(new SignalState(asset1, Timeframe.D1, IndicatorType.SUPERTREND, closeTime, TrendState.BEARISH, SignalEvent.NONE));
+            states.add(new SignalState(asset1, Timeframe.D1, IndicatorType.SUPERTREND, closeTime, TrendState.SUPERTREND_BEARISH, SignalEvent.NONE));
         }
 
         when(signalStateRepository.findLatestFinalizedForActiveAssets(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), any()))

@@ -74,8 +74,8 @@ class SignalStateServiceLogicTest {
         // Saved rows: two before boundary (finalized)
         OffsetDateTime t1 = boundary.minusDays(2);
         OffsetDateTime t2 = boundary.minusDays(1);
-        saveSuperTrend(t1, SuperTrendDirection.DOWN);
-        saveSuperTrend(t2, SuperTrendDirection.UP);
+        saveSuperTrend(t1, SuperTrendDirection.SUPERTREND_DOWN);
+        saveSuperTrend(t2, SuperTrendDirection.SUPERTREND_UP);
 
         // When
         signalStateService.processAsset(btc, Timeframe.D1, false);
@@ -86,12 +86,12 @@ class SignalStateServiceLogicTest {
 
         assertThat(states).hasSize(2);
         assertThat(states.get(0).getCloseTime()).isEqualTo(t1);
-        assertThat(states.get(0).getTrendState()).isEqualTo(TrendState.BEARISH);
+        assertThat(states.get(0).getTrendState()).isEqualTo(TrendState.SUPERTREND_BEARISH);
         assertThat(states.get(0).getEvent()).isEqualTo(SignalEvent.NONE);
 
         assertThat(states.get(1).getCloseTime()).isEqualTo(t2);
-        assertThat(states.get(1).getTrendState()).isEqualTo(TrendState.BULLISH);
-        assertThat(states.get(1).getEvent()).isEqualTo(SignalEvent.BULLISH_REVERSAL);
+        assertThat(states.get(1).getTrendState()).isEqualTo(TrendState.SUPERTREND_BULLISH);
+        assertThat(states.get(1).getEvent()).isEqualTo(SignalEvent.SUPERTREND_BULLISH_REVERSAL);
     }
 
     @Test
@@ -101,7 +101,7 @@ class SignalStateServiceLogicTest {
         OffsetDateTime boundary = now.toLocalDate().atStartOfDay().atOffset(ZoneOffset.UTC);
         OffsetDateTime t1 = boundary.minusDays(1);
         
-        saveSuperTrend(t1, SuperTrendDirection.DOWN);
+        saveSuperTrend(t1, SuperTrendDirection.SUPERTREND_DOWN);
         
         // Initial run
         signalStateService.processAsset(btc, Timeframe.D1, false);
@@ -109,11 +109,11 @@ class SignalStateServiceLogicTest {
         List<SignalState> statesBefore = signalStateRepository.findAllByAssetIdAndTimeframeAndIndicatorTypeOrderByCloseTimeAsc(
                 btc.getId(), Timeframe.D1, IndicatorType.SUPERTREND);
         assertThat(statesBefore).hasSize(1);
-        assertThat(statesBefore.get(0).getTrendState()).isEqualTo(TrendState.BEARISH);
+        assertThat(statesBefore.get(0).getTrendState()).isEqualTo(TrendState.SUPERTREND_BEARISH);
 
         // Change the direction in SuperTrend (simulate a data correction)
         SuperTrendIndicator indicator = superTrendRepository.findByAssetAndTimeframeAndCloseTime(btc, Timeframe.D1, t1).orElseThrow();
-        indicator.setDirection(SuperTrendDirection.UP);
+        indicator.setDirection(SuperTrendDirection.SUPERTREND_UP);
         superTrendRepository.save(indicator);
 
         // When - run again with fullRecalc to pick up the change
@@ -123,7 +123,7 @@ class SignalStateServiceLogicTest {
         List<SignalState> statesAfter = signalStateRepository.findAllByAssetIdAndTimeframeAndIndicatorTypeOrderByCloseTimeAsc(
                 btc.getId(), Timeframe.D1, IndicatorType.SUPERTREND);
         assertThat(statesAfter).hasSize(1);
-        assertThat(statesAfter.get(0).getTrendState()).isEqualTo(TrendState.BULLISH);
+        assertThat(statesAfter.get(0).getTrendState()).isEqualTo(TrendState.SUPERTREND_BULLISH);
         // ID should be the same (updated, not re-inserted)
         assertThat(statesAfter.get(0).getId()).isEqualTo(statesBefore.get(0).getId());
     }

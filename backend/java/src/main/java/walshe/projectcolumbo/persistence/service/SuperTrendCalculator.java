@@ -100,7 +100,7 @@ public class SuperTrendCalculator {
             }
 
             // 6. Direction
-            SuperTrendDirection direction = superTrend.equals(finalLower) ? SuperTrendDirection.UP : SuperTrendDirection.DOWN;
+            SuperTrendDirection direction = superTrend.equals(finalLower) ? SuperTrendDirection.SUPERTREND_UP : SuperTrendDirection.SUPERTREND_DOWN;
 
             results.add(new SuperTrendResult(
                     candle.getCloseTime(),

@@ -65,10 +65,10 @@ class SuperTrendCalculatorTest {
 
         List<SuperTrendResult> results = calculator.calculate(candles, 1, new BigDecimal("1"));
 
-        assertEquals(SuperTrendDirection.UP, results.get(0).direction());
+        assertEquals(SuperTrendDirection.SUPERTREND_UP, results.get(0).direction());
         assertEquals(new BigDecimal("80.0000000000"), results.get(0).supertrend());
 
-        assertEquals(SuperTrendDirection.DOWN, results.get(1).direction());
+        assertEquals(SuperTrendDirection.SUPERTREND_DOWN, results.get(1).direction());
         assertEquals(new BigDecimal("107.5000000000"), results.get(1).supertrend());
     }
 

@@ -1,6 +1,6 @@
 package walshe.projectcolumbo.persistence.model;
 
 public enum SuperTrendDirection {
-    UP,
-    DOWN
+    SUPERTREND_UP,
+    SUPERTREND_DOWN
 }
