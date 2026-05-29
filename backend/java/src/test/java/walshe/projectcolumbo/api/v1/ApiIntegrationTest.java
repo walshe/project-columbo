@@ -143,9 +143,8 @@ class ApiIntegrationTest {
         marketBreadthSnapshotRepository.save(new MarketBreadthSnapshot(Timeframe.D1, IndicatorType.SUPERTREND, now.minusDays(1), 10, 5, 0, 15, new BigDecimal("0.6667")));
         marketBreadthSnapshotRepository.save(new MarketBreadthSnapshot(Timeframe.D1, IndicatorType.SUPERTREND, now, 12, 3, 0, 15, new BigDecimal("0.8000")));
 
-        mockMvc.perform(get("/api/v1/market-pulse")
-                        .param("timeframe", "D1")
-                        .param("indicatorType", "SUPERTREND"))
+        mockMvc.perform(get("/api/v1/supertrend-market-pulse")
+                        .param("timeframe", "D1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.bullishCount").value(12))
                 .andExpect(jsonPath("$.bullishRatio").value(0.8000));
@@ -158,9 +157,8 @@ class ApiIntegrationTest {
         marketBreadthSnapshotRepository.save(new MarketBreadthSnapshot(Timeframe.D1, IndicatorType.SUPERTREND, now.minusDays(2), 8, 7, 0, 15, new BigDecimal("0.5333")));
         marketBreadthSnapshotRepository.save(new MarketBreadthSnapshot(Timeframe.D1, IndicatorType.SUPERTREND, now.minusDays(1), 10, 5, 0, 15, new BigDecimal("0.6667")));
 
-        mockMvc.perform(get("/api/v1/market-pulse/history")
-                        .param("timeframe", "D1")
-                        .param("indicatorType", "SUPERTREND"))
+        mockMvc.perform(get("/api/v1/supertrend-market-pulse/history")
+                        .param("timeframe", "D1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].bullishCount").value(8))

@@ -43,7 +43,7 @@ class MarketPulseQueryServiceTest {
         when(repository.findTopByTimeframeAndIndicatorTypeOrderBySnapshotCloseTimeDesc(Timeframe.D1, IndicatorType.SUPERTREND))
                 .thenReturn(Optional.of(snapshot));
 
-        Optional<MarketPulseDto> result = service.getLatestPulse(Timeframe.D1, IndicatorType.SUPERTREND);
+        Optional<MarketPulseDto> result = service.getLatestPulse(Timeframe.D1);
 
         assertThat(result).isPresent();
         assertThat(result.get().bullishRatio()).isEqualByComparingTo("0.70");
@@ -62,7 +62,7 @@ class MarketPulseQueryServiceTest {
                 eq(Timeframe.D1), eq(IndicatorType.SUPERTREND)))
                 .thenReturn(List.of(s1, s2));
 
-        List<MarketPulseDto> result = service.getPulseHistory(Timeframe.D1, IndicatorType.SUPERTREND, null, null);
+        List<MarketPulseDto> result = service.getPulseHistory(Timeframe.D1, null, null);
 
         assertThat(result).hasSize(2);
         assertThat(result.get(0).bullishRatio()).isEqualByComparingTo("0.60");
@@ -85,7 +85,7 @@ class MarketPulseQueryServiceTest {
                 eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(from), eq(to)))
                 .thenReturn(List.of(s1, s2));
 
-        List<MarketPulseDto> result = service.getPulseHistory(Timeframe.D1, IndicatorType.SUPERTREND, from, to);
+        List<MarketPulseDto> result = service.getPulseHistory(Timeframe.D1, from, to);
 
         assertThat(result).hasSize(2);
     }
