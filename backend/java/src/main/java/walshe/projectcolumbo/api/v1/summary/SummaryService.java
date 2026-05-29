@@ -38,7 +38,7 @@ public class SummaryService {
 
     public SummaryReport getSummary(Timeframe timeframe) {
         IndicatorType indicatorType = IndicatorType.SUPERTREND;
-        MarketPulseDto pulse = marketPulseQueryService.getLatestPulse(timeframe, indicatorType).orElse(null);
+        MarketPulseDto pulse = marketPulseQueryService.getLatestPulse(timeframe).orElse(null);
 
         List<SignalStateDto> bullishSignals = signalQueryService.listSignals(
                 timeframe, indicatorType, TrendState.SUPERTREND_BULLISH, SignalSort.LAST_FLIP_DESC);

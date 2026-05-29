@@ -23,14 +23,14 @@ public class MarketPulseQueryService {
         this.repository = repository;
     }
 
-    public Optional<MarketPulseDto> getLatestPulse(Timeframe timeframe, IndicatorType indicatorType) {
-        return repository.findTopByTimeframeAndIndicatorTypeOrderBySnapshotCloseTimeDesc(timeframe, indicatorType)
+    public Optional<MarketPulseDto> getLatestPulse(Timeframe timeframe) {
+        return repository.findTopByTimeframeAndIndicatorTypeOrderBySnapshotCloseTimeDesc(timeframe, IndicatorType.SUPERTREND)
                 .map(MarketPulseMapper::toDto);
     }
 
-    public List<MarketPulseDto> getPulseHistory(Timeframe timeframe, IndicatorType indicatorType, OffsetDateTime from, OffsetDateTime to) {
+    public List<MarketPulseDto> getPulseHistory(Timeframe timeframe, OffsetDateTime from, OffsetDateTime to) {
         if (from == null && to == null) {
-            return repository.findByTimeframeAndIndicatorTypeOrderBySnapshotCloseTimeAsc(timeframe, indicatorType)
+            return repository.findByTimeframeAndIndicatorTypeOrderBySnapshotCloseTimeAsc(timeframe, IndicatorType.SUPERTREND)
                     .stream()
                     .map(MarketPulseMapper::toDto)
                     .collect(Collectors.toList());
@@ -40,7 +40,7 @@ public class MarketPulseQueryService {
         OffsetDateTime end = (to != null) ? to : OffsetDateTime.parse("9999-12-31T23:59:59Z");
 
         return repository.findByTimeframeAndIndicatorTypeAndSnapshotCloseTimeBetweenOrderBySnapshotCloseTimeAsc(
-                        timeframe, indicatorType, start, end)
+                        timeframe, IndicatorType.SUPERTREND, start, end)
                 .stream()
                 .map(MarketPulseMapper::toDto)
                 .collect(Collectors.toList());

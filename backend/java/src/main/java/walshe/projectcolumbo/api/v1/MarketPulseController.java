@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import walshe.projectcolumbo.api.v1.dto.MarketPulseDto;
-import walshe.projectcolumbo.persistence.model.IndicatorType;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 
 import java.time.OffsetDateTime;
@@ -23,24 +22,22 @@ class MarketPulseController {
         this.marketPulseQueryService = marketPulseQueryService;
     }
 
-    @GetMapping("/market-pulse")
+    @GetMapping("/supertrend-market-pulse")
     ResponseEntity<MarketPulseDto> getLatestPulse(
-            @RequestParam Timeframe timeframe,
-            @RequestParam IndicatorType indicatorType) {
-        
-        return marketPulseQueryService.getLatestPulse(timeframe, indicatorType)
+            @RequestParam Timeframe timeframe) {
+
+        return marketPulseQueryService.getLatestPulse(timeframe)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/market-pulse/history")
+    @GetMapping("/supertrend-market-pulse/history")
     ResponseEntity<List<MarketPulseDto>> getPulseHistory(
             @RequestParam Timeframe timeframe,
-            @RequestParam IndicatorType indicatorType,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
-        
-        List<MarketPulseDto> history = marketPulseQueryService.getPulseHistory(timeframe, indicatorType, from, to);
+
+        List<MarketPulseDto> history = marketPulseQueryService.getPulseHistory(timeframe, from, to);
         return ResponseEntity.ok(history);
     }
 }

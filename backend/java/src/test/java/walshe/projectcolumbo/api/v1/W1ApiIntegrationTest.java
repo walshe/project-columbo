@@ -99,9 +99,8 @@ class W1ApiIntegrationTest {
                 Timeframe.W1, IndicatorType.SUPERTREND, now,
                 12, 2, 1, 15, new BigDecimal("0.8000")));
 
-        mockMvc.perform(get("/api/v1/market-pulse")
-                        .param("timeframe", "W1")
-                        .param("indicatorType", "SUPERTREND"))
+        mockMvc.perform(get("/api/v1/supertrend-market-pulse")
+                        .param("timeframe", "W1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.bullishCount").value(12))
                 .andExpect(jsonPath("$.bullishRatio").value(0.8000));
