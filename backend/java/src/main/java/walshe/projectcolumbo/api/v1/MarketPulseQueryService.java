@@ -23,8 +23,14 @@ public class MarketPulseQueryService {
         this.repository = repository;
     }
 
+    /** Returns the latest pulse for the given timeframe using SuperTrend (legacy default). */
     public Optional<MarketPulseDto> getLatestPulse(Timeframe timeframe) {
-        return repository.findTopByTimeframeAndIndicatorTypeOrderBySnapshotCloseTimeDesc(timeframe, IndicatorType.SUPERTREND)
+        return getLatestPulse(timeframe, IndicatorType.SUPERTREND);
+    }
+
+    /** Returns the latest pulse for the given timeframe and indicator type. */
+    public Optional<MarketPulseDto> getLatestPulse(Timeframe timeframe, IndicatorType indicatorType) {
+        return repository.findTopByTimeframeAndIndicatorTypeOrderBySnapshotCloseTimeDesc(timeframe, indicatorType)
                 .map(MarketPulseMapper::toDto);
     }
 

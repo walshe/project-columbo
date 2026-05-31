@@ -86,13 +86,13 @@ class ApiIntegrationTest {
                         .param("indicatorType", "SUPERTREND")
                         .param("sort", "ASSET_ASC"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].symbol").value("BTCUSDT"))
-                .andExpect(jsonPath("$[0].trendState").value("SUPERTREND_BULLISH"))
-                .andExpect(jsonPath("$[0].tradingviewUrl").value("https://www.tradingview.com/chart/?symbol=BINANCE%3ABTCUSDT&interval=1D"))
-                .andExpect(jsonPath("$[1].symbol").value("ETHUSDT"))
-                .andExpect(jsonPath("$[1].trendState").value("SUPERTREND_BEARISH"))
-                .andExpect(jsonPath("$[1].tradingviewUrl").value("https://www.tradingview.com/chart/?symbol=BINANCE%3AETHUSDT&interval=1D"));
+                .andExpect(jsonPath("$.signals", hasSize(2)))
+                .andExpect(jsonPath("$.signals[0].symbol").value("BTCUSDT"))
+                .andExpect(jsonPath("$.signals[0].trendState").value("SUPERTREND_BULLISH"))
+                .andExpect(jsonPath("$.signals[0].tradingviewUrl").value("https://www.tradingview.com/chart/?symbol=BINANCE%3ABTCUSDT&interval=1D"))
+                .andExpect(jsonPath("$.signals[1].symbol").value("ETHUSDT"))
+                .andExpect(jsonPath("$.signals[1].trendState").value("SUPERTREND_BEARISH"))
+                .andExpect(jsonPath("$.signals[1].tradingviewUrl").value("https://www.tradingview.com/chart/?symbol=BINANCE%3AETHUSDT&interval=1D"));
     }
 
     @Test
@@ -111,8 +111,8 @@ class ApiIntegrationTest {
                         .param("indicatorType", "SUPERTREND")
                         .param("state", "SUPERTREND_BULLISH"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].symbol").value("BTCUSDT"));
+                .andExpect(jsonPath("$.signals", hasSize(1)))
+                .andExpect(jsonPath("$.signals[0].symbol").value("BTCUSDT"));
     }
 
     @Test
@@ -131,9 +131,9 @@ class ApiIntegrationTest {
                         .param("indicatorType", "SUPERTREND")
                         .param("state", "SUPERTREND_BEARISH"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].symbol").value("ETHUSDT"))
-                .andExpect(jsonPath("$[0].tradingviewUrl").value("https://www.tradingview.com/chart/?symbol=BINANCE%3AETHUSDT&interval=1D"));
+                .andExpect(jsonPath("$.signals", hasSize(1)))
+                .andExpect(jsonPath("$.signals[0].symbol").value("ETHUSDT"))
+                .andExpect(jsonPath("$.signals[0].tradingviewUrl").value("https://www.tradingview.com/chart/?symbol=BINANCE%3AETHUSDT&interval=1D"));
     }
 
     @Test

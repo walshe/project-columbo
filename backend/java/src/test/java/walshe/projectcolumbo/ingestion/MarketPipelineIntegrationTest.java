@@ -6,9 +6,12 @@ import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.repository.AssetRepository;
 import walshe.projectcolumbo.persistence.repository.CandleRepository;
 import walshe.projectcolumbo.persistence.repository.MarketBreadthSnapshotRepository;
+import walshe.projectcolumbo.persistence.repository.EmaRepository;
+import walshe.projectcolumbo.persistence.repository.MacdRepository;
 import walshe.projectcolumbo.persistence.repository.RsiRepository;
 import walshe.projectcolumbo.persistence.repository.SignalStateRepository;
 import walshe.projectcolumbo.persistence.repository.SuperTrendRepository;
+import walshe.projectcolumbo.persistence.repository.ThermometerRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,6 +65,15 @@ class MarketPipelineIntegrationTest {
     @Autowired
     private RsiRepository rsiRepository;
 
+    @Autowired
+    private EmaRepository emaRepository;
+
+    @Autowired
+    private MacdRepository macdRepository;
+
+    @Autowired
+    private ThermometerRepository thermometerRepository;
+
     @MockitoBean(name = "binanceMarketDataProvider")
     private MarketDataProvider binanceProvider;
 
@@ -70,6 +82,9 @@ class MarketPipelineIntegrationTest {
         signalStateRepository.deleteAll();
         superTrendRepository.deleteAll();
         rsiRepository.deleteAll();
+        emaRepository.deleteAll();
+        macdRepository.deleteAll();
+        thermometerRepository.deleteAll();
         candleRepository.deleteAll();
         marketBreadthSnapshotRepository.deleteAll();
         ingestionRunRepository.deleteAll();

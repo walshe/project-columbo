@@ -128,9 +128,9 @@ class W1ApiIntegrationTest {
                         .param("timeframe", "W1")
                         .param("indicatorType", "SUPERTREND"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].symbol").value("BTCUSDT"))
-                .andExpect(jsonPath("$[0].trendState").value("SUPERTREND_BULLISH"));
+                .andExpect(jsonPath("$.signals", hasSize(1)))
+                .andExpect(jsonPath("$.signals[0].symbol").value("BTCUSDT"))
+                .andExpect(jsonPath("$.signals[0].trendState").value("SUPERTREND_BULLISH"));
     }
 
     @Test

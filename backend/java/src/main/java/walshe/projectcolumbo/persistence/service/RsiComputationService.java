@@ -55,32 +55,39 @@ public class RsiComputationService {
     public void computeForAsset(Asset asset, Timeframe timeframe, int period, boolean fullRecalc) {
         log.debug("Computing RSI for asset: {} [{}]", asset.getSymbol(), timeframe);
 
-        // Fetch all finalized candles for the asset
+        OffsetDateTime boundary = CandleFilters.utcMidnightToday(OffsetDateTime.now());
+
+        // Early-exit guard: two cheap single-row lookups before we touch the full candle history.
+        // RSI uses Wilder's smoothing (a form of EMA), so the full candle chain is needed every
+        // time there IS a new bar.  But when there is no new bar, we can skip entirely.
+        // fullRecalc bypasses this guard intentionally (used for backfill / parameter changes).
+        if (!fullRecalc) {
+            Optional<RsiIndicator> latestStored = rsiRepository
+                    .findFirstByAssetAndTimeframeOrderByCloseTimeDesc(asset, timeframe);
+            if (latestStored.isPresent()) {
+                Optional<Candle> latestCandle = candleRepository
+                        .findFirstByAssetAndTimeframeAndCloseTimeBeforeOrderByCloseTimeDesc(asset, timeframe, boundary);
+                if (latestCandle.isPresent()
+                        && latestStored.get().getCloseTime().equals(latestCandle.get().getCloseTime())) {
+                    log.debug("RSI already up-to-date for {} [{}] — skipping", asset.getSymbol(), timeframe);
+                    return;
+                }
+            }
+        }
+
+        // Load all finalized candles. Wilder's RSI smoothing is path-dependent — it must be
+        // seeded from the first bar and replayed forward, so we always need the full history.
+        // The early-exit guard above ensures we only reach this point when a new candle exists.
         List<Candle> allCandles = candleRepository.findByAssetAndTimeframeOrderByCloseTimeAsc(asset, timeframe);
         List<Candle> finalizedCandles = CandleFilters.finalizedBeforeUtcMidnightToday(allCandles, OffsetDateTime.now());
 
         if (finalizedCandles.size() <= period) {
-            log.debug("Not enough finalized candles for RSI calculation for {} (need {}, have {})", 
+            log.debug("Not enough finalized candles for RSI calculation for {} (need {}, have {})",
                     asset.getSymbol(), period + 1, finalizedCandles.size());
             return;
         }
 
-        List<RsiCalculator.RsiResult> results;
-        if (fullRecalc) {
-            results = rsiCalculator.calculate(finalizedCandles, period);
-        } else {
-            // Incremental: Only calculate what's missing
-            Optional<RsiIndicator> latestStored = rsiRepository.findFirstByAssetAndTimeframeOrderByCloseTimeDesc(asset, timeframe);
-            if (latestStored.isEmpty()) {
-                results = rsiCalculator.calculate(finalizedCandles, period);
-            } else {
-                // To get correct Wilder's smoothing, we need history.
-                // For simplicity and since RSI is fast, we recalculate from all finalized candles
-                // but only persist the new ones.
-                // In a production app with millions of candles, we would store avgGain/avgLoss state.
-                results = rsiCalculator.calculate(finalizedCandles, period);
-            }
-        }
+        List<RsiCalculator.RsiResult> results = rsiCalculator.calculate(finalizedCandles, period);
 
         ProcessingStats stats = upsertResults(asset, timeframe, results);
         log.info("RSI summary for {}: {} inserted, {} updated, {} skipped",

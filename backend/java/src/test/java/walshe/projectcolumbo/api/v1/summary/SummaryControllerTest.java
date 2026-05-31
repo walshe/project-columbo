@@ -40,19 +40,17 @@ class SummaryControllerTest {
     void shouldReturnMarkdownWhenRequested() throws Exception {
         mockMvc.perform(get("/api/v1/summary")
                         .param("timeframe", "D1")
-                        .param("format", "markdown"))
+                        .param("format", "MARKDOWN"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.valueOf("text/markdown")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("# Market Summary Report")));
     }
 
     @Test
-    void shouldReturnHtmlWhenRequested() throws Exception {
+    void shouldRejectUnknownFormat() throws Exception {
         mockMvc.perform(get("/api/v1/summary")
                         .param("timeframe", "D1")
                         .param("format", "html"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.TEXT_HTML))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("<h1>Market Summary Report</h1>")));
+                .andExpect(status().isBadRequest());
     }
 }

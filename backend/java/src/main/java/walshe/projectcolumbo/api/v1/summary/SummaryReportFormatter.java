@@ -3,20 +3,44 @@ package walshe.projectcolumbo.api.v1.summary;
 import org.springframework.stereotype.Component;
 import walshe.projectcolumbo.api.v1.dto.MarketPulseDto;
 import walshe.projectcolumbo.api.v1.dto.SignalStateDto;
+import walshe.projectcolumbo.api.v1.scan.dto.ElderImpulseMatch;
 import walshe.projectcolumbo.api.v1.scan.dto.RsiMatch;
 import walshe.projectcolumbo.api.v1.scan.dto.ScanResult;
 import walshe.projectcolumbo.api.v1.scan.dto.SupertrendMatch;
+import walshe.projectcolumbo.api.v1.scan.dto.ThermometerMatch;
+import walshe.projectcolumbo.api.v1.summary.dto.ElderSummaryReport;
 import walshe.projectcolumbo.api.v1.summary.dto.SummaryReport;
 
+import java.math.BigDecimal;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
 public class SummaryReportFormatter {
 
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("d MMM yyyy");
+    private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("d MMM yyyy HH:mm 'UTC'");
+
+    // -------------------------------------------------------------------------
+    // SuperTrend / RSI summary
+    // -------------------------------------------------------------------------
+
     public String formatMarkdown(SummaryReport report) {
         StringBuilder sb = new StringBuilder();
         sb.append("# Market Summary Report\n\n");
+
+        // Data freshness — always the first thing a reader should see.
+        // candlesThrough tells them what date the signals are based on;
+        // lastIngestionAt tells them when the pipeline that produced those signals ran.
+        String candlesStr = report.candlesThrough() != null
+                ? report.candlesThrough().format(DATE_FMT)
+                : "unknown";
+        String pipelineStr = report.lastIngestionAt() != null
+                ? report.lastIngestionAt().atZoneSameInstant(java.time.ZoneOffset.UTC)
+                        .format(DATETIME_FMT)
+                : "never";
+        sb.append(String.format("*Data through **%s** — pipeline ran %s*\n\n", candlesStr, pipelineStr));
 
         if (report.pulse() != null) {
             MarketPulseDto pulse = report.pulse();
@@ -41,38 +65,120 @@ public class SummaryReportFormatter {
         return sb.toString();
     }
 
-    public String formatHtml(SummaryReport report) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("<h1>Market Summary Report</h1>");
+    // -------------------------------------------------------------------------
+    // Elder Impulse + Market Thermometer summary
+    // -------------------------------------------------------------------------
 
-        if (report.pulse() != null) {
-            MarketPulseDto pulse = report.pulse();
-            sb.append("<h2>Market Pulse</h2><ul>");
-            sb.append(String.format("<li><strong>Bullish:</strong> %d</li>", pulse.bullishCount()));
-            sb.append(String.format("<li><strong>Bearish:</strong> %d</li>", pulse.bearishCount()));
-            sb.append(String.format("<li><strong>Bullish Ratio:</strong> %.2f%%</li>", pulse.bullishRatio().doubleValue() * 100));
-            sb.append("</ul>");
+    public String formatElderMarkdown(ElderSummaryReport report) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("# Elder Impulse System — Daily Brief\n\n");
+
+        // Data freshness — candlesThrough is the trading date the signals reflect;
+        // lastIngestionAt is when the pipeline that derived them finished running.
+        String candlesStr = report.candlesThrough() != null
+                ? report.candlesThrough().format(DATE_FMT)
+                : "unknown";
+        String pipelineStr = report.lastIngestionAt() != null
+                ? report.lastIngestionAt().atZoneSameInstant(java.time.ZoneOffset.UTC)
+                        .format(DATETIME_FMT)
+                : "never";
+        sb.append(String.format("*Data through **%s** — pipeline ran %s*\n\n", candlesStr, pipelineStr));
+
+        // --- Breadth ---
+        sb.append("## Market Breadth\n\n");
+        appendPulseLine(sb, "W1 Impulse (26-week EMA)", report.w1ImpulsePulse(), "GREEN", "RED", "NEUTRAL");
+        appendPulseLine(sb, "D1 Impulse (13-EMA + MACD-H)", report.d1ImpulsePulse(), "GREEN", "RED", "NEUTRAL");
+        appendPulseLine(sb, "D1 Thermometer (22-day EMA)", report.d1ThermometerPulse(), "QUIET", "HOT/SPIKE", "no data");
+        sb.append("\n");
+
+        // --- Primary shortlist ---
+        sb.append("## Primary Shortlist — W1 GREEN + D1 GREEN + D1 QUIET\n");
+        sb.append("*Assets passing all three Elder entry conditions tonight.*\n\n");
+        if (report.primaryShortlist().isEmpty()) {
+            sb.append("None tonight — conditions not aligned across the universe.\n\n");
+        } else {
+            for (ScanResult r : report.primaryShortlist()) {
+                sb.append(String.format("- [%s](%s)", r.assetSymbol(), r.tradingviewUrl()));
+                r.matchedIndicators().forEach(mi -> {
+                    if (mi instanceof ElderImpulseMatch e) {
+                        sb.append(String.format("  %s GREEN for %d day(s)", e.timeframe(), e.daysSinceChange()));
+                    }
+                    if (mi instanceof ThermometerMatch t) {
+                        sb.append(String.format("  temp=%s ema=%s",
+                                formatTemp(t.temperature()), formatTemp(t.temperatureEma())));
+                        sb.append(String.format("  → target: yesterday high + %s", formatTemp(t.temperatureEma())));
+                    }
+                });
+                sb.append(String.format("  (Vol: %s)\n", formatVolume(r.avgVolume7d())));
+            }
+            sb.append("\n");
         }
 
-        sb.append("<h2>Recent Bullish Flips</h2>");
-        appendSignalsHtml(sb, report.bullishSignals());
+        // --- Fresh W1 flips ---
+        sb.append("## Fresh W1 Green Flips (last 7 days)\n");
+        sb.append("*Highest-conviction setups — the weekly engine just switched on.*\n\n");
+        if (report.freshW1GreenFlips().isEmpty()) {
+            sb.append("No fresh W1 flips this week.\n\n");
+        } else {
+            for (ScanResult r : report.freshW1GreenFlips()) {
+                r.matchedIndicators().stream()
+                        .filter(mi -> mi instanceof ElderImpulseMatch)
+                        .map(mi -> (ElderImpulseMatch) mi)
+                        .findFirst()
+                        .ifPresent(e -> sb.append(String.format("- [%s](%s): W1 flipped GREEN %d day(s) ago (Vol: %s)\n",
+                                r.assetSymbol(), r.tradingviewUrl(), e.daysSinceChange(),
+                                formatVolume(r.avgVolume7d()))));
+            }
+            sb.append("\n");
+        }
 
-        sb.append("<h2>Recent Bearish Flips</h2>");
-        appendSignalsHtml(sb, report.bearishSignals());
-
-        sb.append("<h2>Bullish Trend + RSI Cross Above 60</h2>");
-        appendScanResultsHtml(sb, report.bullishRsiOverbought());
-
-        sb.append("<h2>Bearish Trend + RSI Cross Below 40</h2>");
-        appendScanResultsHtml(sb, report.bearishRsiOversold());
+        // --- Spike alerts ---
+        sb.append("## ⚠️ Spike Alerts — Take Profit\n");
+        sb.append("*Temperature > 3× EMA. Crowd is overexcited. Close longs into strength, not new entries.*\n\n");
+        if (report.spikeAlerts().isEmpty()) {
+            sb.append("No active spike alerts.\n\n");
+        } else {
+            for (ScanResult r : report.spikeAlerts()) {
+                r.matchedIndicators().stream()
+                        .filter(mi -> mi instanceof ThermometerMatch)
+                        .map(mi -> (ThermometerMatch) mi)
+                        .findFirst()
+                        .ifPresent(t -> sb.append(String.format(
+                                "- [%s](%s): temp=%s, ema=%s (%.1f× normal) (Vol: %s)\n",
+                                r.assetSymbol(), r.tradingviewUrl(),
+                                formatTemp(t.temperature()),
+                                formatTemp(t.temperatureEma()),
+                                t.temperature().doubleValue() / t.temperatureEma().doubleValue(),
+                                formatVolume(r.avgVolume7d()))));
+            }
+            sb.append("\n");
+        }
 
         return sb.toString();
+    }
+
+    // -------------------------------------------------------------------------
+    // Shared helpers
+    // -------------------------------------------------------------------------
+
+    private void appendPulseLine(StringBuilder sb, String label, MarketPulseDto pulse,
+                                  String bullishLabel, String bearishLabel, String neutralLabel) {
+        if (pulse == null) {
+            sb.append(String.format("- **%s:** no data\n", label));
+            return;
+        }
+        sb.append(String.format("- **%s:** %d %s / %d %s / %d %s  (%.0f%% %s)\n",
+                label,
+                pulse.bullishCount(), bullishLabel,
+                pulse.bearishCount(), bearishLabel,
+                pulse.missingCount(), neutralLabel,
+                pulse.bullishRatio().doubleValue() * 100, bullishLabel));
     }
 
     private void appendSignals(StringBuilder sb, List<SignalStateDto> signals) {
         List<SignalStateDto> withFlip = signals.stream()
                 .filter(s -> s.daysSinceFlip() != null)
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
         if (withFlip.isEmpty()) {
             sb.append("None found.\n\n");
         } else {
@@ -96,56 +202,25 @@ public class SummaryReportFormatter {
                             return mi.indicatorType().toString();
                         })
                         .collect(Collectors.joining(", "));
-                sb.append(String.format("- [%s](%s): %s (Vol: %s)\n", 
+                sb.append(String.format("- [%s](%s): %s (Vol: %s)\n",
                         r.assetSymbol(), r.tradingviewUrl(), details, formatVolume(r.avgVolume7d())));
             }
             sb.append("\n");
         }
     }
 
-    private void appendSignalsHtml(StringBuilder sb, List<SignalStateDto> signals) {
-        List<SignalStateDto> withFlip = signals.stream()
-                .filter(s -> s.daysSinceFlip() != null)
-                .collect(java.util.stream.Collectors.toList());
-        if (withFlip.isEmpty()) {
-            sb.append("<p>None found.</p>");
-        } else {
-            sb.append("<ul>");
-            for (SignalStateDto s : withFlip) {
-                sb.append(String.format("<li><a href=\"%s\">%s</a>: Flipped %d days ago (Vol: %s)</li>",
-                        s.tradingviewUrl(), s.symbol(), s.daysSinceFlip(), formatVolume(s.avgVolume7d())));
-            }
-            sb.append("</ul>");
-        }
+    private String formatTemp(BigDecimal value) {
+        if (value == null) return "0";
+        return value.stripTrailingZeros().toPlainString();
     }
 
-    private void appendScanResultsHtml(StringBuilder sb, List<ScanResult> results) {
-        if (results.isEmpty()) {
-            sb.append("<p>None found.</p>");
-        } else {
-            sb.append("<ul>");
-            for (ScanResult r : results) {
-                String details = r.matchedIndicators().stream()
-                        .map(mi -> {
-                            if (mi instanceof SupertrendMatch sm) return String.format("Supertrend flipped %d days ago", sm.daysSinceFlip());
-                            if (mi instanceof RsiMatch rm) return String.format("RSI crossed %d days ago (Value: %.1f)", rm.daysSinceCross(), rm.rsiValue());
-                            return mi.indicatorType().toString();
-                        })
-                        .collect(Collectors.joining(", "));
-                sb.append(String.format("<li><a href=\"%s\">%s</a>: %s (Vol: %s)</li>", 
-                        r.tradingviewUrl(), r.assetSymbol(), details, formatVolume(r.avgVolume7d())));
-            }
-            sb.append("</ul>");
+    private String formatVolume(BigDecimal volume) {
+        if (volume == null || volume.compareTo(BigDecimal.ZERO) == 0) return "N/A";
+        if (volume.compareTo(new BigDecimal("1000000")) >= 0) {
+            return String.format("%.1fM", volume.doubleValue() / 1_000_000.0);
         }
-    }
-
-    private String formatVolume(java.math.BigDecimal volume) {
-        if (volume == null || volume.compareTo(java.math.BigDecimal.ZERO) == 0) return "N/A";
-        if (volume.compareTo(new java.math.BigDecimal("1000000")) >= 0) {
-            return String.format("%.1fM", volume.doubleValue() / 1000000.0);
-        }
-        if (volume.compareTo(new java.math.BigDecimal("1000")) >= 0) {
-            return String.format("%.1fK", volume.doubleValue() / 1000.0);
+        if (volume.compareTo(new BigDecimal("1000")) >= 0) {
+            return String.format("%.1fK", volume.doubleValue() / 1_000.0);
         }
         return String.format("%.0f", volume.doubleValue());
     }
