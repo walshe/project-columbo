@@ -178,6 +178,12 @@ Project Columbo is a Spring Boot backend that ingests OHLCV data from Binance, c
 
 ---
 
+## Development Process
+
+Parts of this project were developed using [gsd-core](https://github.com/open-gsd/gsd-core), a structured software design and delivery framework. The artefacts it generated — requirements, phase plans, and delivery summaries — are kept in the `.planning/` directory.
+
+---
+
 ## Running via Docker Compose
 
 All source is under `backend/java/`. The compose file provisions both the PostgreSQL database and the application.
