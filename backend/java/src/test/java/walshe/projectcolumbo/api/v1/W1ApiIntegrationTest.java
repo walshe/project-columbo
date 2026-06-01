@@ -2,6 +2,7 @@ package walshe.projectcolumbo.api.v1;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import walshe.projectcolumbo.TestDatabaseCleaner;
 import walshe.projectcolumbo.TestcontainersConfiguration;
 import walshe.projectcolumbo.api.v1.scan.dto.ScanCondition;
 import walshe.projectcolumbo.api.v1.scan.dto.ScanOperator;
@@ -51,6 +52,9 @@ class W1ApiIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
+
+    @Autowired
     private WebApplicationContext context;
 
     @Autowired
@@ -77,12 +81,7 @@ class W1ApiIntegrationTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
-        signalStateRepository.deleteAll();
-        superTrendRepository.deleteAll();
-        rsiRepository.deleteAll();
-        candleRepository.deleteAll();
-        marketBreadthSnapshotRepository.deleteAll();
-        assetRepository.deleteAll();
+        testDatabaseCleaner.cleanAll();
     }
 
     @Test

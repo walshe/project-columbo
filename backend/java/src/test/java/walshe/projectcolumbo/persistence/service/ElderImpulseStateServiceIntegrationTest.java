@@ -1,5 +1,6 @@
 package walshe.projectcolumbo.persistence.service;
 
+import walshe.projectcolumbo.TestDatabaseCleaner;
 import walshe.projectcolumbo.TestcontainersConfiguration;
 import walshe.projectcolumbo.persistence.entity.Asset;
 import walshe.projectcolumbo.persistence.entity.EmaIndicator;
@@ -34,6 +35,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ElderImpulseStateServiceIntegrationTest {
 
     @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
+
+    @Autowired
     private ElderImpulseStateService elderImpulseStateService;
 
     @Autowired
@@ -53,10 +57,7 @@ class ElderImpulseStateServiceIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        signalStateRepository.deleteAll();
-        emaRepository.deleteAll();
-        macdRepository.deleteAll();
-        assetRepository.deleteAll();
+        testDatabaseCleaner.cleanAll();
     }
 
     @AfterEach

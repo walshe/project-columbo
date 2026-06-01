@@ -1,5 +1,6 @@
 package walshe.projectcolumbo.persistence.service;
 
+import walshe.projectcolumbo.TestDatabaseCleaner;
 import walshe.projectcolumbo.TestcontainersConfiguration;
 import walshe.projectcolumbo.persistence.entity.Asset;
 import walshe.projectcolumbo.persistence.entity.SignalState;
@@ -32,6 +33,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ThermometerStateServiceIntegrationTest {
 
     @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
+
+    @Autowired
     private ThermometerStateService thermometerStateService;
 
     @Autowired
@@ -47,9 +51,7 @@ class ThermometerStateServiceIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        signalStateRepository.deleteAll();
-        thermometerRepository.deleteAll();
-        assetRepository.deleteAll();
+        testDatabaseCleaner.cleanAll();
     }
 
     @AfterEach

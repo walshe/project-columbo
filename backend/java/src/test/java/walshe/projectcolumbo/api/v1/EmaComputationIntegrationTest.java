@@ -1,5 +1,6 @@
 package walshe.projectcolumbo.api.v1;
 
+import walshe.projectcolumbo.TestDatabaseCleaner;
 import walshe.projectcolumbo.TestcontainersConfiguration;
 import walshe.projectcolumbo.persistence.entity.Asset;
 import walshe.projectcolumbo.persistence.entity.Candle;
@@ -33,6 +34,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class EmaComputationIntegrationTest {
 
     @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
+
+    @Autowired
     private AssetRepository assetRepository;
 
     @Autowired
@@ -52,10 +56,7 @@ class EmaComputationIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        emaRepository.deleteAll();
-        macdRepository.deleteAll();
-        candleRepository.deleteAll();
-        assetRepository.deleteAll();
+        testDatabaseCleaner.cleanAll();
     }
 
     @Test

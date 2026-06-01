@@ -1,5 +1,6 @@
 package walshe.projectcolumbo.api.v1.scan;
 
+import walshe.projectcolumbo.TestDatabaseCleaner;
 import walshe.projectcolumbo.TestcontainersConfiguration;
 import walshe.projectcolumbo.api.v1.scan.dto.ScanCondition;
 import walshe.projectcolumbo.api.v1.scan.dto.ScanOperator;
@@ -48,6 +49,9 @@ class ThermometerScanIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
+
+    @Autowired
     private WebApplicationContext context;
 
     @Autowired
@@ -71,10 +75,7 @@ class ThermometerScanIntegrationTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
-        signalStateRepository.deleteAll();
-        thermometerRepository.deleteAll();
-        candleRepository.deleteAll();
-        assetRepository.deleteAll();
+        testDatabaseCleaner.cleanAll();
     }
 
     @AfterEach

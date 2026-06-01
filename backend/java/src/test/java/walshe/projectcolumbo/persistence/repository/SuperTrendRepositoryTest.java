@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import walshe.projectcolumbo.TestDatabaseCleaner;
 import walshe.projectcolumbo.TestcontainersConfiguration;
 
 import java.math.BigDecimal;
@@ -27,6 +28,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestcontainersConfiguration.class)
 class SuperTrendRepositoryTest {
+
+    @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
 
     @Autowired
     private SuperTrendRepository superTrendRepository;
@@ -45,11 +49,7 @@ class SuperTrendRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        signalStateRepository.deleteAll();
-        superTrendRepository.deleteAll();
-        rsiRepository.deleteAll();
-        candleRepository.deleteAll();
-        assetRepository.deleteAll();
+        testDatabaseCleaner.cleanAll();
     }
 
     @Test

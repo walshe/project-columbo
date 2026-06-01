@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import walshe.projectcolumbo.TestDatabaseCleaner;
 import walshe.projectcolumbo.TestcontainersConfiguration;
 import walshe.projectcolumbo.marketdata.CandleDto;
 
@@ -30,6 +31,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestcontainersConfiguration.class)
 class CandleIngestionIntegrationTest {
+
+    @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
 
     @Autowired
     private CandleIngestionService candleIngestionService;
@@ -60,14 +64,7 @@ class CandleIngestionIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        signalStateRepository.deleteAll();
-        superTrendRepository.deleteAll();
-        rsiRepository.deleteAll();
-        thermometerRepository.deleteAll();
-        macdRepository.deleteAll();
-        emaRepository.deleteAll();
-        candleRepository.deleteAll();
-        assetRepository.deleteAll();
+        testDatabaseCleaner.cleanAll();
     }
 
     @Test

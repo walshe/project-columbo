@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import walshe.projectcolumbo.TestDatabaseCleaner;
 import walshe.projectcolumbo.TestcontainersConfiguration;
 
 
@@ -37,6 +38,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ApiIntegrationTest {
 
     private MockMvc mockMvc;
+
+    @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
 
     @Autowired
     private WebApplicationContext context;
@@ -59,11 +63,7 @@ class ApiIntegrationTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
-        signalStateRepository.deleteAll();
-        superTrendRepository.deleteAll();
-        candleRepository.deleteAll();
-        marketBreadthSnapshotRepository.deleteAll();
-        assetRepository.deleteAll();
+        testDatabaseCleaner.cleanAll();
     }
 
     @Test

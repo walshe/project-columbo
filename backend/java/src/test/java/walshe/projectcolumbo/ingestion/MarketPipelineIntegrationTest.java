@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import walshe.projectcolumbo.TestDatabaseCleaner;
 import walshe.projectcolumbo.TestcontainersConfiguration;
 import walshe.projectcolumbo.marketdata.CandleDto;
 import walshe.projectcolumbo.marketdata.MarketDataProvider;
@@ -40,6 +41,9 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestcontainersConfiguration.class)
 class MarketPipelineIntegrationTest {
+
+    @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
 
     @Autowired
     private MarketPipelineService marketPipelineService;
@@ -79,16 +83,7 @@ class MarketPipelineIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        signalStateRepository.deleteAll();
-        superTrendRepository.deleteAll();
-        rsiRepository.deleteAll();
-        emaRepository.deleteAll();
-        macdRepository.deleteAll();
-        thermometerRepository.deleteAll();
-        candleRepository.deleteAll();
-        marketBreadthSnapshotRepository.deleteAll();
-        ingestionRunRepository.deleteAll();
-        assetRepository.deleteAll();
+        testDatabaseCleaner.cleanAll();
 
         when(binanceProvider.getProviderName()).thenReturn("BINANCE");
     }
