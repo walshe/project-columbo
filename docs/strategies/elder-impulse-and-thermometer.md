@@ -103,6 +103,12 @@ A 22-day EMA of the temperature series acts as the signal line:
 
 The entire routine is done **after the daily candle closes**, before the next session opens. Everything is decided the evening before, and orders are placed for the next day.
 
+> **Shortcut:** The elder summary endpoint runs all of the steps below in a single call and returns a pre-formatted markdown brief:
+> ```
+> GET /api/v1/elder/summary
+> ```
+> The individual API calls documented in Steps 1–3 are shown for reference — they are what the summary aggregates under the hood. In normal use, the summary is all you need.
+
 ### Step 1 — Read the market breadth (30 seconds)
 
 Before looking at individual assets, check whether the macro environment is with you:
@@ -263,6 +269,130 @@ Use `temperatureEma` directly in the profit target calculation:
 Long target  = yesterday's high + temperatureEma
 Short target = yesterday's low  − temperatureEma
 ```
+
+---
+
+## Sample Report Walkthrough
+
+*Report generated after the 30 May 2026 (Friday) daily close. To be acted on during the 1 June 2026 (Monday) session.*
+
+```
+# Elder Impulse System — Daily Brief
+
+Data through 30 May 2026 — pipeline ran 31 May 2026 15:55 UTC
+
+## Market Breadth
+- W1 Impulse (26-week EMA):      9 GREEN / 32 RED / 4 NEUTRAL  (22% GREEN)
+- D1 Impulse (13-EMA + MACD-H):  9 GREEN /  7 RED / 29 NEUTRAL
+- D1 Thermometer (22-day EMA):  30 QUIET / 13 HOT/SPIKE / 2 no data  (70% QUIET)
+
+## Primary Shortlist — W1 GREEN + D1 GREEN + D1 QUIET
+- RENDERUSDT  W1 GREEN for 13 day(s)  D1 GREEN for 1 day(s)
+              temp=0.055 ema=0.069  → target: yesterday high + 0.069
+              (Vol: 19.6M)
+
+## Fresh W1 Green Flips (last 7 days)
+- NEARUSDT:   W1 flipped GREEN 13 day(s) ago  (Vol: 129.7M)
+- ONDOUSDT:   W1 flipped GREEN 13 day(s) ago  (Vol:  25.5M)
+- PAXGUSDT:   W1 flipped GREEN 13 day(s) ago  (Vol:  18.7M)
+- QNTUSDT:    W1 flipped GREEN 13 day(s) ago  (Vol:   1.3M)
+- RENDERUSDT: W1 flipped GREEN 13 day(s) ago  (Vol:  19.6M)
+- TAOUSDT:    W1 flipped GREEN 13 day(s) ago  (Vol:  27.4M)
+- TONUSDT:    W1 flipped GREEN 13 day(s) ago  (Vol:  29.8M)
+- TRXUSDT:    W1 flipped GREEN 13 day(s) ago  (Vol:  55.3M)
+- ZECUSDT:    W1 flipped GREEN 13 day(s) ago  (Vol: 139.5M)
+
+## Spike Alerts — Take Profit
+- ALGOUSDT:   temp=0.0164, ema=0.00437 (3.8× normal)  (Vol:   5.6M)
+- ASTERUSDT:  temp=0.096,  ema=0.02016 (4.8× normal)  (Vol:  14.4M)
+- BNBUSDT:    temp=84,     ema=13.417  (6.3× normal)  (Vol: 118.8M)
+- HBARUSDT:   temp=0.0101, ema=0.00267 (3.8× normal)  (Vol:  29.1M)
+- NIGHTUSDT:  temp=0.0041, ema=0.00108 (3.8× normal)  (Vol:   2.0M)
+- WLDUSDT:    temp=0.0663, ema=0.02116 (3.1× normal)  (Vol:  53.1M)
+```
+
+---
+
+### Report cadence — what to do daily vs weekly
+
+The brief is generated **every evening after the daily close**. The report contains both daily and weekly information. Know which sections demand action every night and which are a Sunday-only concern:
+
+| Section | Cadence | What to do |
+|---------|---------|------------|
+| **Market Breadth** | Every evening | Read before anything else. Hostile breadth = stop here. |
+| **Primary Shortlist** | Every evening | Your order candidates for tomorrow. Place or skip. |
+| **Spike Alerts** | Every evening | Check against any open positions. Take profit if holding. |
+| **Fresh W1 Green Flips** | Sunday only | Weekly watchlist. Note names; wait for D1 confirmation during the week. |
+
+On Sunday the W1 weekly candle has just closed, so the flip list is at its most actionable — this is the one evening per week where you review it thoroughly. On weekday evenings, glance at it only to see if any name from the list has now also cleared D1 GREEN + QUIET and graduated to the primary shortlist.
+
+---
+
+### How to read it — section by section
+
+#### 1. Market Breadth — set your risk appetite before looking at names
+
+**W1: 22% GREEN.** The majority of assets are in weekly downtrends. This is not a broad bull market — it is a selective environment where a handful of names are turning while the rest are still falling. Reduce position sizing relative to a week where W1 GREEN is above 50%. Do not try to force trades.
+
+**D1 Thermometer: 70% QUIET.** The market calmed down on Friday. This is good news for Monday entries — slippage will be low and the crowd is not overexcited. The combination of *few W1 greens + calm thermometer* is a classic Elder pattern: quiet accumulation in a small number of leadership names while the broader market is still bearish. These are often the setups that precede the biggest moves.
+
+**Decision at this point:** The breadth is not hostile enough to close the laptop, but it calls for selectivity. Work only the primary shortlist. Do not reach for the W1 flip list unless a name also clears D1 GREEN + QUIET.
+
+---
+
+#### 2. Primary Shortlist — your order candidates for Monday
+
+**RENDERUSDT is the only qualifying asset.** One name passing all three conditions is not a failure — it means the filters are working. Quality over quantity.
+
+Breaking down the RENDER entry:
+
+| Field | Value | What it means |
+|-------|-------|---------------|
+| W1 GREEN for 13 days | 2 weeks ago | Weekly engine turned on and has held. EMA is rising. |
+| D1 GREEN for 1 day | Yesterday (30 May) | Daily impulse just flipped. **This is fresh — highest-conviction window.** |
+| temp=0.055, ema=0.069 | temp < ema | Thermometer is QUIET. Calm entry conditions. |
+| Target: high + 0.069 | | Thermometer EMA is your one-day volatility projection. |
+
+The **D1 GREEN for 1 day** is the key number. Elder's research highlights the first 1–2 bars after a flip from NEUTRAL or RED as the highest-conviction entry window — the impulse just switched on, and you are early rather than chasing.
+
+**Monday morning action:**
+1. Look up RENDER's 30 May high on your broker
+2. Place a **buy stop** just above that high — you enter only if Monday continues upward
+3. Place a **protective stop** below the recent swing low (or 1–2 ATR below the 13-EMA)
+4. Set a **limit sell** at (30 May high + 0.069)
+5. Check that the distance from entry to target is at least 2× your stop distance — if not, skip
+
+If the buy stop does not trigger by end of Monday, cancel both orders and re-evaluate Monday evening with fresh data.
+
+---
+
+#### 3. Fresh W1 Green Flips — your watchlist for the week
+
+All 9 flips happened 13 days ago — the same weekly candle. None of them qualified for Monday's primary shortlist (their D1 Impulse was not GREEN or their thermometer was HOT), but they remain on the radar. The weekly engine is on for all of them.
+
+**Each evening this week:** check if any of these have rotated into D1 GREEN + D1 QUIET. If so, they move onto the primary shortlist and become actionable.
+
+Highest-liquidity names to watch first:
+- **ZECUSDT** (139.5M avg vol) — highest volume in the flip list, most tradeable
+- **NEARUSDT** (129.7M) — second highest
+- **TRXUSDT** (55.3M) — established asset
+
+Low-volume names (QNTUSDT at 1.3M) may show the signal but have insufficient liquidity for meaningful position sizes — apply your minimum volume threshold before acting.
+
+---
+
+#### 4. Spike Alerts — what to do with existing positions
+
+**If you hold any of the 6 spiking assets, Friday was a take-profit signal.** Do not open new positions in any of them on Monday.
+
+| Asset | Multiple | Action |
+|-------|----------|--------|
+| BNBUSDT | 6.3× | Most extreme spike. If long, Friday close was the exit. |
+| ASTERUSDT | 4.8× | Second most extreme. Same rule. |
+| ALGOUSDT, HBARUSDT, NIGHTUSDT | 3.8× | At the threshold. Close longs into early Monday strength if still holding. |
+| WLDUSDT | 3.1× | Just above threshold. Tighten stop aggressively if holding. |
+
+The spike alert does not mean these assets will fall on Monday — they might keep running. But Elder's rule is clear: the crowd's overexcitement is a gift. Sell into it, not after it.
 
 ---
 

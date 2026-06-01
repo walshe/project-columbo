@@ -64,11 +64,33 @@ public class ElderSummaryService {
                 null
         )).results();
 
-        // Fresh W1 flips to GREEN in the last 7 days — highest-conviction setups
+        // Primary bear shortlist: symmetric short setup — W1 RED + D1 RED + D1 QUIET
+        List<ScanResult> primaryBearShortlist = scanService.execute(new ScanRequest(
+                ScanOperator.AND,
+                List.of(
+                        new ScanCondition(Timeframe.W1, IndicatorType.ELDER_IMPULSE, null,
+                                TrendState.ELDER_IMPULSE_RED, null, null),
+                        new ScanCondition(Timeframe.D1, IndicatorType.ELDER_IMPULSE, null,
+                                TrendState.ELDER_IMPULSE_RED, null, null),
+                        new ScanCondition(Timeframe.D1, IndicatorType.ELDER_THERMOMETER, null,
+                                TrendState.ELDER_THERMOMETER_QUIET, null, null)
+                ),
+                null
+        )).results();
+
+        // Fresh W1 flips to GREEN in the last 7 days — highest-conviction long setups
         List<ScanResult> freshW1GreenFlips = scanService.execute(new ScanRequest(
                 ScanOperator.AND,
                 List.of(new ScanCondition(Timeframe.W1, IndicatorType.ELDER_IMPULSE, null,
                         TrendState.ELDER_IMPULSE_GREEN, 7, null)),
+                null
+        )).results();
+
+        // Fresh W1 flips to RED in the last 7 days — tighten stops, early short setups
+        List<ScanResult> freshW1RedFlips = scanService.execute(new ScanRequest(
+                ScanOperator.AND,
+                List.of(new ScanCondition(Timeframe.W1, IndicatorType.ELDER_IMPULSE, null,
+                        TrendState.ELDER_IMPULSE_RED, 7, null)),
                 null
         )).results();
 
@@ -88,7 +110,9 @@ public class ElderSummaryService {
                 d1Pulse,
                 thermPulse,
                 primaryShortlist,
+                primaryBearShortlist,
                 freshW1GreenFlips,
+                freshW1RedFlips,
                 spikeAlerts,
                 lastIngestionAt,
                 candlesThrough

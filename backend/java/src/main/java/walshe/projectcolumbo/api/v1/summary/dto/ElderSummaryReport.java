@@ -25,11 +25,17 @@ public record ElderSummaryReport(
         @Schema(description = "D1 Elder Thermometer breadth — bullishCount = ELDER_THERMOMETER_QUIET, bearishCount = ELDER_THERMOMETER_HOT + SPIKE, missingCount = no data")
         MarketPulseDto d1ThermometerPulse,
 
-        @Schema(description = "Primary shortlist: assets passing all three Elder entry conditions (W1 GREEN + D1 GREEN + D1 QUIET). These are the actionable setups for tonight.")
+        @Schema(description = "Primary shortlist: assets passing all three Elder long entry conditions (W1 GREEN + D1 GREEN + D1 QUIET). These are the actionable long setups for tonight.")
         List<ScanResult> primaryShortlist,
 
-        @Schema(description = "Assets whose W1 Impulse flipped to GREEN within the last 7 days. Highest-conviction setups — the weekly engine just switched on.")
+        @Schema(description = "Primary bear shortlist: assets passing all three Elder short entry conditions (W1 RED + D1 RED + D1 QUIET). Actionable short setups for tonight.")
+        List<ScanResult> primaryBearShortlist,
+
+        @Schema(description = "Assets whose W1 Impulse flipped to GREEN within the last 7 days. Highest-conviction long setups — the weekly engine just switched on.")
         List<ScanResult> freshW1GreenFlips,
+
+        @Schema(description = "Assets whose W1 Impulse flipped to RED within the last 7 days. Tighten stops on existing longs; early short setups on W1 RED + D1 RED alignment.")
+        List<ScanResult> freshW1RedFlips,
 
         @Schema(description = "Assets currently showing D1 ELDER_THERMOMETER_SPIKE (temperature > 3× EMA). Signal to take profits on open longs, not open new positions.")
         List<ScanResult> spikeAlerts,
