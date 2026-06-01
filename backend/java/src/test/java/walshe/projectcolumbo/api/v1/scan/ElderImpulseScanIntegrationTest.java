@@ -14,7 +14,12 @@ import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.model.TrendState;
 import walshe.projectcolumbo.persistence.repository.AssetRepository;
 import walshe.projectcolumbo.persistence.repository.CandleRepository;
+import walshe.projectcolumbo.persistence.repository.EmaRepository;
+import walshe.projectcolumbo.persistence.repository.MacdRepository;
+import walshe.projectcolumbo.persistence.repository.RsiRepository;
 import walshe.projectcolumbo.persistence.repository.SignalStateRepository;
+import walshe.projectcolumbo.persistence.repository.SuperTrendRepository;
+import walshe.projectcolumbo.persistence.repository.ThermometerRepository;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,6 +61,21 @@ class ElderImpulseScanIntegrationTest {
     @Autowired
     private SignalStateRepository signalStateRepository;
 
+    @Autowired
+    private SuperTrendRepository superTrendRepository;
+
+    @Autowired
+    private RsiRepository rsiRepository;
+
+    @Autowired
+    private EmaRepository emaRepository;
+
+    @Autowired
+    private MacdRepository macdRepository;
+
+    @Autowired
+    private ThermometerRepository thermometerRepository;
+
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
 
@@ -66,6 +86,11 @@ class ElderImpulseScanIntegrationTest {
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
         signalStateRepository.deleteAll();
+        superTrendRepository.deleteAll();
+        rsiRepository.deleteAll();
+        thermometerRepository.deleteAll();
+        macdRepository.deleteAll();
+        emaRepository.deleteAll();
         candleRepository.deleteAll();
         assetRepository.deleteAll();
     }

@@ -5,9 +5,12 @@ import walshe.projectcolumbo.persistence.model.MarketProvider;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.repository.AssetRepository;
 import walshe.projectcolumbo.persistence.repository.CandleRepository;
+import walshe.projectcolumbo.persistence.repository.EmaRepository;
+import walshe.projectcolumbo.persistence.repository.MacdRepository;
 import walshe.projectcolumbo.persistence.repository.RsiRepository;
 import walshe.projectcolumbo.persistence.repository.SignalStateRepository;
 import walshe.projectcolumbo.persistence.repository.SuperTrendRepository;
+import walshe.projectcolumbo.persistence.repository.ThermometerRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,11 +45,23 @@ class RsiRepositoryTest {
     @Autowired
     private AssetRepository assetRepository;
 
+    @Autowired
+    private EmaRepository emaRepository;
+
+    @Autowired
+    private MacdRepository macdRepository;
+
+    @Autowired
+    private ThermometerRepository thermometerRepository;
+
     @BeforeEach
     void setUp() {
         signalStateRepository.deleteAll();
         superTrendRepository.deleteAll();
         rsiRepository.deleteAll();
+        thermometerRepository.deleteAll();
+        macdRepository.deleteAll();
+        emaRepository.deleteAll();
         candleRepository.deleteAll();
         assetRepository.deleteAll();
     }
