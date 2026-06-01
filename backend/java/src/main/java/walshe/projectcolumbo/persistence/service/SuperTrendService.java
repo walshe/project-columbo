@@ -37,7 +37,7 @@ public class SuperTrendService {
     }
 
     @Transactional
-    public void processAllActiveAssets(Timeframe timeframe, int atrLength, java.math.BigDecimal multiplier, boolean fullRecalc) {
+    public synchronized void processAllActiveAssets(Timeframe timeframe, int atrLength, java.math.BigDecimal multiplier, boolean fullRecalc) {
         List<Asset> activeAssets = assetRepository.findByActiveTrue();
         log.info("Starting SuperTrend processing for {} active assets on {} timeframe", activeAssets.size(), timeframe);
 

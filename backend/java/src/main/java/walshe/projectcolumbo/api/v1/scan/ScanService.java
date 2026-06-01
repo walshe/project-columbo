@@ -312,8 +312,9 @@ public class ScanService {
             int daysSinceChange;
             if (s.getEvent() == SignalEvent.NONE || s.getEvent() == null) {
                 OffsetDateTime flipTime = findFlipTime(s);
+                OffsetDateTime effectiveFlipTime = flipTime != null ? flipTime : s.getCloseTime();
                 daysSinceChange = (int) ChronoUnit.DAYS.between(
-                        signalDate(flipTime, s.getTimeframe()), LocalDate.now(ZoneOffset.UTC));
+                        signalDate(effectiveFlipTime, s.getTimeframe()), LocalDate.now(ZoneOffset.UTC));
             } else {
                 daysSinceChange = (int) ChronoUnit.DAYS.between(
                         signalDate(s.getCloseTime(), s.getTimeframe()), LocalDate.now(ZoneOffset.UTC));
@@ -347,8 +348,9 @@ public class ScanService {
             if (s.getEvent() == SignalEvent.NONE || s.getEvent() == null) {
                 // Find when this trend state started
                 OffsetDateTime flipTime = findFlipTime(s);
+                OffsetDateTime effectiveFlipTime = flipTime != null ? flipTime : s.getCloseTime();
                 daysSinceFlip = (int) ChronoUnit.DAYS.between(
-                        signalDate(flipTime, s.getTimeframe()), LocalDate.now(ZoneOffset.UTC));
+                        signalDate(effectiveFlipTime, s.getTimeframe()), LocalDate.now(ZoneOffset.UTC));
             } else {
                 // It's an event — calculate days between when it appeared on chart and now
                 daysSinceFlip = (int) ChronoUnit.DAYS.between(

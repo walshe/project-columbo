@@ -47,7 +47,7 @@ public class ElderImpulseStateService {
     }
 
     @Transactional
-    public void computeForAllActiveAssets(Timeframe timeframe) {
+    public synchronized void computeForAllActiveAssets(Timeframe timeframe) {
         List<Asset> activeAssets = assetRepository.findByActiveTrue();
         log.info("Starting ElderImpulse state derivation for {} assets (timeframe={})",
                 activeAssets.size(), timeframe);

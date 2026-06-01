@@ -218,13 +218,18 @@ public class SummaryReportFormatter {
                     .filter(mi -> mi instanceof ThermometerMatch)
                     .map(mi -> (ThermometerMatch) mi)
                     .findFirst()
-                    .ifPresent(t -> sb.append(String.format(
-                            "- [%s](%s): temp=%s, ema=%s (%.1f× normal) (Vol: %s)\n",
-                            r.assetSymbol(), d1Url,
-                            formatTemp(t.temperature()),
-                            formatTemp(t.temperatureEma()),
-                            t.temperature().doubleValue() / t.temperatureEma().doubleValue(),
-                            formatVolume(r.avgVolume7d()))));
+                    .ifPresent(t -> {
+                        if (t.temperatureEma() == null || t.temperatureEma().compareTo(BigDecimal.ZERO) == 0) {
+                            return;
+                        }
+                        sb.append(String.format(
+                                "- [%s](%s): temp=%s, ema=%s (%.1f× normal) (Vol: %s)\n",
+                                r.assetSymbol(), d1Url,
+                                formatTemp(t.temperature()),
+                                formatTemp(t.temperatureEma()),
+                                t.temperature().doubleValue() / t.temperatureEma().doubleValue(),
+                                formatVolume(r.avgVolume7d())));
+                    });
         }
     }
 

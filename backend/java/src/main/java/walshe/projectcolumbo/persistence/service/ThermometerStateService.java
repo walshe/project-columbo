@@ -39,7 +39,7 @@ public class ThermometerStateService {
     }
 
     @Transactional
-    public void computeForAllActiveAssets() {
+    public synchronized void computeForAllActiveAssets() {
         List<Asset> activeAssets = assetRepository.findByActiveTrue();
         log.info("Starting ThermometerState derivation for {} assets", activeAssets.size());
 
