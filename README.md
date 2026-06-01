@@ -20,7 +20,7 @@ Project Columbo runs a nightly pipeline after the daily market close and produce
 
 ---
 
-## The Daily Brief
+## The Elder Daily Brief
 
 The primary output is the **Elder Impulse System Daily Brief** — a single report that covers:
 
@@ -34,8 +34,6 @@ The primary output is the **Elder Impulse System Daily Brief** — a single repo
 
 The report is ordered by macro bias: on a bearish night the bear shortlist leads, on a bullish night the bull shortlist leads.
 
-### Getting the report
-
 ```
 GET /api/v1/elder-summary
 ```
@@ -44,13 +42,30 @@ Returns a formatted Markdown brief ready to read. Everything in the sections abo
 
 ---
 
+## The SuperTrend Brief
+
+A momentum-focused brief based on SuperTrend trend direction and RSI confirmation:
+
+| Section | What it tells you |
+|---------|-------------------|
+| **Market Pulse** | How many assets are currently in a SuperTrend bullish vs bearish state — the overall sentiment of the universe. |
+| **Recent Bullish Flips** | Assets that recently flipped to SuperTrend bullish. Trend has just switched up — earliest entry window. |
+| **Recent Bearish Flips** | Assets that recently flipped to SuperTrend bearish. Trend has just switched down. |
+| **Bullish Trend + RSI Cross Above 60** | Assets in a SuperTrend uptrend where RSI has recently crossed above 60 — momentum confirming the trend. High-probability long candidates. |
+| **Bearish Trend + RSI Cross Below 40** | Symmetric short side — SuperTrend down and RSI confirming downward momentum. |
+
+```
+GET /api/v1/summary
+```
+
+---
+
 ## Strategies
 
 | Strategy | What it does | Full guide |
 |----------|-------------|------------|
 | **Elder Impulse System + Market Thermometer** | Trend-following with volatility-timed entries. Uses W1 and D1 Elder Impulse for direction, D1 Thermometer for entry timing. ~15 minutes each evening. | [📄 Read the guide](docs/strategies/elder-impulse-and-thermometer.md) |
-
-*SuperTrend + RSI strategy guides coming soon.*
+| **SuperTrend + RSI** | Momentum confirmation strategy. SuperTrend identifies the trend direction; RSI crossing above 60 or below 40 confirms the move has force behind it. | Guide coming soon |
 
 The strategy guides cover:
 - How each indicator works and what it measures
