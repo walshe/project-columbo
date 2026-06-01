@@ -105,7 +105,7 @@ The entire routine is done **after the daily candle closes**, before the next se
 
 > **Shortcut:** The elder summary endpoint runs all of the steps below in a single call and returns a pre-formatted markdown brief:
 > ```
-> GET /api/v1/elder/summary
+> GET /api/v1/elder-summary
 > ```
 > The individual API calls documented in Steps 1–3 are shown for reference — they are what the summary aggregates under the hood. In normal use, the summary is all you need.
 
@@ -131,9 +131,23 @@ POST /api/v1/scan
 {
   "operator": "AND",
   "conditions": [
-    { "timeframe": "W1", "indicatorType": "ELDER_IMPULSE", "state": "IMPULSE_GREEN" },
-    { "timeframe": "D1", "indicatorType": "ELDER_IMPULSE", "state": "IMPULSE_GREEN" },
-    { "timeframe": "D1", "indicatorType": "MARKET_THERMOMETER", "state": "THERMOMETER_QUIET" }
+    { "timeframe": "W1", "indicatorType": "ELDER_IMPULSE", "state": "ELDER_IMPULSE_GREEN" },
+    { "timeframe": "D1", "indicatorType": "ELDER_IMPULSE", "state": "ELDER_IMPULSE_GREEN" },
+    { "timeframe": "D1", "indicatorType": "ELDER_THERMOMETER", "state": "ELDER_THERMOMETER_QUIET" }
+  ]
+}
+```
+
+For the bear side, flip all three states:
+
+```json
+POST /api/v1/scan
+{
+  "operator": "AND",
+  "conditions": [
+    { "timeframe": "W1", "indicatorType": "ELDER_IMPULSE", "state": "ELDER_IMPULSE_RED" },
+    { "timeframe": "D1", "indicatorType": "ELDER_IMPULSE", "state": "ELDER_IMPULSE_RED" },
+    { "timeframe": "D1", "indicatorType": "ELDER_THERMOMETER", "state": "ELDER_THERMOMETER_QUIET" }
   ]
 }
 ```
@@ -196,7 +210,7 @@ This is not optional. The Impulse system is a **permission** system, not a buy-a
 Run this scan each evening for assets you currently hold:
 
 ```json
-{ "timeframe": "D1", "indicatorType": "MARKET_THERMOMETER", "state": "THERMOMETER_SPIKE" }
+{ "timeframe": "D1", "indicatorType": "ELDER_THERMOMETER", "state": "ELDER_THERMOMETER_SPIKE" }
 ```
 
 A SPIKE while you are already in a profitable position is a **take-profit signal**. The crowd is panicking or euphoric — that is typically near a short-term extreme, not a continuation. Elder specifically calls spikes "gifts from the crowd" to exit into.
@@ -225,17 +239,30 @@ This rule eliminates an entire category of losing trades — buying into momentu
 Once per week, check for **fresh W1 flips**:
 
 ```json
+POST /api/v1/scan
 {
-  "timeframe": "W1",
-  "indicatorType": "ELDER_IMPULSE",
-  "state": "IMPULSE_GREEN",
-  "maxDaysSinceFlip": 7
+  "operator": "AND",
+  "conditions": [
+    { "timeframe": "W1", "indicatorType": "ELDER_IMPULSE", "state": "ELDER_IMPULSE_GREEN", "maxDaysSinceFlip": 7 }
+  ]
 }
 ```
 
 A W1 flip from NEUTRAL (or RED) to GREEN is a high-conviction setup. The weekly engine has just switched on. Look for D1 GREEN + D1 QUIET confirmation to enter with the full weekly tailwind behind you.
 
-W1 flips to RED are also worth monitoring for assets you hold — a fresh weekly red is a warning to tighten stops significantly even if the D1 is still green.
+W1 flips to RED are equally important — tighten stops aggressively on any longs in those names, and watch for D1 RED + QUIET alignment to build a short:
+
+```json
+POST /api/v1/scan
+{
+  "operator": "AND",
+  "conditions": [
+    { "timeframe": "W1", "indicatorType": "ELDER_IMPULSE", "state": "ELDER_IMPULSE_RED", "maxDaysSinceFlip": 7 }
+  ]
+}
+```
+
+The summary endpoint surfaces both flip lists automatically — the manual scan is shown here for reference.
 
 ---
 
@@ -243,21 +270,22 @@ W1 flips to RED are also worth monitoring for assets you hold — a fresh weekly
 
 | Endpoint | Purpose |
 |----------|---------|
+| `GET /api/v1/elder-summary` | **Complete daily brief** — breadth, shortlists, flips, spike alerts in one call |
 | `GET /api/v1/elder-impulse-market-pulse?timeframe=W1` | W1 breadth: count of GREEN/RED/NEUTRAL across all assets |
 | `GET /api/v1/elder-impulse-market-pulse?timeframe=D1` | D1 breadth: same |
-| `POST /api/v1/scan` | Primary shortlist scan — combine any indicator conditions |
+| `POST /api/v1/scan` | Custom scan — combine any indicator conditions |
 | `GET /api/v1/signals?indicatorType=ELDER_IMPULSE&timeframe=D1` | Recent D1 Impulse flip events |
-| `GET /api/v1/signals?indicatorType=MARKET_THERMOMETER` | Recent thermometer state changes |
+| `GET /api/v1/signals?indicatorType=ELDER_THERMOMETER` | Recent thermometer state changes |
 
 ### ThermometerMatch response fields
 
-When `MARKET_THERMOMETER` appears in scan results, the `matchedIndicators` array includes a `ThermometerMatch` object with:
+When `ELDER_THERMOMETER` appears in scan results, the `matchedIndicators` array includes a `ThermometerMatch` object with:
 
 ```json
 {
-  "indicatorType": "MARKET_THERMOMETER",
+  "indicatorType": "ELDER_THERMOMETER",
   "timeframe": "D1",
-  "state": "THERMOMETER_QUIET",
+  "state": "ELDER_THERMOMETER_QUIET",
   "temperature": 1234.56,
   "temperatureEma": 2100.00,
   "closeTime": "2026-05-29T00:00:00Z"
@@ -279,36 +307,48 @@ Short target = yesterday's low  − temperatureEma
 ```
 # Elder Impulse System — Daily Brief
 
-Data through 30 May 2026 — pipeline ran 31 May 2026 15:55 UTC
+Data through 30 May 2026 — pipeline ran 31 May 2026 23:05 UTC
 
 ## Market Breadth
-- W1 Impulse (26-week EMA):      9 GREEN / 32 RED / 4 NEUTRAL  (22% GREEN)
-- D1 Impulse (13-EMA + MACD-H):  9 GREEN /  7 RED / 29 NEUTRAL
-- D1 Thermometer (22-day EMA):  30 QUIET / 13 HOT/SPIKE / 2 no data  (70% QUIET)
+- W1 Impulse (26-week EMA):     9 GREEN / 32 RED / 4 NEUTRAL  (22% GREEN / 71% RED)
+- D1 Impulse (13-EMA + MACD-H): 9 GREEN /  7 RED / 29 NEUTRAL  (56% GREEN / 16% RED)
+- D1 Thermometer (22-day EMA): 30 QUIET / 13 HOT/SPIKE / 2 no data  (70% QUIET / 29% HOT/SPIKE)
+- Cross-timeframe alignment: 1 bull-aligned (W1+D1 GREEN) / 2 bear-aligned (W1+D1 RED)
+  (6% of universe trending with conviction in either direction)
 
-## Primary Shortlist — W1 GREEN + D1 GREEN + D1 QUIET
-- RENDERUSDT  W1 GREEN for 13 day(s)  D1 GREEN for 1 day(s)
-              temp=0.055 ema=0.069  → target: yesterday high + 0.069
-              (Vol: 19.6M)
+> Macro environment is bearish — bias to the short side or stand aside.
+  Entry conditions are calm across most of the universe tonight.
+
+## Primary Bear Shortlist — W1 RED + D1 RED + D1 QUIET
+- ATOMUSDT  W1 RED for 14 day(s)  D1 RED for 3 day(s) ⚡ fresh
+            temp=0 (inside bar — indecision, not low volatility. Valid entry but size conservatively.)
+            → target: yesterday low - 0.0428 (EMA = expected next-bar range)  (Vol: 3.8M)
+- DOTUSDT   W1 RED for 14 day(s)  D1 RED for 3 day(s) ⚡ fresh
+            temp=0 (inside bar)
+            → target: yesterday low - 0.0188  (Vol: 8.3M)
+
+## Primary Bull Shortlist — W1 GREEN + D1 GREEN + D1 QUIET
+- RENDERUSDT  W1 GREEN for 14 day(s)  D1 GREEN for 2 day(s) ⚡ fresh
+              temp=0.055 ema=0.0692 (today quieter than average — confirms calm entry)
+              → target: yesterday high + 0.0692  (Vol: 21.2M)
+
+⚠️ All shortlist entries are fresh signals — market just beginning to move, not mid-trend.
+   Size conservatively until signals age past day 3.
 
 ## Fresh W1 Green Flips (last 7 days)
-- NEARUSDT:   W1 flipped GREEN 13 day(s) ago  (Vol: 129.7M)
-- ONDOUSDT:   W1 flipped GREEN 13 day(s) ago  (Vol:  25.5M)
-- PAXGUSDT:   W1 flipped GREEN 13 day(s) ago  (Vol:  18.7M)
-- QNTUSDT:    W1 flipped GREEN 13 day(s) ago  (Vol:   1.3M)
-- RENDERUSDT: W1 flipped GREEN 13 day(s) ago  (Vol:  19.6M)
-- TAOUSDT:    W1 flipped GREEN 13 day(s) ago  (Vol:  27.4M)
-- TONUSDT:    W1 flipped GREEN 13 day(s) ago  (Vol:  29.8M)
-- TRXUSDT:    W1 flipped GREEN 13 day(s) ago  (Vol:  55.3M)
-- ZECUSDT:    W1 flipped GREEN 13 day(s) ago  (Vol: 139.5M)
+No fresh W1 green flips this week.
+
+## Fresh W1 Red Flips (last 7 days)
+No fresh W1 red flips this week.
 
 ## Spike Alerts — Take Profit
-- ALGOUSDT:   temp=0.0164, ema=0.00437 (3.8× normal)  (Vol:   5.6M)
-- ASTERUSDT:  temp=0.096,  ema=0.02016 (4.8× normal)  (Vol:  14.4M)
-- BNBUSDT:    temp=84,     ema=13.417  (6.3× normal)  (Vol: 118.8M)
-- HBARUSDT:   temp=0.0101, ema=0.00267 (3.8× normal)  (Vol:  29.1M)
-- NIGHTUSDT:  temp=0.0041, ema=0.00108 (3.8× normal)  (Vol:   2.0M)
-- WLDUSDT:    temp=0.0663, ema=0.02116 (3.1× normal)  (Vol:  53.1M)
+
+W1 RED — short-covering rally into a downtrend. Consider selling into this strength.
+- ALGOUSDT:  temp=0.0164, ema=0.00437 (3.8× normal)  (Vol:  6.3M)
+- ASTERUSDT: temp=0.096,  ema=0.0202  (4.8× normal)  (Vol: 12.6M)
+- BNBUSDT:   temp=84,     ema=13.4    (6.3× normal)  (Vol: 130.6M)
+- HBARUSDT:  temp=0.0101, ema=0.00267 (3.8× normal)  (Vol: 33.0M)
+- WLDUSDT:   temp=0.0663, ema=0.0212  (3.1× normal)  (Vol: 57.3M)
 ```
 
 ---
@@ -320,11 +360,15 @@ The brief is generated **every evening after the daily close**. The report conta
 | Section | Cadence | What to do |
 |---------|---------|------------|
 | **Market Breadth** | Every evening | Read before anything else. Hostile breadth = stop here. |
-| **Primary Shortlist** | Every evening | Your order candidates for tomorrow. Place or skip. |
+| **Primary Bear Shortlist** | Every evening | Short candidates for tomorrow if macro is bearish. |
+| **Primary Bull Shortlist** | Every evening | Long candidates for tomorrow if macro is bullish. |
 | **Spike Alerts** | Every evening | Check against any open positions. Take profit if holding. |
-| **Fresh W1 Green Flips** | Sunday only | Weekly watchlist. Note names; wait for D1 confirmation during the week. |
+| **Fresh W1 Green Flips** | Sunday only | Bull watchlist. Note names; wait for D1 confirmation during the week. |
+| **Fresh W1 Red Flips** | Sunday only | Bear watchlist + stop-tightening alert for existing longs. |
 
-On Sunday the W1 weekly candle has just closed, so the flip list is at its most actionable — this is the one evening per week where you review it thoroughly. On weekday evenings, glance at it only to see if any name from the list has now also cleared D1 GREEN + QUIET and graduated to the primary shortlist.
+The report surfaces the primary opportunity first: on a bearish macro night (W1 >50% RED), the bear shortlist leads. On a bullish night, the bull shortlist leads. This means the most relevant section is always at the top.
+
+On Sunday the W1 weekly candle has just closed, so the flip lists are at their most actionable — this is the one evening per week where you review them thoroughly. On weekday evenings, glance at the flips only to see if any name has now also cleared its daily condition and graduated to a shortlist.
 
 ---
 
@@ -332,67 +376,62 @@ On Sunday the W1 weekly candle has just closed, so the flip list is at its most 
 
 #### 1. Market Breadth — set your risk appetite before looking at names
 
-**W1: 22% GREEN.** The majority of assets are in weekly downtrends. This is not a broad bull market — it is a selective environment where a handful of names are turning while the rest are still falling. Reduce position sizing relative to a week where W1 GREEN is above 50%. Do not try to force trades.
+**W1: 22% GREEN / 71% RED.** The majority of assets are in weekly downtrends. This is a bearish macro environment — the report's primary opportunity section will be the bear shortlist tonight, and the breadth conclusion confirms it: *"bias to the short side or stand aside."*
 
-**D1 Thermometer: 70% QUIET.** The market calmed down on Friday. This is good news for Monday entries — slippage will be low and the crowd is not overexcited. The combination of *few W1 greens + calm thermometer* is a classic Elder pattern: quiet accumulation in a small number of leadership names while the broader market is still bearish. These are often the setups that precede the biggest moves.
+**Cross-timeframe alignment: 6% with conviction.** Only 3 of 45 assets have both W1 and D1 in gear in the same direction. This is a low-conviction environment — the broad market has not yet committed. Be selective and size conservatively across the board.
 
-**Decision at this point:** The breadth is not hostile enough to close the laptop, but it calls for selectivity. Work only the primary shortlist. Do not reach for the W1 flip list unless a name also clears D1 GREEN + QUIET.
+**D1 Thermometer: 70% QUIET.** Entry conditions are calm. This is good news for both sides — slippage will be low and the crowd is not overexcited. The combination of *bearish W1 + calm thermometer* is a classic Elder setup: quiet distribution in a downtrend, with well-timed entries available.
+
+**Decision at this point:** Macro is bearish but not catastrophically so (not 100% RED). Work the bear shortlist primarily. If a bull setup exists, it can be taken at reduced size — but the macro tailwind is with the shorts tonight.
 
 ---
 
-#### 2. Primary Shortlist — your order candidates for Monday
+#### 2. Primary Shortlists — your order candidates for Monday
 
-**RENDERUSDT is the only qualifying asset.** One name passing all three conditions is not a failure — it means the filters are working. Quality over quantity.
+**The bear shortlist leads because macro is 71% RED.** Two assets qualify: ATOM and DOT.
 
-Breaking down the RENDER entry:
+Both share the same profile:
 
 | Field | Value | What it means |
 |-------|-------|---------------|
-| W1 GREEN for 13 days | 2 weeks ago | Weekly engine turned on and has held. EMA is rising. |
-| D1 GREEN for 1 day | Yesterday (30 May) | Daily impulse just flipped. **This is fresh — highest-conviction window.** |
-| temp=0.055, ema=0.069 | temp < ema | Thermometer is QUIET. Calm entry conditions. |
-| Target: high + 0.069 | | Thermometer EMA is your one-day volatility projection. |
+| W1 RED for 14 days | 2 weeks | Weekly engine turned down and has held. EMA is falling. |
+| D1 RED for 3 days | ⚡ fresh | Daily impulse just flipped. Highest-conviction short window. |
+| temp=0 (inside bar) | indecision | Today's range was inside yesterday's — no range extension. Valid QUIET entry, but size conservatively: inside bars sometimes resolve in either direction. |
+| Target: yesterday low − EMA | | EMA gives the expected next-bar range extension downward. |
 
-The **D1 GREEN for 1 day** is the key number. Elder's research highlights the first 1–2 bars after a flip from NEUTRAL or RED as the highest-conviction entry window — the impulse just switched on, and you are early rather than chasing.
+The **⚠️ All entries are fresh signals** warning is important: both ATOM and DOT are only 3 days into their D1 RED signal. The market is just beginning to move — signals have not yet proven they will hold. Do not size as if this is a confirmed trend; treat these as early-stage entries with the exit rule active from day one.
 
-**Monday morning action:**
-1. Look up RENDER's 30 May high on your broker
-2. Place a **buy stop** just above that high — you enter only if Monday continues upward
-3. Place a **protective stop** below the recent swing low (or 1–2 ATR below the 13-EMA)
-4. Set a **limit sell** at (30 May high + 0.069)
-5. Check that the distance from entry to target is at least 2× your stop distance — if not, skip
+**RENDERUSDT** qualifies on the bull side despite the bearish macro, because its W1 is GREEN. This is not a contradiction — Elder's rules allow long entries when W1 is GREEN regardless of what the rest of the universe is doing. Treat it as a reduced-size opportunity given the macro headwind.
 
-If the buy stop does not trigger by end of Monday, cancel both orders and re-evaluate Monday evening with fresh data.
+**Monday morning action for ATOM/DOT (short side):**
+1. Look up the 30 May low on your broker
+2. Place a **sell stop** just below that low — you enter only if Monday continues downward
+3. Place a **protective stop** above the recent swing high (or 1–2 ATR above the 13-EMA)
+4. Set a **limit buy** at (30 May low − thermometerEma)
+5. Check that distance from entry to target is at least 2× your stop distance — if not, skip
 
 ---
 
-#### 3. Fresh W1 Green Flips — your watchlist for the week
+#### 3. Fresh W1 Flips — your watchlist for the week
 
-All 9 flips happened 13 days ago — the same weekly candle. None of them qualified for Monday's primary shortlist (their D1 Impulse was not GREEN or their thermometer was HOT), but they remain on the radar. The weekly engine is on for all of them.
+Both flip sections are empty this week — no W1 state changes occurred in the last 7 days. Nothing to add to the watchlist. Come back Sunday.
 
-**Each evening this week:** check if any of these have rotated into D1 GREEN + D1 QUIET. If so, they move onto the primary shortlist and become actionable.
-
-Highest-liquidity names to watch first:
-- **ZECUSDT** (139.5M avg vol) — highest volume in the flip list, most tradeable
-- **NEARUSDT** (129.7M) — second highest
-- **TRXUSDT** (55.3M) — established asset
-
-Low-volume names (QNTUSDT at 1.3M) may show the signal but have insufficient liquidity for meaningful position sizes — apply your minimum volume threshold before acting.
+When the flip lists are populated (as they were in earlier reports), prioritise by volume: the highest-volume names are the most tradeable. Low-volume names may show the signal but have insufficient liquidity for meaningful position sizes.
 
 ---
 
 #### 4. Spike Alerts — what to do with existing positions
 
-**If you hold any of the 6 spiking assets, Friday was a take-profit signal.** Do not open new positions in any of them on Monday.
+All five spiking assets are **W1 RED** — the label "short-covering rally into a downtrend" tells you exactly what this is. These assets bounced strongly on May 30, but the weekly engine is still pointed down. This is not a reversal — it is the crowd covering shorts and creating temporary euphoria. Elder's rule: sell into this strength, not after it.
 
 | Asset | Multiple | Action |
 |-------|----------|--------|
-| BNBUSDT | 6.3× | Most extreme spike. If long, Friday close was the exit. |
+| BNBUSDT | 6.3× | Most extreme spike. If short, Friday was a partial cover point. If long (against W1 trend), exit. |
 | ASTERUSDT | 4.8× | Second most extreme. Same rule. |
-| ALGOUSDT, HBARUSDT, NIGHTUSDT | 3.8× | At the threshold. Close longs into early Monday strength if still holding. |
-| WLDUSDT | 3.1× | Just above threshold. Tighten stop aggressively if holding. |
+| ALGOUSDT, HBARUSDT | 3.8× | At the threshold. Do not open new positions Monday. |
+| WLDUSDT | 3.1× | Just above threshold. Tighten any stop aggressively if holding. |
 
-The spike alert does not mean these assets will fall on Monday — they might keep running. But Elder's rule is clear: the crowd's overexcitement is a gift. Sell into it, not after it.
+Note that spike context depends on W1 direction. A spike in a W1 GREEN asset would be labelled differently ("take profits on longs") — the same temperature reading has opposite implications depending on the strategic direction. The report groups spikes by W1 state precisely for this reason.
 
 ---
 
@@ -401,26 +440,42 @@ The spike alert does not mean these assets will fall on Monday — they might ke
 ```
 EVERY EVENING (after daily close):
 
+1. GET /api/v1/elder-summary   ← one call covers everything below
+
+   OR manually:
+
 1. Breadth check     → /elder-impulse-market-pulse W1 + D1
-                        Mostly RED? Stop here.
+                        W1 >50% RED? Bear bias. W1 >50% GREEN? Bull bias.
+                        Cross-timeframe alignment low (<10%)? Size conservatively.
 
-2. Primary scan      → W1 GREEN + D1 GREEN + D1 QUIET
-                        Empty result? Nothing to do tonight.
+2. Primary shortlists
+   Bull side → W1 GREEN + D1 GREEN + D1 QUIET
+   Bear side → W1 RED   + D1 RED   + D1 QUIET
+   (summary leads with the side matching macro bias)
+   Empty result? Nothing actionable tonight — stop here.
 
-3. Per-asset review  → daysSinceChange low? Price near 13-EMA?
-                        No → skip. Yes → go to step 4.
+3. Per-asset review  → daysSinceChange ≤ 3? Fresh signal — size conservatively.
+                        All entries fresh? Reduce size further across the board.
+                        Inside bar (temp=0)? Valid entry, but indecision — size conservatively.
+                        Price near 13-EMA? Ideal. Far extended? Skip or reduce.
 
-4. Set levels        → Entry: buy stop above today's high
-                        Stop:  below recent swing low / 13-EMA
-                        Target: yesterday's high + thermometerEma
+4. Set levels (longs)  → Entry: buy stop above today's high
+                          Stop:  below recent swing low / 13-EMA
+                          Target: yesterday's high + thermometerEma
 
-5. Check holds       → Any open position showing D1 RED? Exit.
-                        Any open position showing SPIKE? Take profit.
+   Set levels (shorts) → Entry: sell stop below today's low
+                          Stop:  above recent swing high / 13-EMA
+                          Target: yesterday's low − thermometerEma
+
+5. Check open positions
+   → D1 turned against you? Exit at close. No exceptions.
+   → SPIKE alert on a held asset?
+       W1 GREEN: take profits on longs.
+       W1 RED:   short-covering rally — consider selling into strength.
 
 EVERY SUNDAY:
-        → W1 flips this week? (maxDaysSinceFlip: 7)
-          Fresh W1 GREEN = highest-conviction setup next week.
-          Fresh W1 RED   = tighten stops on existing longs.
+   → Fresh W1 GREEN flips? Note names. Wait for D1 GREEN + QUIET to enter.
+   → Fresh W1 RED flips?  Tighten stops on any longs. Watch for D1 RED + QUIET to short.
 ```
 
 ---

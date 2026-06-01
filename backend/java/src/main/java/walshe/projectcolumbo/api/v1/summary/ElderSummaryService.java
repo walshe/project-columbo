@@ -117,11 +117,38 @@ public class ElderSummaryService {
                 null
         )).results();
 
-        // Spike alerts — assets where D1 temperature > 3× EMA (take profit, not new entries)
-        List<ScanResult> spikeAlerts = scanService.execute(new ScanRequest(
+        // Spike alerts split by W1 state so the formatter can add directional context.
+        // W1 GREEN spike = profit-take on longs. W1 RED spike = short-covering rally to sell into.
+        List<ScanResult> spikeAlertsW1Green = scanService.execute(new ScanRequest(
                 ScanOperator.AND,
-                List.of(new ScanCondition(Timeframe.D1, IndicatorType.ELDER_THERMOMETER, null,
-                        TrendState.ELDER_THERMOMETER_SPIKE, null, null)),
+                List.of(
+                        new ScanCondition(Timeframe.D1, IndicatorType.ELDER_THERMOMETER, null,
+                                TrendState.ELDER_THERMOMETER_SPIKE, null, null),
+                        new ScanCondition(Timeframe.W1, IndicatorType.ELDER_IMPULSE, null,
+                                TrendState.ELDER_IMPULSE_GREEN, null, null)
+                ),
+                null
+        )).results();
+
+        List<ScanResult> spikeAlertsW1Red = scanService.execute(new ScanRequest(
+                ScanOperator.AND,
+                List.of(
+                        new ScanCondition(Timeframe.D1, IndicatorType.ELDER_THERMOMETER, null,
+                                TrendState.ELDER_THERMOMETER_SPIKE, null, null),
+                        new ScanCondition(Timeframe.W1, IndicatorType.ELDER_IMPULSE, null,
+                                TrendState.ELDER_IMPULSE_RED, null, null)
+                ),
+                null
+        )).results();
+
+        List<ScanResult> spikeAlertsW1Neutral = scanService.execute(new ScanRequest(
+                ScanOperator.AND,
+                List.of(
+                        new ScanCondition(Timeframe.D1, IndicatorType.ELDER_THERMOMETER, null,
+                                TrendState.ELDER_THERMOMETER_SPIKE, null, null),
+                        new ScanCondition(Timeframe.W1, IndicatorType.ELDER_IMPULSE, null,
+                                TrendState.ELDER_IMPULSE_NEUTRAL, null, null)
+                ),
                 null
         )).results();
 
@@ -138,7 +165,9 @@ public class ElderSummaryService {
                 primaryBearShortlist,
                 freshW1GreenFlips,
                 freshW1RedFlips,
-                spikeAlerts,
+                spikeAlertsW1Green,
+                spikeAlertsW1Red,
+                spikeAlertsW1Neutral,
                 lastIngestionAt,
                 candlesThrough
         );

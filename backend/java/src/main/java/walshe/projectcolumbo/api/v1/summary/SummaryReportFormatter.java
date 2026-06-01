@@ -11,10 +11,13 @@ import walshe.projectcolumbo.api.v1.scan.dto.ThermometerMatch;
 import walshe.projectcolumbo.api.v1.summary.dto.ElderSummaryReport;
 import walshe.projectcolumbo.api.v1.summary.dto.SummaryReport;
 
+import walshe.projectcolumbo.persistence.model.Timeframe;
+
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Component
 public class SummaryReportFormatter {
@@ -87,7 +90,8 @@ public class SummaryReportFormatter {
         // --- Breadth ---
         sb.append("## Market Breadth\n\n");
         sb.append("*W1 sets the strategic direction — trade only with the weekly trend on the daily chart. " +
-                "D1 shows today's permission count. Thermometer shows whether entry conditions are calm.*\n\n");
+                "D1 shows how many assets have daily trade permission today (GREEN = enter long, RED = enter short, NEUTRAL = stand aside). " +
+                "Thermometer shows whether entry conditions are calm.*\n\n");
         appendPulseLine(sb, "W1 Impulse (26-week EMA)", report.w1ImpulsePulse(), "GREEN", "RED", "NEUTRAL");
         appendPulseLine(sb, "D1 Impulse (13-EMA + MACD-H)", report.d1ImpulsePulse(), "GREEN", "RED", "NEUTRAL");
         appendPulseLine(sb, "D1 Thermometer (22-day EMA)", report.d1ThermometerPulse(), "QUIET", "HOT/SPIKE", "no data",
@@ -102,29 +106,18 @@ public class SummaryReportFormatter {
         appendBreadthConclusion(sb, report.w1ImpulsePulse(), report.d1ThermometerPulse());
         sb.append("\n");
 
-        // --- Primary shortlist ---
-        sb.append("## Primary Bull Shortlist — W1 GREEN + D1 GREEN + D1 QUIET\n");
-        sb.append("*Weekly EMA rising (strategic bull) + daily EMA and MACD-H both rising (inertia and momentum in gear) + market quiet (low slippage entry). Get long. Hop off the moment a single daily indicator turns.*\n\n");
-        if (report.primaryShortlist().isEmpty()) {
-            sb.append("None tonight — inertia and momentum not in gear across the universe.\n\n");
-        } else {
-            for (ScanResult r : report.primaryShortlist()) {
-                appendShortlistEntry(sb, r, "GREEN", "high", "yesterday high + ");
-            }
-            sb.append("\n");
-        }
+        // Determine macro bias for conditional section ordering
+        boolean bearBias = report.w1ImpulsePulse() != null &&
+                (1.0 - report.w1ImpulsePulse().bullishRatio().doubleValue()) > 0.5;
 
-        // --- Primary bear shortlist ---
-        sb.append("## Primary Bear Shortlist — W1 RED + D1 RED + D1 QUIET\n");
-        sb.append("*Weekly EMA falling (strategic bear) + daily EMA and MACD-H both falling (inertia and momentum in gear, downward) + market quiet (low slippage entry). Go short. Cover the moment a single daily indicator stops falling.*\n\n");
-        if (report.primaryBearShortlist().isEmpty()) {
-            sb.append("None tonight — inertia and momentum not in gear to the downside.\n\n");
+        if (bearBias) {
+            appendBearShortlist(sb, report);
+            appendBullShortlist(sb, report);
         } else {
-            for (ScanResult r : report.primaryBearShortlist()) {
-                appendShortlistEntry(sb, r, "RED", "low", "yesterday low - ");
-            }
-            sb.append("\n");
+            appendBullShortlist(sb, report);
+            appendBearShortlist(sb, report);
         }
+        appendFreshSignalObservation(sb, report.primaryShortlist(), report.primaryBearShortlist());
 
         // --- Fresh W1 green flips ---
         sb.append("## Fresh W1 Green Flips (last 7 days)\n");
@@ -138,22 +131,24 @@ public class SummaryReportFormatter {
 
         // --- Spike alerts ---
         sb.append("## ⚠️ Spike Alerts — Take Profit\n");
-        sb.append("*Temperature > 3× EMA. Panics and surges tend to be short-lived — Elder calls these gifts from the crowd. Take profits into this strength. Do not open new positions.*\n\n");
-        if (report.spikeAlerts().isEmpty()) {
+        sb.append("*Temperature > 3× EMA. Panics and surges tend to be short-lived — Elder calls these gifts from the crowd. Do not open new positions.*\n\n");
+        boolean anySpikeAlerts = !report.spikeAlertsW1Green().isEmpty()
+                || !report.spikeAlertsW1Red().isEmpty()
+                || !report.spikeAlertsW1Neutral().isEmpty();
+        if (!anySpikeAlerts) {
             sb.append("No active spike alerts.\n\n");
         } else {
-            for (ScanResult r : report.spikeAlerts()) {
-                r.matchedIndicators().stream()
-                        .filter(mi -> mi instanceof ThermometerMatch)
-                        .map(mi -> (ThermometerMatch) mi)
-                        .findFirst()
-                        .ifPresent(t -> sb.append(String.format(
-                                "- [%s](%s): temp=%s, ema=%s (%.1f× normal) (Vol: %s)\n",
-                                r.assetSymbol(), r.tradingviewUrl(),
-                                formatTemp(t.temperature()),
-                                formatTemp(t.temperatureEma()),
-                                t.temperature().doubleValue() / t.temperatureEma().doubleValue(),
-                                formatVolume(r.avgVolume7d()))));
+            if (!report.spikeAlertsW1Green().isEmpty()) {
+                sb.append("*W1 GREEN — spike in an uptrend. Take profits on longs, do not add.*\n");
+                appendSpikeList(sb, report.spikeAlertsW1Green());
+            }
+            if (!report.spikeAlertsW1Red().isEmpty()) {
+                sb.append("*W1 RED — short-covering rally into a downtrend. Consider selling into this strength.*\n");
+                appendSpikeList(sb, report.spikeAlertsW1Red());
+            }
+            if (!report.spikeAlertsW1Neutral().isEmpty()) {
+                sb.append("*W1 NEUTRAL — no weekly direction established. Context ambiguous; caution on directional bias.*\n");
+                appendSpikeList(sb, report.spikeAlertsW1Neutral());
             }
             sb.append("\n");
         }
@@ -167,9 +162,78 @@ public class SummaryReportFormatter {
 
     private static final int FRESH_SIGNAL_DAYS = 3;
 
+    private void appendBullShortlist(StringBuilder sb, ElderSummaryReport report) {
+        sb.append("## Primary Bull Shortlist — W1 GREEN + D1 GREEN + D1 QUIET\n");
+        sb.append("*Weekly EMA rising (strategic bull) + daily EMA and MACD-H both rising (inertia and momentum in gear) + market quiet (low slippage entry). Get long. Hop off the moment a single daily indicator turns.*\n\n");
+        if (report.primaryShortlist().isEmpty()) {
+            sb.append("None tonight — inertia and momentum not in gear across the universe.\n\n");
+        } else {
+            for (ScanResult r : report.primaryShortlist()) {
+                appendShortlistEntry(sb, r, "GREEN", "high", "yesterday high + ");
+            }
+            sb.append("\n");
+        }
+    }
+
+    private void appendBearShortlist(StringBuilder sb, ElderSummaryReport report) {
+        sb.append("## Primary Bear Shortlist — W1 RED + D1 RED + D1 QUIET\n");
+        sb.append("*Weekly EMA falling (strategic bear) + daily EMA and MACD-H both falling (inertia and momentum in gear, downward) + market quiet (low slippage entry). Go short. Cover the moment a single daily indicator stops falling.*\n\n");
+        if (report.primaryBearShortlist().isEmpty()) {
+            sb.append("None tonight — inertia and momentum not in gear to the downside.\n\n");
+        } else {
+            for (ScanResult r : report.primaryBearShortlist()) {
+                appendShortlistEntry(sb, r, "RED", "low", "yesterday low - ");
+            }
+            sb.append("\n");
+        }
+    }
+
+    private void appendFreshSignalObservation(StringBuilder sb, List<ScanResult> bullList, List<ScanResult> bearList) {
+        List<ScanResult> combined = Stream.concat(bullList.stream(), bearList.stream()).toList();
+        if (combined.isEmpty()) return;
+        long freshCount = combined.stream()
+                .filter(r -> r.matchedIndicators().stream()
+                        .anyMatch(mi -> mi instanceof ElderImpulseMatch e &&
+                                e.timeframe() == Timeframe.D1 &&
+                                e.daysSinceChange() <= FRESH_SIGNAL_DAYS))
+                .count();
+        if (freshCount == 0) return;
+        if (freshCount == combined.size()) {
+            sb.append("*⚠️ All shortlist entries are fresh signals — market just beginning to move, not mid-trend. " +
+                      "Signals have not yet proven they will hold. Size conservatively until signals age past day 3.*\n\n");
+        } else if (freshCount * 2 >= combined.size()) {
+            sb.append(String.format("*%d of %d shortlist entries are fresh signals — early-stage move. " +
+                      "Weight toward older signals for initial entries.*\n\n", freshCount, combined.size()));
+        }
+    }
+
+    private void appendSpikeList(StringBuilder sb, List<ScanResult> spikes) {
+        for (ScanResult r : spikes) {
+            // Spike signals are D1 — force the link to the daily chart regardless of what
+            // highestTimeframe() picked when W1 was also in the scan conditions.
+            String d1Url = r.tradingviewUrl() != null
+                    ? r.tradingviewUrl().replaceAll("interval=[^&]*", "interval=1D")
+                    : null;
+            r.matchedIndicators().stream()
+                    .filter(mi -> mi instanceof ThermometerMatch)
+                    .map(mi -> (ThermometerMatch) mi)
+                    .findFirst()
+                    .ifPresent(t -> sb.append(String.format(
+                            "- [%s](%s): temp=%s, ema=%s (%.1f× normal) (Vol: %s)\n",
+                            r.assetSymbol(), d1Url,
+                            formatTemp(t.temperature()),
+                            formatTemp(t.temperatureEma()),
+                            t.temperature().doubleValue() / t.temperatureEma().doubleValue(),
+                            formatVolume(r.avgVolume7d()))));
+        }
+    }
+
     private void appendShortlistEntry(StringBuilder sb, ScanResult r, String direction,
                                        String targetAnchor, String targetPrefix) {
-        sb.append(String.format("- [%s](%s)", r.assetSymbol(), r.tradingviewUrl()));
+        String d1Url = r.tradingviewUrl() != null
+                ? r.tradingviewUrl().replaceAll("interval=[^&]*", "interval=1D")
+                : null;
+        sb.append(String.format("- [%s](%s)", r.assetSymbol(), d1Url));
         for (var mi : r.matchedIndicators()) {
             if (mi instanceof ElderImpulseMatch e) {
                 sb.append(String.format("  %s %s for %d day(s)", e.timeframe(), direction, e.daysSinceChange()));
@@ -180,11 +244,16 @@ public class SummaryReportFormatter {
             if (mi instanceof ThermometerMatch t) {
                 boolean insideBar = t.temperature().compareTo(java.math.BigDecimal.ZERO) == 0;
                 if (insideBar) {
-                    sb.append(String.format("  temp=0 *(inside bar — no range extension today; indecision, not low volatility. Valid entry but size conservatively.)*"));
+                    sb.append("  temp=0 *(inside bar — no range extension today; indecision, not low volatility. Valid entry but size conservatively.)*");
                 } else {
+                    boolean tempBelowEma = t.temperature().compareTo(t.temperatureEma()) < 0;
                     sb.append(String.format("  temp=%s ema=%s", formatTemp(t.temperature()), formatTemp(t.temperatureEma())));
+                    if (tempBelowEma) {
+                        sb.append(" *(today quieter than average — confirms calm entry)*");
+                    }
                 }
-                sb.append(String.format("  → target: %s%s", targetPrefix, formatTemp(t.temperatureEma())));
+                sb.append(String.format("  → target: %s%s *(EMA = expected next-bar range, not today's temp)*",
+                        targetPrefix, formatTemp(t.temperatureEma())));
             }
         }
         sb.append(String.format("  (Vol: %s)\n", formatVolume(r.avgVolume7d())));

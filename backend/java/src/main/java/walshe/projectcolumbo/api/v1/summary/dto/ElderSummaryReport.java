@@ -43,8 +43,14 @@ public record ElderSummaryReport(
         @Schema(description = "Assets whose W1 Impulse flipped to RED within the last 7 days. Tighten stops on existing longs; early short setups on W1 RED + D1 RED alignment.")
         List<ScanResult> freshW1RedFlips,
 
-        @Schema(description = "Assets currently showing D1 ELDER_THERMOMETER_SPIKE (temperature > 3× EMA). Signal to take profits on open longs, not open new positions.")
-        List<ScanResult> spikeAlerts,
+        @Schema(description = "Assets showing D1 ELDER_THERMOMETER_SPIKE where W1 Impulse is GREEN — spike into an uptrend. Signal to take profits on longs, not open new positions.")
+        List<ScanResult> spikeAlertsW1Green,
+
+        @Schema(description = "Assets showing D1 ELDER_THERMOMETER_SPIKE where W1 Impulse is RED — spike into a downtrend (short-covering rally). Consider selling into strength.")
+        List<ScanResult> spikeAlertsW1Red,
+
+        @Schema(description = "Assets showing D1 ELDER_THERMOMETER_SPIKE where W1 Impulse is NEUTRAL — no clear weekly direction established. Context ambiguous; use extra caution.")
+        List<ScanResult> spikeAlertsW1Neutral,
 
         @Schema(description = "Timestamp when the most recent successful ingestion pipeline run finished. " +
                 "Tells you when the data was last processed. Null if no successful run has been recorded yet.")
