@@ -86,8 +86,12 @@ public class MarketPulseService {
                 .filter(s -> s.getCloseTime().equals(latestCloseTime))
                 .toList();
 
-        int bullishCount = (int) statesAtTime.stream().filter(s -> s.getTrendState() == TrendState.SUPERTREND_BULLISH).count();
-        int bearishCount = (int) statesAtTime.stream().filter(s -> s.getTrendState() == TrendState.SUPERTREND_BEARISH).count();
+        int bullishCount = (int) statesAtTime.stream()
+                .filter(s -> isBullishState(indicatorType, s.getTrendState()))
+                .count();
+        int bearishCount = (int) statesAtTime.stream()
+                .filter(s -> isBearishState(indicatorType, s.getTrendState()))
+                .count();
         // missingCount = all non-bullish, non-bearish assets (includes UNKNOWN trend and assets with no signal row).
         // This keeps the contract simple: bullishCount + bearishCount + missingCount == totalActiveAssets.
         int missingCount = (int) (totalActiveAssets - bullishCount - bearishCount);
@@ -140,5 +144,23 @@ public class MarketPulseService {
                a.getMissingCount() == b.getMissingCount() &&
                a.getTotalAssets() == b.getTotalAssets() &&
                a.getBullishRatio().compareTo(b.getBullishRatio()) == 0;
+    }
+
+    private boolean isBullishState(IndicatorType type, TrendState state) {
+        return switch (type) {
+            case SUPERTREND -> state == TrendState.SUPERTREND_BULLISH;
+            case RSI -> state == TrendState.RSI_ABOVE_60;
+            case ELDER_IMPULSE -> state == TrendState.ELDER_IMPULSE_GREEN;
+            case ELDER_THERMOMETER -> state == TrendState.ELDER_THERMOMETER_QUIET;
+        };
+    }
+
+    private boolean isBearishState(IndicatorType type, TrendState state) {
+        return switch (type) {
+            case SUPERTREND -> state == TrendState.SUPERTREND_BEARISH;
+            case RSI -> state == TrendState.RSI_BELOW_40;
+            case ELDER_IMPULSE -> state == TrendState.ELDER_IMPULSE_RED;
+            case ELDER_THERMOMETER -> state == TrendState.ELDER_THERMOMETER_HOT || state == TrendState.ELDER_THERMOMETER_SPIKE;
+        };
     }
 }

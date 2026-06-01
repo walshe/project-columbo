@@ -17,9 +17,11 @@ import java.time.OffsetDateTime;
 )
 @JsonSubTypes({
     @JsonSubTypes.Type(value = SupertrendMatch.class, name = "SUPERTREND"),
-    @JsonSubTypes.Type(value = RsiMatch.class, name = "RSI")
+    @JsonSubTypes.Type(value = RsiMatch.class, name = "RSI"),
+    @JsonSubTypes.Type(value = ElderImpulseMatch.class, name = "ELDER_IMPULSE"),
+    @JsonSubTypes.Type(value = ThermometerMatch.class, name = "ELDER_THERMOMETER")
 })
-public sealed interface MatchedIndicator permits SupertrendMatch, RsiMatch {
+public sealed interface MatchedIndicator permits SupertrendMatch, RsiMatch, ElderImpulseMatch, ThermometerMatch {
     IndicatorType indicatorType();
     @Schema(description = "The timeframe this indicator was evaluated on", example = "1W")
     Timeframe timeframe();

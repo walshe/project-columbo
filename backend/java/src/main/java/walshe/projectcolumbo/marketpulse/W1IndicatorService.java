@@ -1,6 +1,8 @@
 package walshe.projectcolumbo.marketpulse;
 
 import walshe.projectcolumbo.persistence.model.Timeframe;
+import walshe.projectcolumbo.persistence.service.ElderImpulseStateService;
+import walshe.projectcolumbo.persistence.service.EmaComputationService;
 import walshe.projectcolumbo.persistence.service.RsiComputationService;
 import walshe.projectcolumbo.persistence.service.SignalStateService;
 import walshe.projectcolumbo.persistence.service.SuperTrendService;
@@ -25,16 +27,22 @@ public class W1IndicatorService {
 
     private final SuperTrendService superTrendService;
     private final RsiComputationService rsiComputationService;
+    private final EmaComputationService emaComputationService;
     private final SignalStateService signalStateService;
+    private final ElderImpulseStateService elderImpulseStateService;
     private final MarketPulseService marketPulseService;
 
     public W1IndicatorService(SuperTrendService superTrendService,
                                RsiComputationService rsiComputationService,
+                               EmaComputationService emaComputationService,
                                SignalStateService signalStateService,
+                               ElderImpulseStateService elderImpulseStateService,
                                MarketPulseService marketPulseService) {
         this.superTrendService = superTrendService;
         this.rsiComputationService = rsiComputationService;
+        this.emaComputationService = emaComputationService;
         this.signalStateService = signalStateService;
+        this.elderImpulseStateService = elderImpulseStateService;
         this.marketPulseService = marketPulseService;
     }
 
@@ -62,10 +70,20 @@ public class W1IndicatorService {
         rsiComputationService.computeForActiveAssets(Timeframe.W1, 14, false);
         log.info("Completed phase: W1_RSI in {}ms", System.currentTimeMillis() - rsiStart);
 
+        log.info("Starting phase: W1_EMA");
+        long emaStart = System.currentTimeMillis();
+        emaComputationService.computeForActiveAssets(Timeframe.W1, 26, false);
+        log.info("Completed phase: W1_EMA in {}ms", System.currentTimeMillis() - emaStart);
+
         log.info("Starting phase: W1_SIGNAL");
         long signalStart = System.currentTimeMillis();
         signalStateService.detectForTimeframe(Timeframe.W1);
         log.info("Completed phase: W1_SIGNAL in {}ms", System.currentTimeMillis() - signalStart);
+
+        log.info("Starting phase: W1_IMPULSE");
+        long impulseStart = System.currentTimeMillis();
+        elderImpulseStateService.computeForAllActiveAssets(Timeframe.W1);
+        log.info("Completed phase: W1_IMPULSE in {}ms", System.currentTimeMillis() - impulseStart);
 
         log.info("Starting phase: W1_MARKET_PULSE");
         long pulseStart = System.currentTimeMillis();

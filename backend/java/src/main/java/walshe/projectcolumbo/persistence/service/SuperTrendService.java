@@ -37,7 +37,7 @@ public class SuperTrendService {
     }
 
     @Transactional
-    public void processAllActiveAssets(Timeframe timeframe, int atrLength, java.math.BigDecimal multiplier, boolean fullRecalc) {
+    public synchronized void processAllActiveAssets(Timeframe timeframe, int atrLength, java.math.BigDecimal multiplier, boolean fullRecalc) {
         List<Asset> activeAssets = assetRepository.findByActiveTrue();
         log.info("Starting SuperTrend processing for {} active assets on {} timeframe", activeAssets.size(), timeframe);
 
@@ -54,6 +54,21 @@ public class SuperTrendService {
     public void processAsset(Asset asset, Timeframe timeframe, int atrLength, java.math.BigDecimal multiplier, boolean fullRecalc) {
         Optional<SuperTrendIndicator> latestStored = superTrendRepository.findFirstByAssetAndTimeframeOrderByCloseTimeDesc(asset, timeframe);
         OffsetDateTime lastStoredCloseTime = latestStored.map(SuperTrendIndicator::getCloseTime).orElse(null);
+
+        // Early-exit guard: if the most recently stored SuperTrend row already matches the latest
+        // finalized candle, the pipeline ran with no new data since last time — nothing to do.
+        // SuperTrend's ATR and direction are path-dependent, so when there IS a new candle the
+        // full-history calculateIncremental call below is still required.
+        // fullRecalc bypasses this guard intentionally (used for backfill / parameter changes).
+        if (!fullRecalc && lastStoredCloseTime != null) {
+            OffsetDateTime boundary = CandleFilters.utcMidnightToday(OffsetDateTime.now());
+            Optional<Candle> latestCandle = candleRepository
+                    .findFirstByAssetAndTimeframeAndCloseTimeBeforeOrderByCloseTimeDesc(asset, timeframe, boundary);
+            if (latestCandle.isPresent() && lastStoredCloseTime.equals(latestCandle.get().getCloseTime())) {
+                log.debug("SuperTrend already up-to-date for {} [{}] — skipping", asset.getSymbol(), timeframe);
+                return;
+            }
+        }
 
         List<Candle> allCandles = candleRepository.findByAssetAndTimeframeOrderByCloseTimeAsc(asset, timeframe);
         List<Candle> finalizedCandles = CandleFilters.finalizedBeforeUtcMidnightToday(allCandles, OffsetDateTime.now());

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
+import walshe.projectcolumbo.TestDatabaseCleaner;
 import walshe.projectcolumbo.TestcontainersConfiguration;
 import walshe.projectcolumbo.persistence.entity.Asset;
 import walshe.projectcolumbo.persistence.repository.AssetRepository;
@@ -25,6 +26,9 @@ import static org.mockito.Mockito.when;
 class IngestionOrchestratorIntegrationTest {
 
     @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
+
+    @Autowired
     private IngestionOrchestrator orchestrator;
 
     @Autowired
@@ -41,9 +45,7 @@ class IngestionOrchestratorIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        ingestionRunRepository.deleteAll();
-        rsiRepository.deleteAll();
-        assetRepository.deleteAll();
+        testDatabaseCleaner.cleanAll();
     }
 
     @Test

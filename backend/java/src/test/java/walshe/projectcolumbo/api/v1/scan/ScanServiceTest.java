@@ -6,10 +6,12 @@ import walshe.projectcolumbo.persistence.model.MarketProvider;
 import walshe.projectcolumbo.persistence.model.SignalEvent;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.model.TrendState;
+import walshe.projectcolumbo.ingestion.IngestionStatusService;
 import walshe.projectcolumbo.persistence.repository.AssetLiquidityRepository;
 import walshe.projectcolumbo.persistence.repository.CandleRepository;
 import walshe.projectcolumbo.persistence.repository.RsiRepository;
 import walshe.projectcolumbo.persistence.repository.SignalStateRepository;
+import walshe.projectcolumbo.persistence.repository.ThermometerRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,13 +45,19 @@ class ScanServiceTest {
     private RsiRepository rsiRepository;
     @Mock
     private AssetLiquidityRepository assetLiquidityRepository;
+    @Mock
+    private ThermometerRepository thermometerRepository;
+    @Mock
+    private IngestionStatusService ingestionStatusService;
 
     private ScanService scanService;
 
     @BeforeEach
     void setUp() {
-        scanService = new ScanService(signalStateRepository, candleRepository, scanValidator, rsiRepository, assetLiquidityRepository);
+        scanService = new ScanService(signalStateRepository, candleRepository, scanValidator, rsiRepository, assetLiquidityRepository, thermometerRepository, ingestionStatusService);
         when(assetLiquidityRepository.findAll()).thenReturn(List.of());
+        when(ingestionStatusService.lastSuccessfulD1IngestionAt()).thenReturn(Optional.empty());
+        when(ingestionStatusService.latestCandleDate()).thenReturn(Optional.empty());
     }
 
     @Test

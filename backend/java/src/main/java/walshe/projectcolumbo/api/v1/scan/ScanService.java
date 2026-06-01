@@ -2,14 +2,17 @@ package walshe.projectcolumbo.api.v1.scan;
 import walshe.projectcolumbo.persistence.entity.AssetLiquidityView;
 import walshe.projectcolumbo.persistence.entity.RsiIndicator;
 import walshe.projectcolumbo.persistence.entity.SignalState;
+import walshe.projectcolumbo.persistence.entity.ThermometerIndicator;
 import walshe.projectcolumbo.persistence.model.IndicatorType;
 import walshe.projectcolumbo.persistence.model.MarketProvider;
 import walshe.projectcolumbo.persistence.model.SignalEvent;
 import walshe.projectcolumbo.persistence.model.Timeframe;
+import walshe.projectcolumbo.ingestion.IngestionStatusService;
 import walshe.projectcolumbo.persistence.repository.AssetLiquidityRepository;
 import walshe.projectcolumbo.persistence.repository.CandleRepository;
 import walshe.projectcolumbo.persistence.repository.RsiRepository;
 import walshe.projectcolumbo.persistence.repository.SignalStateRepository;
+import walshe.projectcolumbo.persistence.repository.ThermometerRepository;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -42,17 +45,23 @@ public class ScanService {
     private final ScanValidator scanValidator;
     private final RsiRepository rsiRepository;
     private final AssetLiquidityRepository assetLiquidityRepository;
+    private final ThermometerRepository thermometerRepository;
+    private final IngestionStatusService ingestionStatusService;
 
     ScanService(SignalStateRepository signalStateRepository,
                 CandleRepository candleRepository,
                 ScanValidator scanValidator,
                 RsiRepository rsiRepository,
-                AssetLiquidityRepository assetLiquidityRepository) {
+                AssetLiquidityRepository assetLiquidityRepository,
+                ThermometerRepository thermometerRepository,
+                IngestionStatusService ingestionStatusService) {
         this.signalStateRepository = signalStateRepository;
         this.candleRepository = candleRepository;
         this.scanValidator = scanValidator;
         this.rsiRepository = rsiRepository;
         this.assetLiquidityRepository = assetLiquidityRepository;
+        this.thermometerRepository = thermometerRepository;
+        this.ingestionStatusService = ingestionStatusService;
     }
 
     @Transactional(readOnly = true)
@@ -188,10 +197,15 @@ public class ScanService {
                 request.conditions().size(),
                 results.size());
 
+        OffsetDateTime lastIngestionAt = ingestionStatusService.lastSuccessfulD1IngestionAt().orElse(null);
+        LocalDate candlesThrough = ingestionStatusService.latestCandleDate().orElse(null);
+
         return new ScanResponse(
                 request.operator(),
                 request.conditions(),
-                results
+                results,
+                lastIngestionAt,
+                candlesThrough
         );
     }
 
@@ -244,6 +258,12 @@ public class ScanService {
                     if (mi instanceof RsiMatch r1 && newIndicator instanceof RsiMatch r2) {
                         return r1.event() == r2.event();
                     }
+                    if (mi instanceof ElderImpulseMatch e1 && newIndicator instanceof ElderImpulseMatch e2) {
+                        return e1.event() == e2.event() && e1.state() == e2.state();
+                    }
+                    if (mi instanceof ThermometerMatch t1 && newIndicator instanceof ThermometerMatch t2) {
+                        return t1.state() == t2.state();
+                    }
                     return false;
                 });
         if (!present) {
@@ -288,13 +308,49 @@ public class ScanService {
                     daysSinceCross,
                     displayTime
             );
+        } else if (s.getIndicatorType() == IndicatorType.ELDER_IMPULSE) {
+            int daysSinceChange;
+            if (s.getEvent() == SignalEvent.NONE || s.getEvent() == null) {
+                OffsetDateTime flipTime = findFlipTime(s);
+                OffsetDateTime effectiveFlipTime = flipTime != null ? flipTime : s.getCloseTime();
+                daysSinceChange = (int) ChronoUnit.DAYS.between(
+                        signalDate(effectiveFlipTime, s.getTimeframe()), LocalDate.now(ZoneOffset.UTC));
+            } else {
+                daysSinceChange = (int) ChronoUnit.DAYS.between(
+                        signalDate(s.getCloseTime(), s.getTimeframe()), LocalDate.now(ZoneOffset.UTC));
+            }
+            return new ElderImpulseMatch(
+                    s.getIndicatorType(),
+                    s.getTimeframe(),
+                    s.getTrendState(),
+                    s.getEvent(),
+                    daysSinceChange,
+                    displayTime
+            );
+        } else if (s.getIndicatorType() == IndicatorType.ELDER_THERMOMETER) {
+            return thermometerRepository.findByAssetAndCloseTime(s.getAsset(), s.getCloseTime())
+                    .map(row -> (MatchedIndicator) new ThermometerMatch(
+                            s.getIndicatorType(),
+                            s.getTimeframe(),
+                            s.getTrendState(),
+                            row.getTemperature(),
+                            row.getTemperatureEma() != null ? row.getTemperatureEma() : BigDecimal.ZERO,
+                            displayTime))
+                    .orElse(new ThermometerMatch(
+                            s.getIndicatorType(),
+                            s.getTimeframe(),
+                            s.getTrendState(),
+                            BigDecimal.ZERO,
+                            BigDecimal.ZERO,
+                            displayTime));
         } else {
             int daysSinceFlip;
             if (s.getEvent() == SignalEvent.NONE || s.getEvent() == null) {
                 // Find when this trend state started
                 OffsetDateTime flipTime = findFlipTime(s);
+                OffsetDateTime effectiveFlipTime = flipTime != null ? flipTime : s.getCloseTime();
                 daysSinceFlip = (int) ChronoUnit.DAYS.between(
-                        signalDate(flipTime, s.getTimeframe()), LocalDate.now(ZoneOffset.UTC));
+                        signalDate(effectiveFlipTime, s.getTimeframe()), LocalDate.now(ZoneOffset.UTC));
             } else {
                 // It's an event — calculate days between when it appeared on chart and now
                 daysSinceFlip = (int) ChronoUnit.DAYS.between(

@@ -1,5 +1,6 @@
 package walshe.projectcolumbo.persistence.service;
 
+import walshe.projectcolumbo.TestDatabaseCleaner;
 import walshe.projectcolumbo.TestcontainersConfiguration;
 import walshe.projectcolumbo.marketpulse.MarketPulseService;
 import walshe.projectcolumbo.marketpulse.W1IndicatorService;
@@ -29,6 +30,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestcontainersConfiguration.class)
 class W1IndicatorPipelineIntegrationTest {
+
+    @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
 
     @Autowired
     private SuperTrendService superTrendService;
@@ -65,12 +69,7 @@ class W1IndicatorPipelineIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        marketBreadthSnapshotRepository.deleteAll();
-        signalStateRepository.deleteAll();
-        superTrendRepository.deleteAll();
-        rsiRepository.deleteAll();
-        candleRepository.deleteAll();
-        assetRepository.deleteAll();
+        testDatabaseCleaner.cleanAll();
     }
 
     private Asset seedAssetWithW1Candles(String symbol, int count) {

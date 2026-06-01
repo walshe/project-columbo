@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.transaction.annotation.Transactional;
+import walshe.projectcolumbo.TestDatabaseCleaner;
 import walshe.projectcolumbo.TestcontainersConfiguration;
 
 import java.math.BigDecimal;
@@ -31,6 +32,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestcontainersConfiguration.class)
 class SuperTrendServiceTest {
+
+    @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
 
     @Autowired
     private SuperTrendService superTrendService;
@@ -57,11 +61,7 @@ class SuperTrendServiceTest {
 
     @BeforeEach
     void setUp() {
-        signalStateRepository.deleteAllInBatch();
-        superTrendRepository.deleteAllInBatch();
-        rsiRepository.deleteAllInBatch();
-        candleRepository.deleteAllInBatch();
-        assetRepository.deleteAllInBatch();
+        testDatabaseCleaner.cleanAll();
 
         btc = new Asset("BTCUSDT", "Bitcoin", MarketProvider.BINANCE, true);
         assetRepository.saveAndFlush(btc);

@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import walshe.projectcolumbo.api.v1.MarketPulseQueryService;
 import walshe.projectcolumbo.api.v1.SignalQueryService;
+import walshe.projectcolumbo.ingestion.IngestionStatusService;
 import walshe.projectcolumbo.api.v1.dto.MarketPulseDto;
 import walshe.projectcolumbo.api.v1.dto.SignalSort;
 import walshe.projectcolumbo.api.v1.dto.SignalStateDto;
@@ -18,6 +19,8 @@ import walshe.projectcolumbo.persistence.model.SignalEvent;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.model.TrendState;
 
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Service
@@ -27,13 +30,16 @@ public class SummaryService {
     private final SignalQueryService signalQueryService;
     private final MarketPulseQueryService marketPulseQueryService;
     private final ScanService scanService;
+    private final IngestionStatusService ingestionStatusService;
 
     public SummaryService(SignalQueryService signalQueryService,
                           MarketPulseQueryService marketPulseQueryService,
-                          ScanService scanService) {
+                          ScanService scanService,
+                          IngestionStatusService ingestionStatusService) {
         this.signalQueryService = signalQueryService;
         this.marketPulseQueryService = marketPulseQueryService;
         this.scanService = scanService;
+        this.ingestionStatusService = ingestionStatusService;
     }
 
     public SummaryReport getSummary(Timeframe timeframe) {
@@ -64,12 +70,17 @@ public class SummaryService {
                 null
         )).results();
 
+        OffsetDateTime lastIngestionAt = ingestionStatusService.lastSuccessfulD1IngestionAt().orElse(null);
+        LocalDate candlesThrough = ingestionStatusService.latestCandleDate().orElse(null);
+
         return new SummaryReport(
                 pulse,
                 bullishSignals,
                 bearishSignals,
                 bullishRsi,
-                bearishRsi
+                bearishRsi,
+                lastIngestionAt,
+                candlesThrough
         );
     }
 }

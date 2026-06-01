@@ -8,15 +8,19 @@ import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.model.TrendState;
 import walshe.projectcolumbo.persistence.repository.AssetRepository;
 import walshe.projectcolumbo.persistence.repository.CandleRepository;
+import walshe.projectcolumbo.persistence.repository.EmaRepository;
+import walshe.projectcolumbo.persistence.repository.MacdRepository;
 import walshe.projectcolumbo.persistence.repository.RsiRepository;
 import walshe.projectcolumbo.persistence.repository.SignalStateRepository;
 import walshe.projectcolumbo.persistence.repository.SuperTrendRepository;
+import walshe.projectcolumbo.persistence.repository.ThermometerRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import walshe.projectcolumbo.TestDatabaseCleaner;
 import walshe.projectcolumbo.TestcontainersConfiguration;
 
 import java.time.OffsetDateTime;
@@ -29,6 +33,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestcontainersConfiguration.class)
 class SignalStateRepositoryTest {
+
+    @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
 
     @Autowired
     private SignalStateRepository signalStateRepository;
@@ -45,13 +52,18 @@ class SignalStateRepositoryTest {
     @Autowired
     private RsiRepository rsiRepository;
 
+    @Autowired
+    private EmaRepository emaRepository;
+
+    @Autowired
+    private MacdRepository macdRepository;
+
+    @Autowired
+    private ThermometerRepository thermometerRepository;
+
     @BeforeEach
     void setUp() {
-        signalStateRepository.deleteAll();
-        superTrendRepository.deleteAll();
-        rsiRepository.deleteAll();
-        candleRepository.deleteAll();
-        assetRepository.deleteAll();
+        testDatabaseCleaner.cleanAll();
     }
 
     @Test

@@ -4,9 +4,14 @@ import walshe.projectcolumbo.marketpulse.W1IndicatorService;
 import walshe.projectcolumbo.persistence.model.MarketProvider;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.repository.AssetRepository;
+import walshe.projectcolumbo.persistence.service.EmaComputationService;
+import walshe.projectcolumbo.persistence.service.ElderImpulseStateService;
+import walshe.projectcolumbo.persistence.service.MacdComputationService;
 import walshe.projectcolumbo.persistence.service.RsiComputationService;
 import walshe.projectcolumbo.persistence.service.SignalStateService;
 import walshe.projectcolumbo.persistence.service.SuperTrendService;
+import walshe.projectcolumbo.persistence.service.ThermometerService;
+import walshe.projectcolumbo.persistence.service.ThermometerStateService;
 import walshe.projectcolumbo.rollup.CandleRollupService;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +38,16 @@ class MarketPipelineServiceTest {
     @Mock
     private RsiComputationService rsiComputationService;
     @Mock
+    private EmaComputationService emaComputationService;
+    @Mock
+    private MacdComputationService macdComputationService;
+    @Mock
+    private ElderImpulseStateService elderImpulseStateService;
+    @Mock
+    private ThermometerService thermometerService;
+    @Mock
+    private ThermometerStateService thermometerStateService;
+    @Mock
     private SignalStateService signalStateService;
     @Mock
     private MarketPulseService marketPulseService;
@@ -56,6 +71,11 @@ class MarketPipelineServiceTest {
                 candleIngestionService,
                 superTrendService,
                 rsiComputationService,
+                emaComputationService,
+                macdComputationService,
+                elderImpulseStateService,
+                thermometerService,
+                thermometerStateService,
                 signalStateService,
                 marketPulseService,
                 ingestionRunRepository,
@@ -89,11 +109,18 @@ class MarketPipelineServiceTest {
 
         // Then
         InOrder inOrder = inOrder(candleIngestionService, superTrendService, rsiComputationService,
-                signalStateService, marketPulseService, candleRollupService, w1IndicatorService);
+                emaComputationService, macdComputationService, thermometerService,
+                signalStateService, elderImpulseStateService, thermometerStateService,
+                marketPulseService, candleRollupService, w1IndicatorService);
         inOrder.verify(candleIngestionService).ingestDaily();
         inOrder.verify(superTrendService).processAllActiveAssets(eq(Timeframe.D1), anyInt(), any(), eq(false));
         inOrder.verify(rsiComputationService).computeForActiveAssets(eq(Timeframe.D1), anyInt(), eq(false));
+        inOrder.verify(emaComputationService).computeForActiveAssets(eq(Timeframe.D1), eq(13), eq(false));
+        inOrder.verify(macdComputationService).computeForActiveAssets(eq(Timeframe.D1), eq(false));
+        inOrder.verify(thermometerService).computeForActiveAssets(eq(false));
         inOrder.verify(signalStateService).detectForTimeframe(eq(Timeframe.D1));
+        inOrder.verify(elderImpulseStateService).computeForAllActiveAssets(eq(Timeframe.D1));
+        inOrder.verify(thermometerStateService).computeForAllActiveAssets();
         inOrder.verify(marketPulseService).computeDaily();
         inOrder.verify(candleRollupService).rollupForAllActiveAssets(eq(Timeframe.D1), eq(Timeframe.W1), any());
         inOrder.verify(w1IndicatorService).processAllActiveAssets();

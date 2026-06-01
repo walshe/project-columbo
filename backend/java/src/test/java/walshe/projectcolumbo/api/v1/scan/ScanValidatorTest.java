@@ -162,4 +162,28 @@ class ScanValidatorTest {
 
         assertDoesNotThrow(() -> validator.validate(request));
     }
+
+    @Test
+    void shouldAcceptValidThermometerStateCondition() {
+        ScanRequest request = new ScanRequest(
+            ScanOperator.AND,
+            List.of(new ScanCondition(Timeframe.D1, IndicatorType.ELDER_THERMOMETER, null,
+                    TrendState.ELDER_THERMOMETER_QUIET, null, null)),
+            null
+        );
+
+        assertDoesNotThrow(() -> validator.validate(request));
+    }
+
+    @Test
+    void shouldAcceptValidThermometerEventCondition() {
+        ScanRequest request = new ScanRequest(
+            ScanOperator.AND,
+            List.of(new ScanCondition(Timeframe.D1, IndicatorType.ELDER_THERMOMETER,
+                    SignalEvent.ELDER_THERMOMETER_CROSSED_ABOVE_EMA, null, null, null)),
+            null
+        );
+
+        assertDoesNotThrow(() -> validator.validate(request));
+    }
 }

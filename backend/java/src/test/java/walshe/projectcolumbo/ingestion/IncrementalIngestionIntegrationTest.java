@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
+import walshe.projectcolumbo.TestDatabaseCleaner;
 import walshe.projectcolumbo.TestcontainersConfiguration;
 import walshe.projectcolumbo.marketdata.CandleDto;
 import walshe.projectcolumbo.marketdata.MarketDataProvider;
@@ -36,6 +37,9 @@ import static org.mockito.Mockito.*;
 class IncrementalIngestionIntegrationTest {
 
     @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
+
+    @Autowired
     private CandleIngestionService candleIngestionService;
 
     @Autowired
@@ -54,9 +58,7 @@ class IncrementalIngestionIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        candleRepository.deleteAll();
-        rsiRepository.deleteAll();
-        assetRepository.deleteAll();
+        testDatabaseCleaner.cleanAll();
 
         when(binanceProvider.getProviderName()).thenReturn("BINANCE");
 

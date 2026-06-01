@@ -6,9 +6,12 @@ import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.repository.AssetRepository;
 import walshe.projectcolumbo.persistence.repository.CandleRepository;
 import walshe.projectcolumbo.persistence.repository.MarketBreadthSnapshotRepository;
+import walshe.projectcolumbo.persistence.repository.EmaRepository;
+import walshe.projectcolumbo.persistence.repository.MacdRepository;
 import walshe.projectcolumbo.persistence.repository.RsiRepository;
 import walshe.projectcolumbo.persistence.repository.SignalStateRepository;
 import walshe.projectcolumbo.persistence.repository.SuperTrendRepository;
+import walshe.projectcolumbo.persistence.repository.ThermometerRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import walshe.projectcolumbo.TestDatabaseCleaner;
 import walshe.projectcolumbo.TestcontainersConfiguration;
 import walshe.projectcolumbo.marketdata.CandleDto;
 import walshe.projectcolumbo.marketdata.MarketDataProvider;
@@ -37,6 +41,9 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestcontainersConfiguration.class)
 class MarketPipelineIntegrationTest {
+
+    @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
 
     @Autowired
     private MarketPipelineService marketPipelineService;
@@ -62,18 +69,21 @@ class MarketPipelineIntegrationTest {
     @Autowired
     private RsiRepository rsiRepository;
 
+    @Autowired
+    private EmaRepository emaRepository;
+
+    @Autowired
+    private MacdRepository macdRepository;
+
+    @Autowired
+    private ThermometerRepository thermometerRepository;
+
     @MockitoBean(name = "binanceMarketDataProvider")
     private MarketDataProvider binanceProvider;
 
     @BeforeEach
     void setUp() {
-        signalStateRepository.deleteAll();
-        superTrendRepository.deleteAll();
-        rsiRepository.deleteAll();
-        candleRepository.deleteAll();
-        marketBreadthSnapshotRepository.deleteAll();
-        ingestionRunRepository.deleteAll();
-        assetRepository.deleteAll();
+        testDatabaseCleaner.cleanAll();
 
         when(binanceProvider.getProviderName()).thenReturn("BINANCE");
     }

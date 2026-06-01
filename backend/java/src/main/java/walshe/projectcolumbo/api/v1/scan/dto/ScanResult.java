@@ -13,11 +13,13 @@ public record ScanResult(
 
     @ArraySchema(schema = @Schema(
         description = "Indicator event or state that matched the scan condition",
-        oneOf = {SupertrendMatch.class, RsiMatch.class},
+        oneOf = {SupertrendMatch.class, RsiMatch.class, ElderImpulseMatch.class, ThermometerMatch.class},
         discriminatorProperty = "indicatorType",
         discriminatorMapping = {
             @DiscriminatorMapping(value = "SUPERTREND", schema = SupertrendMatch.class),
-            @DiscriminatorMapping(value = "RSI", schema = RsiMatch.class)
+            @DiscriminatorMapping(value = "RSI", schema = RsiMatch.class),
+            @DiscriminatorMapping(value = "ELDER_IMPULSE", schema = ElderImpulseMatch.class),
+            @DiscriminatorMapping(value = "ELDER_THERMOMETER", schema = ThermometerMatch.class)
         }
     ))
     List<MatchedIndicator> matchedIndicators,

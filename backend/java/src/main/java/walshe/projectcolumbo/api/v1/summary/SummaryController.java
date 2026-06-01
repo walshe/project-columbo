@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import walshe.projectcolumbo.api.v1.summary.dto.SummaryReport;
-import walshe.projectcolumbo.persistence.model.IndicatorType;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 
 @RestController
@@ -26,21 +25,21 @@ public class SummaryController {
     }
 
     @GetMapping
-    @Operation(summary = "Get aggregate market summary", description = "Assembles market pulse, trending signals, and RSI scan results into a single report")
+    @Operation(
+            summary = "Get aggregate market summary",
+            description = "Assembles SuperTrend market pulse, recent signal flips, and RSI scan results. " +
+                    "Use format=MARKDOWN for a human-readable brief."
+    )
     public ResponseEntity<?> getSummary(
             @RequestParam Timeframe timeframe,
-            @RequestParam(required = false) String format) {
+            @RequestParam(required = false, defaultValue = "JSON") SummaryFormat format) {
 
         SummaryReport report = summaryService.getSummary(timeframe);
 
-        if ("markdown".equalsIgnoreCase(format)) {
+        if (format == SummaryFormat.MARKDOWN) {
             return ResponseEntity.ok()
                     .contentType(MediaType.TEXT_MARKDOWN)
                     .body(formatter.formatMarkdown(report));
-        } else if ("html".equalsIgnoreCase(format)) {
-            return ResponseEntity.ok()
-                    .contentType(MediaType.TEXT_HTML)
-                    .body(formatter.formatHtml(report));
         }
 
         return ResponseEntity.ok(report);

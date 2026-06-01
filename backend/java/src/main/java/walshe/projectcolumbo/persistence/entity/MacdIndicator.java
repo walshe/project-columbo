@@ -1,0 +1,104 @@
+package walshe.projectcolumbo.persistence.entity;
+import walshe.projectcolumbo.persistence.model.Timeframe;
+
+import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+
+@Entity
+@Table(name = "indicator_macd")
+public class MacdIndicator {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "asset_id", nullable = false)
+    private Asset asset;
+
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private Timeframe timeframe;
+
+    @Column(name = "close_time", nullable = false)
+    private OffsetDateTime closeTime;
+
+    @Column(name = "macd_line", nullable = false)
+    private BigDecimal macdLine;
+
+    @Column(name = "signal_line", nullable = false)
+    private BigDecimal signalLine;
+
+    @Column(name = "histogram", nullable = false)
+    private BigDecimal histogram;
+
+    @Column(name = "created_at", insertable = false, updatable = false)
+    private OffsetDateTime createdAt;
+
+    public MacdIndicator() {}
+
+    public Long getId() {
+        return id;
+    }
+
+    public Asset getAsset() {
+        return asset;
+    }
+
+    public void setAsset(Asset asset) {
+        this.asset = asset;
+    }
+
+    public Timeframe getTimeframe() {
+        return timeframe;
+    }
+
+    public void setTimeframe(Timeframe timeframe) {
+        this.timeframe = timeframe;
+    }
+
+    public OffsetDateTime getCloseTime() {
+        return closeTime;
+    }
+
+    public void setCloseTime(OffsetDateTime closeTime) {
+        this.closeTime = closeTime;
+    }
+
+    public BigDecimal getMacdLine() {
+        return macdLine;
+    }
+
+    public void setMacdLine(BigDecimal macdLine) {
+        this.macdLine = macdLine;
+    }
+
+    public BigDecimal getSignalLine() {
+        return signalLine;
+    }
+
+    public void setSignalLine(BigDecimal signalLine) {
+        this.signalLine = signalLine;
+    }
+
+    public BigDecimal getHistogram() {
+        return histogram;
+    }
+
+    public void setHistogram(BigDecimal histogram) {
+        this.histogram = histogram;
+    }
+
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(OffsetDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+}
