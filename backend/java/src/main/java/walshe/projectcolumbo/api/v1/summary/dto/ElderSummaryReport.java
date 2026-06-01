@@ -25,6 +25,12 @@ public record ElderSummaryReport(
         @Schema(description = "D1 Elder Thermometer breadth — bullishCount = ELDER_THERMOMETER_QUIET, bearishCount = ELDER_THERMOMETER_HOT + SPIKE, missingCount = no data")
         MarketPulseDto d1ThermometerPulse,
 
+        @Schema(description = "Count of assets where both W1 and D1 impulse are GREEN — full bull alignment regardless of thermometer. Measures trend environment strength.")
+        int w1d1BullAlignedCount,
+
+        @Schema(description = "Count of assets where both W1 and D1 impulse are RED — full bear alignment regardless of thermometer. Measures trend environment strength.")
+        int w1d1BearAlignedCount,
+
         @Schema(description = "Primary shortlist: assets passing all three Elder long entry conditions (W1 GREEN + D1 GREEN + D1 QUIET). These are the actionable long setups for tonight.")
         List<ScanResult> primaryShortlist,
 

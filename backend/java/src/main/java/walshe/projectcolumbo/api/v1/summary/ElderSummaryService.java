@@ -50,6 +50,29 @@ public class ElderSummaryService {
                 .getLatestPulse(Timeframe.D1, IndicatorType.ELDER_THERMOMETER)
                 .orElse(null);
 
+        // Cross-timeframe alignment counts — W1+D1 in gear regardless of thermometer
+        int w1d1BullAlignedCount = scanService.execute(new ScanRequest(
+                ScanOperator.AND,
+                List.of(
+                        new ScanCondition(Timeframe.W1, IndicatorType.ELDER_IMPULSE, null,
+                                TrendState.ELDER_IMPULSE_GREEN, null, null),
+                        new ScanCondition(Timeframe.D1, IndicatorType.ELDER_IMPULSE, null,
+                                TrendState.ELDER_IMPULSE_GREEN, null, null)
+                ),
+                null
+        )).results().size();
+
+        int w1d1BearAlignedCount = scanService.execute(new ScanRequest(
+                ScanOperator.AND,
+                List.of(
+                        new ScanCondition(Timeframe.W1, IndicatorType.ELDER_IMPULSE, null,
+                                TrendState.ELDER_IMPULSE_RED, null, null),
+                        new ScanCondition(Timeframe.D1, IndicatorType.ELDER_IMPULSE, null,
+                                TrendState.ELDER_IMPULSE_RED, null, null)
+                ),
+                null
+        )).results().size();
+
         // Primary shortlist: all three Elder entry conditions must align
         List<ScanResult> primaryShortlist = scanService.execute(new ScanRequest(
                 ScanOperator.AND,
@@ -109,6 +132,8 @@ public class ElderSummaryService {
                 w1Pulse,
                 d1Pulse,
                 thermPulse,
+                w1d1BullAlignedCount,
+                w1d1BearAlignedCount,
                 primaryShortlist,
                 primaryBearShortlist,
                 freshW1GreenFlips,

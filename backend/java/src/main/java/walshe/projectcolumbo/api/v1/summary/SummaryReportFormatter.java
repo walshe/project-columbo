@@ -92,6 +92,12 @@ public class SummaryReportFormatter {
         appendPulseLine(sb, "D1 Impulse (13-EMA + MACD-H)", report.d1ImpulsePulse(), "GREEN", "RED", "NEUTRAL");
         appendPulseLine(sb, "D1 Thermometer (22-day EMA)", report.d1ThermometerPulse(), "QUIET", "HOT/SPIKE", "no data",
                 "*(QUIET = calm, enter here · HOT = slippage risk, caution · SPIKE = take profits, not new entries)*");
+        int totalAssets = report.w1ImpulsePulse() != null ? report.w1ImpulsePulse().totalAssets() : 0;
+        sb.append(String.format("- **Cross-timeframe alignment:** %d bull-aligned (W1+D1 GREEN) / %d bear-aligned (W1+D1 RED)%s\n",
+                report.w1d1BullAlignedCount(),
+                report.w1d1BearAlignedCount(),
+                totalAssets > 0 ? String.format("  *(%d%% of universe trending with conviction in either direction)*",
+                        (report.w1d1BullAlignedCount() + report.w1d1BearAlignedCount()) * 100 / totalAssets) : ""));
         sb.append("\n");
         appendBreadthConclusion(sb, report.w1ImpulsePulse(), report.d1ThermometerPulse());
         sb.append("\n");
@@ -103,18 +109,7 @@ public class SummaryReportFormatter {
             sb.append("None tonight — inertia and momentum not in gear across the universe.\n\n");
         } else {
             for (ScanResult r : report.primaryShortlist()) {
-                sb.append(String.format("- [%s](%s)", r.assetSymbol(), r.tradingviewUrl()));
-                r.matchedIndicators().forEach(mi -> {
-                    if (mi instanceof ElderImpulseMatch e) {
-                        sb.append(String.format("  %s GREEN for %d day(s)", e.timeframe(), e.daysSinceChange()));
-                    }
-                    if (mi instanceof ThermometerMatch t) {
-                        sb.append(String.format("  temp=%s ema=%s",
-                                formatTemp(t.temperature()), formatTemp(t.temperatureEma())));
-                        sb.append(String.format("  → target: yesterday high + %s", formatTemp(t.temperatureEma())));
-                    }
-                });
-                sb.append(String.format("  (Vol: %s)\n", formatVolume(r.avgVolume7d())));
+                appendShortlistEntry(sb, r, "GREEN", "high", "yesterday high + ");
             }
             sb.append("\n");
         }
@@ -126,19 +121,7 @@ public class SummaryReportFormatter {
             sb.append("None tonight — inertia and momentum not in gear to the downside.\n\n");
         } else {
             for (ScanResult r : report.primaryBearShortlist()) {
-                sb.append(String.format("- [%s](%s)", r.assetSymbol(), r.tradingviewUrl()));
-                r.matchedIndicators().forEach(mi -> {
-                    if (mi instanceof ElderImpulseMatch e) {
-                        sb.append(String.format("  %s RED for %d day(s)", e.timeframe(), e.daysSinceChange()));
-                    }
-                    if (mi instanceof ThermometerMatch t) {
-                        boolean insideBar = t.temperature().compareTo(java.math.BigDecimal.ZERO) == 0;
-                        String tempStr = insideBar ? "0 (inside bar)" : formatTemp(t.temperature());
-                        sb.append(String.format("  temp=%s ema=%s", tempStr, formatTemp(t.temperatureEma())));
-                        sb.append(String.format("  → target: yesterday low - %s", formatTemp(t.temperatureEma())));
-                    }
-                });
-                sb.append(String.format("  (Vol: %s)\n", formatVolume(r.avgVolume7d())));
+                appendShortlistEntry(sb, r, "RED", "low", "yesterday low - ");
             }
             sb.append("\n");
         }
@@ -181,6 +164,31 @@ public class SummaryReportFormatter {
     // -------------------------------------------------------------------------
     // Shared helpers
     // -------------------------------------------------------------------------
+
+    private static final int FRESH_SIGNAL_DAYS = 3;
+
+    private void appendShortlistEntry(StringBuilder sb, ScanResult r, String direction,
+                                       String targetAnchor, String targetPrefix) {
+        sb.append(String.format("- [%s](%s)", r.assetSymbol(), r.tradingviewUrl()));
+        for (var mi : r.matchedIndicators()) {
+            if (mi instanceof ElderImpulseMatch e) {
+                sb.append(String.format("  %s %s for %d day(s)", e.timeframe(), direction, e.daysSinceChange()));
+                if (e.timeframe().name().equals("D1") && e.daysSinceChange() <= FRESH_SIGNAL_DAYS) {
+                    sb.append(" ⚡ *fresh — size conservatively, exit rule active from day 1*");
+                }
+            }
+            if (mi instanceof ThermometerMatch t) {
+                boolean insideBar = t.temperature().compareTo(java.math.BigDecimal.ZERO) == 0;
+                if (insideBar) {
+                    sb.append(String.format("  temp=0 *(inside bar — no range extension today; indecision, not low volatility. Valid entry but size conservatively.)*"));
+                } else {
+                    sb.append(String.format("  temp=%s ema=%s", formatTemp(t.temperature()), formatTemp(t.temperatureEma())));
+                }
+                sb.append(String.format("  → target: %s%s", targetPrefix, formatTemp(t.temperatureEma())));
+            }
+        }
+        sb.append(String.format("  (Vol: %s)\n", formatVolume(r.avgVolume7d())));
+    }
 
     private void appendBreadthConclusion(StringBuilder sb, MarketPulseDto w1Pulse, MarketPulseDto thermPulse) {
         if (w1Pulse == null) return;
