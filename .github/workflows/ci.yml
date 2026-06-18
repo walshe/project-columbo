@@ -3,12 +3,25 @@ name: CI
 on:
   push:
     branches: [main, feature/**]
+    paths:
+      - "backend/java/src/**"
+      - "backend/java/pom.xml"
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/docker-publish.yml"
   pull_request:
     branches: [main]
+    paths:
+      - "backend/java/src/**"
+      - "backend/java/pom.xml"
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/docker-publish.yml"
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/java
     steps:
       - uses: actions/checkout@v4
 
@@ -20,4 +33,3 @@ jobs:
 
       - name: Run tests
         run: ./mvnw test
-        working-directory: backend/java
