@@ -1,4 +1,4 @@
-services:
+  services:
   postgres:
     image: 'postgres:15.5'
     environment:
@@ -19,7 +19,8 @@ services:
   # It is gated behind the "prod" profile so it never starts during normal dev workflows.
   # In dev, run the Spring app directly from your IDE or via ./mvnw spring-boot:run,
   # and let only the postgres service run via Docker as usual.
-  # To start on the target machine: docker compose --profile prod up -d --build
+  # To start locally and build: docker compose --profile prod up -d --build
+  # To start on the target machine: docker compose -f compose.yaml -f compose.prod.yaml --profile prod up -d
   app:
     profiles: ["prod"]
     build:
