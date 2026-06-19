@@ -130,17 +130,17 @@ public class MarketPipelineService {
             signalStateService.detectForTimeframe(Timeframe.D1);
             logger.info("Completed phase: SIGNAL in {}ms", System.currentTimeMillis() - signalStartTime);
 
-            // D1 Elder Impulse state derivation (requires EMA-13 + MACD from PHASE 2)
-            logger.info("Starting phase: D1_IMPULSE");
-            long impulseStartTime = System.currentTimeMillis();
-            elderImpulseStateService.computeForAllActiveAssets(Timeframe.D1);
-            logger.info("Completed phase: D1_IMPULSE in {}ms", System.currentTimeMillis() - impulseStartTime);
+            // DISABLED: D1 Elder Impulse state derivation (requires EMA-13 + MACD from PHASE 2)
+            // logger.info("Starting phase: D1_IMPULSE");
+            // long impulseStartTime = System.currentTimeMillis();
+            // elderImpulseStateService.computeForAllActiveAssets(Timeframe.D1);
+            // logger.info("Completed phase: D1_IMPULSE in {}ms", System.currentTimeMillis() - impulseStartTime);
 
-            // D1 Thermometer state derivation (requires thermometer data from PHASE 2)
-            logger.info("Starting phase: D1_THERMOMETER");
-            long thermStartTime = System.currentTimeMillis();
-            thermometerStateService.computeForAllActiveAssets();
-            logger.info("Completed phase: D1_THERMOMETER in {}ms", System.currentTimeMillis() - thermStartTime);
+            // DISABLED: D1 Thermometer state derivation (requires thermometer data from PHASE 2)
+            // logger.info("Starting phase: D1_THERMOMETER");
+            // long thermStartTime = System.currentTimeMillis();
+            // thermometerStateService.computeForAllActiveAssets();
+            // logger.info("Completed phase: D1_THERMOMETER in {}ms", System.currentTimeMillis() - thermStartTime);
 
             // PHASE 4: Market Pulse Aggregation
             logger.info("Starting phase: MARKET_PULSE");

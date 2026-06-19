@@ -22,22 +22,23 @@ class ElderImpulseMarketPulseController {
         this.queryService = queryService;
     }
 
-    @GetMapping("/elder-impulse-market-pulse")
-    ResponseEntity<MarketPulseDto> getLatestPulse(
-            @RequestParam Timeframe timeframe) {
+    // DISABLED: Elder Impulse API endpoints
+    // @GetMapping("/elder-impulse-market-pulse")
+    // ResponseEntity<MarketPulseDto> getLatestPulse(
+    //         @RequestParam Timeframe timeframe) {
+    //
+    //     return queryService.getLatestPulse(timeframe)
+    //             .map(ResponseEntity::ok)
+    //             .orElse(ResponseEntity.notFound().build());
+    // }
 
-        return queryService.getLatestPulse(timeframe)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @GetMapping("/elder-impulse-market-pulse/history")
-    ResponseEntity<List<MarketPulseDto>> getPulseHistory(
-            @RequestParam Timeframe timeframe,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
-
-        List<MarketPulseDto> history = queryService.getPulseHistory(timeframe, from, to);
-        return ResponseEntity.ok(history);
-    }
+    // @GetMapping("/elder-impulse-market-pulse/history")
+    // ResponseEntity<List<MarketPulseDto>> getPulseHistory(
+    //         @RequestParam Timeframe timeframe,
+    //         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+    //         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+    //
+    //     List<MarketPulseDto> history = queryService.getPulseHistory(timeframe, from, to);
+    //     return ResponseEntity.ok(history);
+    // }
 }
