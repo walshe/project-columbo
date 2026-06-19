@@ -116,12 +116,12 @@ public class MarketPipelineService {
             superTrendService.processAllActiveAssets(actualTimeframe, 10, new BigDecimal("2.0"), false);
             // Using default parameter for RSI (14)
             rsiComputationService.computeForActiveAssets(actualTimeframe, 14, false);
-            // Using default parameters for D1 EMA (period 13 — Impulse inertia)
-            emaComputationService.computeForActiveAssets(actualTimeframe, 13, false);
-            // Using standard MACD parameters 12-26-9
-            macdComputationService.computeForActiveAssets(actualTimeframe, false);
-            // Market Thermometer daily values (period=22 EMA — computed from price bars)
-            thermometerService.computeForActiveAssets(false);
+            // DISABLED: Using default parameters for D1 EMA (period 13 — Impulse inertia)
+            // emaComputationService.computeForActiveAssets(actualTimeframe, 13, false);
+            // DISABLED: Using standard MACD parameters 12-26-9
+            // macdComputationService.computeForActiveAssets(actualTimeframe, false);
+            // DISABLED: Market Thermometer daily values (period=22 EMA — computed from price bars)
+            // thermometerService.computeForActiveAssets(false);
             logger.info("Completed phase: INDICATOR in {}ms", System.currentTimeMillis() - indicatorStartTime);
 
             // PHASE 3: Signal Detection (D1 only; W1 is handled by W1IndicatorService in Phase 6)
@@ -130,17 +130,17 @@ public class MarketPipelineService {
             signalStateService.detectForTimeframe(Timeframe.D1);
             logger.info("Completed phase: SIGNAL in {}ms", System.currentTimeMillis() - signalStartTime);
 
-            // D1 Elder Impulse state derivation (requires EMA-13 + MACD from PHASE 2)
-            logger.info("Starting phase: D1_IMPULSE");
-            long impulseStartTime = System.currentTimeMillis();
-            elderImpulseStateService.computeForAllActiveAssets(Timeframe.D1);
-            logger.info("Completed phase: D1_IMPULSE in {}ms", System.currentTimeMillis() - impulseStartTime);
+            // DISABLED: D1 Elder Impulse state derivation (requires EMA-13 + MACD from PHASE 2)
+            // logger.info("Starting phase: D1_IMPULSE");
+            // long impulseStartTime = System.currentTimeMillis();
+            // elderImpulseStateService.computeForAllActiveAssets(Timeframe.D1);
+            // logger.info("Completed phase: D1_IMPULSE in {}ms", System.currentTimeMillis() - impulseStartTime);
 
-            // D1 Thermometer state derivation (requires thermometer data from PHASE 2)
-            logger.info("Starting phase: D1_THERMOMETER");
-            long thermStartTime = System.currentTimeMillis();
-            thermometerStateService.computeForAllActiveAssets();
-            logger.info("Completed phase: D1_THERMOMETER in {}ms", System.currentTimeMillis() - thermStartTime);
+            // DISABLED: D1 Thermometer state derivation (requires thermometer data from PHASE 2)
+            // logger.info("Starting phase: D1_THERMOMETER");
+            // long thermStartTime = System.currentTimeMillis();
+            // thermometerStateService.computeForAllActiveAssets();
+            // logger.info("Completed phase: D1_THERMOMETER in {}ms", System.currentTimeMillis() - thermStartTime);
 
             // PHASE 4: Market Pulse Aggregation
             logger.info("Starting phase: MARKET_PULSE");
