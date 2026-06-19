@@ -118,8 +118,8 @@ public class MarketPipelineService {
             rsiComputationService.computeForActiveAssets(actualTimeframe, 14, false);
             // DISABLED: Using default parameters for D1 EMA (period 13 — Impulse inertia)
             // emaComputationService.computeForActiveAssets(actualTimeframe, 13, false);
-            // Using standard MACD parameters 12-26-9
-            macdComputationService.computeForActiveAssets(actualTimeframe, false);
+            // DISABLED: Using standard MACD parameters 12-26-9
+            // macdComputationService.computeForActiveAssets(actualTimeframe, false);
             // DISABLED: Market Thermometer daily values (period=22 EMA — computed from price bars)
             // thermometerService.computeForActiveAssets(false);
             logger.info("Completed phase: INDICATOR in {}ms", System.currentTimeMillis() - indicatorStartTime);
