@@ -70,20 +70,22 @@ public class W1IndicatorService {
         rsiComputationService.computeForActiveAssets(Timeframe.W1, 14, false);
         log.info("Completed phase: W1_RSI in {}ms", System.currentTimeMillis() - rsiStart);
 
-        log.info("Starting phase: W1_EMA");
-        long emaStart = System.currentTimeMillis();
-        emaComputationService.computeForActiveAssets(Timeframe.W1, 26, false);
-        log.info("Completed phase: W1_EMA in {}ms", System.currentTimeMillis() - emaStart);
+        // DISABLED: W1_EMA (Elder dependency)
+        // log.info("Starting phase: W1_EMA");
+        // long emaStart = System.currentTimeMillis();
+        // emaComputationService.computeForActiveAssets(Timeframe.W1, 26, false);
+        // log.info("Completed phase: W1_EMA in {}ms", System.currentTimeMillis() - emaStart);
 
         log.info("Starting phase: W1_SIGNAL");
         long signalStart = System.currentTimeMillis();
         signalStateService.detectForTimeframe(Timeframe.W1);
         log.info("Completed phase: W1_SIGNAL in {}ms", System.currentTimeMillis() - signalStart);
 
-        log.info("Starting phase: W1_IMPULSE");
-        long impulseStart = System.currentTimeMillis();
-        elderImpulseStateService.computeForAllActiveAssets(Timeframe.W1);
-        log.info("Completed phase: W1_IMPULSE in {}ms", System.currentTimeMillis() - impulseStart);
+        // DISABLED: W1_IMPULSE (Elder Impulse System)
+        // log.info("Starting phase: W1_IMPULSE");
+        // long impulseStart = System.currentTimeMillis();
+        // elderImpulseStateService.computeForAllActiveAssets(Timeframe.W1);
+        // log.info("Completed phase: W1_IMPULSE in {}ms", System.currentTimeMillis() - impulseStart);
 
         log.info("Starting phase: W1_MARKET_PULSE");
         long pulseStart = System.currentTimeMillis();
