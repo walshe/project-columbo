@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import walshe.projectcolumbo.persistence.entity.Asset;
 import walshe.projectcolumbo.persistence.entity.Candle;
 import walshe.projectcolumbo.persistence.model.Timeframe;
+import walshe.projectcolumbo.persistence.model.MarketProvider;
 import walshe.projectcolumbo.persistence.repository.AssetRepository;
 import walshe.projectcolumbo.persistence.repository.CandleRepository;
 import walshe.projectcolumbo.persistence.repository.RsiRepository;
@@ -59,6 +60,7 @@ public class ParallelIndicatorComputationIntegrationTest {
         for (int i = 0; i < 5; i++) {
             Asset asset = new Asset();
             asset.setSymbol("TEST" + i + "/USDT");
+            asset.setProvider(MarketProvider.BINANCE);
             asset.setActive(true);
             assetRepository.save(asset);
             testAssets.add(asset);
@@ -71,7 +73,10 @@ public class ParallelIndicatorComputationIntegrationTest {
                 Candle candle = new Candle();
                 candle.setAsset(asset);
                 candle.setTimeframe(Timeframe.D1);
-                candle.setCloseTime(now.minusDays(30 - i));
+                OffsetDateTime candleTime = now.minusDays(30 - i);
+                candle.setOpenTime(candleTime);
+                candle.setCloseTime(candleTime);
+                candle.setSource(MarketProvider.BINANCE);
                 candle.setOpen(new BigDecimal("100"));
                 candle.setHigh(new BigDecimal("105"));
                 candle.setLow(new BigDecimal("95"));
@@ -109,6 +114,7 @@ public class ParallelIndicatorComputationIntegrationTest {
         for (int i = 0; i < 20; i++) {
             Asset asset = new Asset();
             asset.setSymbol("LOAD" + i + "/USDT");
+            asset.setProvider(MarketProvider.BINANCE);
             asset.setActive(true);
             assetRepository.save(asset);
             loadTestAssets.add(asset);

@@ -9,6 +9,7 @@ import walshe.projectcolumbo.persistence.entity.Asset;
 import walshe.projectcolumbo.persistence.entity.SuperTrendIndicator;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.model.SuperTrendDirection;
+import walshe.projectcolumbo.persistence.model.MarketProvider;
 import walshe.projectcolumbo.persistence.repository.AssetRepository;
 import walshe.projectcolumbo.persistence.repository.SuperTrendRepository;
 
@@ -37,6 +38,7 @@ public class ConcurrentWriteTest {
         // Setup: Create a test asset
         Asset testAsset = new Asset();
         testAsset.setSymbol("TEST/USDT");
+        testAsset.setProvider(MarketProvider.BINANCE);
         testAsset.setActive(true);
         assetRepository.save(testAsset);
 
