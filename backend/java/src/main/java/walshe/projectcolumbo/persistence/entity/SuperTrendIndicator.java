@@ -50,6 +50,10 @@ public class SuperTrendIndicator {
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     public SuperTrendIndicator() {
     }
 
@@ -160,5 +164,13 @@ public class SuperTrendIndicator {
 
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 }

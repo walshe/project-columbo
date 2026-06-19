@@ -18,11 +18,15 @@ import walshe.projectcolumbo.persistence.service.ThermometerService;
 import walshe.projectcolumbo.persistence.service.ThermometerStateService;
 import walshe.projectcolumbo.rollup.CandleRollupService;
 import walshe.projectcolumbo.marketpulse.W1IndicatorService;
+import walshe.projectcolumbo.persistence.entity.Asset;
 
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class MarketPipelineService {
@@ -109,19 +113,38 @@ public class MarketPipelineService {
             CandleIngestionService.IngestionStats stats = candleIngestionService.ingestDaily();
             logger.info("Completed phase: INGESTION in {}ms", System.currentTimeMillis() - startTime);
 
-            // PHASE 2: Indicator Computation
+            // PHASE 2: Indicator Computation (parallelized per-asset)
             logger.info("Starting phase: INDICATOR");
             long indicatorStartTime = System.currentTimeMillis();
-            // Using default parameters for SuperTrend (10, 2.0)
-            superTrendService.processAllActiveAssets(actualTimeframe, 10, new BigDecimal("2.0"), false);
-            // Using default parameter for RSI (14)
-            rsiComputationService.computeForActiveAssets(actualTimeframe, 14, false);
+            List<Asset> activeAssets = assetRepository.findByActiveTrue();
+
+            // Collect async tasks for all indicators
+            List<CompletableFuture<Void>> indicatorTasks = new ArrayList<>();
+
+            for (Asset asset : activeAssets) {
+                // Using default parameters for SuperTrend (10, 2.0)
+                indicatorTasks.add(superTrendService.processAssetAsync(asset, actualTimeframe, 10, new BigDecimal("2.0"), false));
+                // Using default parameter for RSI (14)
+                indicatorTasks.add(rsiComputationService.computeForAssetAsync(asset, actualTimeframe, 14, false));
+            }
+
             // DISABLED: Using default parameters for D1 EMA (period 13 — Impulse inertia)
-            // emaComputationService.computeForActiveAssets(actualTimeframe, 13, false);
+            // for (Asset asset : activeAssets) {
+            //     indicatorTasks.add(emaComputationService.computeForAssetAsync(asset, actualTimeframe, 13, false));
+            // }
             // DISABLED: Using standard MACD parameters 12-26-9
-            // macdComputationService.computeForActiveAssets(actualTimeframe, false);
+            // for (Asset asset : activeAssets) {
+            //     indicatorTasks.add(macdComputationService.computeForAssetAsync(asset, actualTimeframe, false));
+            // }
             // DISABLED: Market Thermometer daily values (period=22 EMA — computed from price bars)
-            // thermometerService.computeForActiveAssets(false);
+            // for (Asset asset : activeAssets) {
+            //     indicatorTasks.add(thermometerService.computeForAssetAsync(asset, false));
+            // }
+
+            // Wait for all indicator computations to complete
+            CompletableFuture<Void> allIndicatorTasks = CompletableFuture.allOf(indicatorTasks.toArray(new CompletableFuture[0]));
+            allIndicatorTasks.join();
+
             logger.info("Completed phase: INDICATOR in {}ms", System.currentTimeMillis() - indicatorStartTime);
 
             // PHASE 3: Signal Detection (D1 only; W1 is handled by W1IndicatorService in Phase 6)

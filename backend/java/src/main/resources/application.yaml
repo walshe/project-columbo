@@ -6,6 +6,14 @@ spring:
     url: jdbc:postgresql://localhost:5432/columbo
     username: emmett
     password: secret
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      max-lifetime: 1800000        # 30 minutes
+      idle-timeout: 600000         # 10 minutes
+      connection-timeout: 30000    # 30 seconds
+      auto-commit: true
+      leak-detection-threshold: 60000  # 1 minute
 
   jpa:
     hibernate:
@@ -34,4 +42,9 @@ app:
     cron: "0 5 0 * * *" # Run at 00:05 UTC every day
   ingestion:
     backfill-start: "2024-01-01T00:00:00Z"
+  async:
+    indicator-computation:
+      cor-pool-size: 8
+      max-pool-size: 16
+      queue-capacity: 100
 
