@@ -15,7 +15,7 @@ public class AsyncConfig {
     public Executor indicatorComputationExecutor(AsyncProperties asyncProperties) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 
-        int corePoolSize = asyncProperties.getIndicatorComputation().getCorPoolSize();
+        int corePoolSize = asyncProperties.getIndicatorComputation().getCorePoolSize();
         int maxPoolSize = asyncProperties.getIndicatorComputation().getMaxPoolSize();
         int queueCapacity = asyncProperties.getIndicatorComputation().getQueueCapacity();
 
@@ -45,16 +45,16 @@ public class AsyncConfig {
         }
 
         public static class ExecutorProperties {
-            private int corPoolSize = 8;
+            private int corePoolSize = 8;
             private int maxPoolSize = 16;
             private int queueCapacity = 100;
 
-            public int getCorPoolSize() {
-                return corPoolSize;
+            public int getCorePoolSize() {
+                return corePoolSize;
             }
 
-            public void setCorPoolSize(int corPoolSize) {
-                this.corPoolSize = corPoolSize;
+            public void setCorePoolSize(int corePoolSize) {
+                this.corePoolSize = corePoolSize;
             }
 
             public int getMaxPoolSize() {

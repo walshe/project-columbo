@@ -44,7 +44,7 @@ app:
     backfill-start: "2024-01-01T00:00:00Z"
   async:
     indicator-computation:
-      cor-pool-size: 8
+      core-pool-size: 8
       max-pool-size: 16
       queue-capacity: 100
 

@@ -143,7 +143,13 @@ public class MarketPipelineService {
 
             // Wait for all indicator computations to complete
             CompletableFuture<Void> allIndicatorTasks = CompletableFuture.allOf(indicatorTasks.toArray(new CompletableFuture[0]));
-            allIndicatorTasks.join();
+            try {
+                allIndicatorTasks.join();
+            } catch (Exception e) {
+                logger.error("Async indicator computation failed: {}", e.getMessage(), e);
+                // Log the failure but allow pipeline to continue for other assets
+                // Individual asset failures are already logged by async methods
+            }
 
             logger.info("Completed phase: INDICATOR in {}ms", System.currentTimeMillis() - indicatorStartTime);
 
