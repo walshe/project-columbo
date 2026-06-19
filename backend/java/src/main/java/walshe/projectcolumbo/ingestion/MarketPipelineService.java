@@ -116,12 +116,12 @@ public class MarketPipelineService {
             superTrendService.processAllActiveAssets(actualTimeframe, 10, new BigDecimal("2.0"), false);
             // Using default parameter for RSI (14)
             rsiComputationService.computeForActiveAssets(actualTimeframe, 14, false);
-            // Using default parameters for D1 EMA (period 13 — Impulse inertia)
-            emaComputationService.computeForActiveAssets(actualTimeframe, 13, false);
+            // DISABLED: Using default parameters for D1 EMA (period 13 — Impulse inertia)
+            // emaComputationService.computeForActiveAssets(actualTimeframe, 13, false);
             // Using standard MACD parameters 12-26-9
             macdComputationService.computeForActiveAssets(actualTimeframe, false);
-            // Market Thermometer daily values (period=22 EMA — computed from price bars)
-            thermometerService.computeForActiveAssets(false);
+            // DISABLED: Market Thermometer daily values (period=22 EMA — computed from price bars)
+            // thermometerService.computeForActiveAssets(false);
             logger.info("Completed phase: INDICATOR in {}ms", System.currentTimeMillis() - indicatorStartTime);
 
             // PHASE 3: Signal Detection (D1 only; W1 is handled by W1IndicatorService in Phase 6)
