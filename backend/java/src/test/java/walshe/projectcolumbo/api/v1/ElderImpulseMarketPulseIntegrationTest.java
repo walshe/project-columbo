@@ -54,25 +54,26 @@ class ElderImpulseMarketPulseIntegrationTest {
         );
     }
 
-    @Test
-    void getLatestPulse_returns404_whenNoData() throws Exception {
-        mockMvc.perform(get("/api/v1/elder-impulse-market-pulse")
-                        .param("timeframe", "D1"))
-                .andExpect(status().isNotFound());
-    }
+    // DISABLED: Elder Impulse API endpoints
+    // @Test
+    // void getLatestPulse_returns404_whenNoData() throws Exception {
+    //     mockMvc.perform(get("/api/v1/elder-impulse-market-pulse")
+    //                     .param("timeframe", "D1"))
+    //             .andExpect(status().isNotFound());
+    // }
 
-    @Test
-    void getLatestPulse_returnsDto_whenDataExists() throws Exception {
-        snapshotRepository.save(buildSnapshot(IndicatorType.ELDER_IMPULSE, Timeframe.D1, 7, 2, 1));
-
-        mockMvc.perform(get("/api/v1/elder-impulse-market-pulse")
-                        .param("timeframe", "D1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.bullishCount").value(7))
-                .andExpect(jsonPath("$.bearishCount").value(2))
-                .andExpect(jsonPath("$.missingCount").value(1))
-                .andExpect(jsonPath("$.totalAssets").value(10));
-    }
+    // @Test
+    // void getLatestPulse_returnsDto_whenDataExists() throws Exception {
+    //     snapshotRepository.save(buildSnapshot(IndicatorType.ELDER_IMPULSE, Timeframe.D1, 7, 2, 1));
+    //
+    //     mockMvc.perform(get("/api/v1/elder-impulse-market-pulse")
+    //                     .param("timeframe", "D1"))
+    //             .andExpect(status().isOk())
+    //             .andExpect(jsonPath("$.bullishCount").value(7))
+    //             .andExpect(jsonPath("$.bearishCount").value(2))
+    //             .andExpect(jsonPath("$.missingCount").value(1))
+    //             .andExpect(jsonPath("$.totalAssets").value(10));
+    // }
 
     @Test
     void supertrendEndpoint_unaffectedByElderImpulseData() throws Exception {

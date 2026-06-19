@@ -107,20 +107,18 @@ class MarketPipelineServiceTest {
         // When
         marketPipelineService.runDaily(MarketProvider.BINANCE, Timeframe.D1, RunMode.INCREMENTAL);
 
-        // Then
+        // Then (DISABLED: EMA, MACD, Thermometer, ElderImpulse phases)
         InOrder inOrder = inOrder(candleIngestionService, superTrendService, rsiComputationService,
-                emaComputationService, macdComputationService, thermometerService,
-                signalStateService, elderImpulseStateService, thermometerStateService,
-                marketPulseService, candleRollupService, w1IndicatorService);
+                signalStateService, marketPulseService, candleRollupService, w1IndicatorService);
         inOrder.verify(candleIngestionService).ingestDaily();
         inOrder.verify(superTrendService).processAllActiveAssets(eq(Timeframe.D1), anyInt(), any(), eq(false));
         inOrder.verify(rsiComputationService).computeForActiveAssets(eq(Timeframe.D1), anyInt(), eq(false));
-        inOrder.verify(emaComputationService).computeForActiveAssets(eq(Timeframe.D1), eq(13), eq(false));
-        inOrder.verify(macdComputationService).computeForActiveAssets(eq(Timeframe.D1), eq(false));
-        inOrder.verify(thermometerService).computeForActiveAssets(eq(false));
+        // inOrder.verify(emaComputationService).computeForActiveAssets(eq(Timeframe.D1), eq(13), eq(false));
+        // inOrder.verify(macdComputationService).computeForActiveAssets(eq(Timeframe.D1), eq(false));
+        // inOrder.verify(thermometerService).computeForActiveAssets(eq(false));
         inOrder.verify(signalStateService).detectForTimeframe(eq(Timeframe.D1));
-        inOrder.verify(elderImpulseStateService).computeForAllActiveAssets(eq(Timeframe.D1));
-        inOrder.verify(thermometerStateService).computeForAllActiveAssets();
+        // inOrder.verify(elderImpulseStateService).computeForAllActiveAssets(eq(Timeframe.D1));
+        // inOrder.verify(thermometerStateService).computeForAllActiveAssets();
         inOrder.verify(marketPulseService).computeDaily();
         inOrder.verify(candleRollupService).rollupForAllActiveAssets(eq(Timeframe.D1), eq(Timeframe.W1), any());
         inOrder.verify(w1IndicatorService).processAllActiveAssets();
