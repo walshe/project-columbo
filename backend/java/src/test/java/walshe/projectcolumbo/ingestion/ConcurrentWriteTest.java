@@ -1,6 +1,7 @@
 package walshe.projectcolumbo.ingestion;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -32,9 +33,21 @@ public class ConcurrentWriteTest {
     @Autowired
     private SuperTrendRepository superTrendRepository;
 
-    @Test
+    private Long indicatorId;
+
+    @BeforeEach
     @Transactional
-    public void testConcurrentIndicatorWrites() throws Exception {
+    public void setUp() {
+        // Clean up any existing test assets from previous runs (delete indicators first due to FK constraints)
+        var existingAssets = assetRepository.findAll().stream()
+            .filter(a -> a.getSymbol().equals("TEST/USDT"))
+            .toList();
+        for (Asset asset : existingAssets) {
+            var indicators = superTrendRepository.findByAssetAndTimeframeOrderByCloseTimeAsc(asset, Timeframe.D1);
+            superTrendRepository.deleteAll(indicators);
+            assetRepository.delete(asset);
+        }
+
         // Setup: Create a test asset
         Asset testAsset = new Asset();
         testAsset.setSymbol("TEST/USDT");
@@ -53,7 +66,11 @@ public class ConcurrentWriteTest {
         indicator.setSupertrend(new BigDecimal("95.0"));
         indicator.setDirection(SuperTrendDirection.SUPERTREND_UP);
         superTrendRepository.save(indicator);
+        this.indicatorId = indicator.getId();
+    }
 
+    @Test
+    public void testConcurrentIndicatorWrites() throws Exception {
         // Execute concurrent updates with retry logic for optimistic lock failures
         ExecutorService executor = Executors.newFixedThreadPool(5);
         java.util.concurrent.atomic.AtomicInteger successCount = new java.util.concurrent.atomic.AtomicInteger(0);
@@ -63,7 +80,7 @@ public class ConcurrentWriteTest {
             final int threadIndex = i;
             futures[i] = CompletableFuture.runAsync(() -> {
                 try {
-                    SuperTrendIndicator retrieved = superTrendRepository.findById(indicator.getId()).orElseThrow();
+                    SuperTrendIndicator retrieved = superTrendRepository.findById(indicatorId).orElseThrow();
                     retrieved.setAtr(new BigDecimal(100 + threadIndex));
                     superTrendRepository.save(retrieved);
                     successCount.incrementAndGet();
@@ -81,7 +98,10 @@ public class ConcurrentWriteTest {
         assertTrue(successCount.get() >= 1, "At least one concurrent update should succeed");
 
         // Verify: The final state should be one of the updated values
-        SuperTrendIndicator finalState = superTrendRepository.findById(indicator.getId()).orElseThrow();
+        var finalIndicator = superTrendRepository.findById(indicatorId);
+        assertTrue(finalIndicator.isPresent(), "Indicator should exist after concurrent writes");
+
+        SuperTrendIndicator finalState = finalIndicator.orElseThrow();
         assertEquals(Timeframe.D1, finalState.getTimeframe());
         // One of the threads should have written a value between 100 and 109
         BigDecimal finalAtr = finalState.getAtr();

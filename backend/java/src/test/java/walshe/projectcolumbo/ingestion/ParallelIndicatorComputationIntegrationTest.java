@@ -57,9 +57,10 @@ public class ParallelIndicatorComputationIntegrationTest {
     @Transactional
     public void setup() {
         testAssets = new ArrayList<>();
+        long timestamp = System.currentTimeMillis();
         for (int i = 0; i < 5; i++) {
             Asset asset = new Asset();
-            asset.setSymbol("TEST" + i + "/USDT");
+            asset.setSymbol("TEST" + i + "_" + timestamp + "/USDT");
             asset.setProvider(MarketProvider.BINANCE);
             asset.setActive(true);
             assetRepository.save(asset);
@@ -88,7 +89,6 @@ public class ParallelIndicatorComputationIntegrationTest {
     }
 
     @Test
-    @Transactional
     public void testParallelComputationProducesConsistentResults() throws Exception {
         // Arrange: Run async SuperTrend computation for all assets
         List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -106,14 +106,14 @@ public class ParallelIndicatorComputationIntegrationTest {
     }
 
     @Test
-    @Transactional
     @Timeout(30)
     public void testParallelComputationWithMultipleAssets() throws Exception {
         // Create 20 test assets for load testing
         List<Asset> loadTestAssets = new ArrayList<>();
+        long timestamp = System.currentTimeMillis();
         for (int i = 0; i < 20; i++) {
             Asset asset = new Asset();
-            asset.setSymbol("LOAD" + i + "/USDT");
+            asset.setSymbol("LOAD" + i + "_" + timestamp + "/USDT");
             asset.setProvider(MarketProvider.BINANCE);
             asset.setActive(true);
             assetRepository.save(asset);
@@ -125,7 +125,10 @@ public class ParallelIndicatorComputationIntegrationTest {
                 Candle candle = new Candle();
                 candle.setAsset(asset);
                 candle.setTimeframe(Timeframe.D1);
-                candle.setCloseTime(now.minusDays(30 - j));
+                OffsetDateTime candleTime = now.minusDays(30 - j);
+                candle.setOpenTime(candleTime);
+                candle.setCloseTime(candleTime);
+                candle.setSource(MarketProvider.BINANCE);
                 candle.setOpen(new BigDecimal("100"));
                 candle.setHigh(new BigDecimal("105"));
                 candle.setLow(new BigDecimal("95"));
@@ -157,11 +160,12 @@ public class ParallelIndicatorComputationIntegrationTest {
     }
 
     @Test
-    @Transactional
     public void testPartialFailureHandling() throws Exception {
         // Create one asset with no candles to trigger failure
         Asset failingAsset = new Asset();
-        failingAsset.setSymbol("FAIL/USDT");
+        long timestamp = System.currentTimeMillis();
+        failingAsset.setSymbol("FAIL_" + timestamp + "/USDT");
+        failingAsset.setProvider(MarketProvider.BINANCE);
         failingAsset.setActive(true);
         assetRepository.save(failingAsset);
 
