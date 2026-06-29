@@ -13,7 +13,6 @@ import walshe.projectcolumbo.persistence.model.TrendState;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -49,7 +48,7 @@ public class ConfluenceSummaryService {
         List<SignalStateDto> w1Signals = signalQueryService.listSignals(
                 Timeframe.W1, IndicatorType.SUPERTREND, w1State, null);
         List<SignalStateDto> d1Signals = signalQueryService.listSignals(
-                Timeframe.D1, IndicatorType.SUPERTREND, d1State, null);
+                Timeframe.D1, IndicatorType.SUPERTREND, d1State, SignalSort.LAST_FLIP_DESC);
 
         Set<String> w1Symbols = w1Signals.stream()
                 .map(SignalStateDto::symbol)
@@ -57,8 +56,6 @@ public class ConfluenceSummaryService {
 
         return d1Signals.stream()
                 .filter(d1 -> w1Symbols.contains(d1.symbol()))
-                .sorted(Comparator.comparing(SignalStateDto::lastFlipTime,
-                        Comparator.nullsLast(Comparator.reverseOrder())))
                 .collect(Collectors.toList());
     }
 }
