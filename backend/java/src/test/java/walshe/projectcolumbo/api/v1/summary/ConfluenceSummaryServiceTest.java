@@ -92,7 +92,7 @@ class ConfluenceSummaryServiceTest {
         when(signalQueryService.listSignals(eq(Timeframe.W1), eq(IndicatorType.SUPERTREND), eq(TrendState.SUPERTREND_BULLISH), any()))
                 .thenReturn(List.of(assetA, assetB));
         when(signalQueryService.listSignals(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(TrendState.SUPERTREND_BULLISH), any()))
-                .thenReturn(List.of(assetA, assetB));
+                .thenReturn(List.of(assetB, assetA)); // LAST_FLIP_DESC: newer first
         when(signalQueryService.listSignals(eq(Timeframe.W1), eq(IndicatorType.SUPERTREND), eq(TrendState.SUPERTREND_BEARISH), any()))
                 .thenReturn(List.of());
         when(signalQueryService.listSignals(eq(Timeframe.D1), eq(IndicatorType.SUPERTREND), eq(TrendState.SUPERTREND_BEARISH), any()))
