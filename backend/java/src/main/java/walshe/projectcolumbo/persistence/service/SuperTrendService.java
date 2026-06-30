@@ -12,10 +12,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.Async;
+import walshe.projectcolumbo.annotation.ParallelAssetComputation;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class SuperTrendService {
@@ -89,6 +92,19 @@ public class SuperTrendService {
         ProcessingStats stats = upsertResults(asset, timeframe, results);
         log.info("SuperTrend summary for {}: {} inserted, {} updated, {} skipped",
                 asset.getSymbol(), stats.insertedCount, stats.updatedCount, stats.skippedCount);
+    }
+
+    @Async("indicatorComputationExecutor")
+    @Transactional
+    @ParallelAssetComputation
+    public CompletableFuture<Void> processAssetAsync(Asset asset, Timeframe timeframe, int atrLength, java.math.BigDecimal multiplier, boolean fullRecalc) {
+        try {
+            processAsset(asset, timeframe, atrLength, multiplier, fullRecalc);
+            return CompletableFuture.completedFuture(null);
+        } catch (Exception e) {
+            log.error("Async SuperTrend processing failed for asset {}: {}", asset.getSymbol(), e.getMessage(), e);
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     private ProcessingStats upsertResults(Asset asset, Timeframe timeframe, List<SuperTrendResult> results) {

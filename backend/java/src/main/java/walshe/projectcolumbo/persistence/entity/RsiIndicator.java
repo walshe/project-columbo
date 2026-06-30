@@ -34,6 +34,10 @@ public class RsiIndicator {
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     public RsiIndicator() {}
 
     public Long getId() {
@@ -78,5 +82,13 @@ public class RsiIndicator {
 
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 }

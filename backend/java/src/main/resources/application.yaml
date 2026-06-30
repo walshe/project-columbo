@@ -6,6 +6,14 @@ spring:
     url: jdbc:postgresql://localhost:5432/columbo
     username: emmett
     password: secret
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      max-lifetime: 1800000        # 30 minutes
+      idle-timeout: 600000         # 10 minutes
+      connection-timeout: 30000    # 30 seconds
+      auto-commit: true
+      leak-detection-threshold: 60000  # 1 minute
 
   jpa:
     hibernate:
@@ -37,4 +45,9 @@ app:
     # If Elder Impulse System is reinstated, move this back to 2023-01-01 — EMA-13/MACD on W1
     # needs ~100 weekly candles (~2 years) for Wilder's smoothing to stabilise.
     backfill-start: "2025-01-01T00:00:00Z"
+  async:
+    indicator-computation:
+      core-pool-size: 8
+      max-pool-size: 16
+      queue-capacity: 100
 

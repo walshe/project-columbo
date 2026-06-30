@@ -11,12 +11,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.Async;
+import walshe.projectcolumbo.annotation.ParallelAssetComputation;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class RsiComputationService {
@@ -92,6 +95,19 @@ public class RsiComputationService {
         ProcessingStats stats = upsertResults(asset, timeframe, results);
         log.info("RSI summary for {}: {} inserted, {} updated, {} skipped",
                 asset.getSymbol(), stats.inserted, stats.updated, stats.skipped);
+    }
+
+    @Async("indicatorComputationExecutor")
+    @Transactional
+    @ParallelAssetComputation
+    public CompletableFuture<Void> computeForAssetAsync(Asset asset, Timeframe timeframe, int period, boolean fullRecalc) {
+        try {
+            computeForAsset(asset, timeframe, period, fullRecalc);
+            return CompletableFuture.completedFuture(null);
+        } catch (Exception e) {
+            log.error("Async RSI computation failed for asset {}: {}", asset.getSymbol(), e.getMessage(), e);
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     private ProcessingStats upsertResults(Asset asset, Timeframe timeframe, List<RsiCalculator.RsiResult> results) {
