@@ -8,9 +8,11 @@
 
 ---
 
-**Jump to:** [For Traders](#-for-traders) · [For Developers](#-for-developers)
+**Jump to:** [For Traders](#for-traders) · [For Developers](#for-developers)
 
 ---
+
+<a name="for-traders"></a>
 
 # 📈 For Traders
 
@@ -68,6 +70,8 @@ GET /api/v1/summary?timeframe=W1
 ---
 
 ---
+
+<a name="for-developers"></a>
 
 # ⚙️ For Developers
 
