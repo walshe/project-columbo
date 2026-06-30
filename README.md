@@ -12,95 +12,58 @@
 
 ---
 
----
-
 # 📈 For Traders
 
-Project Columbo runs a nightly pipeline after the daily market close and produces a structured brief you can act on the next morning. It does not predict — it filters. The reports tell you which assets currently have permission to trade in a given direction, and whether entry conditions are calm enough to act.
+Project Columbo runs a nightly pipeline after the daily market close and produces structured reports you can act on the next morning. It does not predict — it filters. The reports tell you which assets are aligned across timeframes and whether a retest setup has emerged.
 
 ---
 
-## The Elder Daily Brief
+## SuperTrend Trend Alignment
 
-The primary output is the **Elder Impulse System Daily Brief** — a single report that covers:
+The primary output is the **Trend Alignment Report** — a cross-timeframe view of which assets are aligned bullish or bearish on both the weekly and daily SuperTrend, and which are in retest (the weekly trend is intact but the daily has briefly pulled counter-trend).
+
+```
+GET /api/v1/summary/trend-alignment
+GET /api/v1/summary/trend-alignment?format=MARKDOWN
+GET /api/v1/summary/trend-alignment?format=MARKDOWN&maxRetestAgeDays=5
+```
 
 | Section | What it tells you |
 |---------|-------------------|
-| **Market Breadth** | What percentage of the universe is in a weekly uptrend vs downtrend. Sets the macro bias before you look at any individual name. |
-| **Primary Bear Shortlist** | Assets where the weekly EMA is falling, the daily EMA and MACD are both falling, and the market is calm. The actionable short setups for tonight. |
-| **Primary Bull Shortlist** | Same logic, long side. Assets where weekly and daily are both rising and entry conditions are quiet. |
-| **Fresh W1 Flips** | Assets whose weekly EMA just changed direction in the last 7 days. Your watchlist for the coming week — not yet actionable until the daily confirms. |
-| **Spike Alerts** | Assets where today's volatility was more than 3× the recent average. Elder calls these *gifts from the crowd* — take profits into them, do not open new positions. |
+| **W1 + D1 Bullish Confluence** | Assets bullish on both weekly and daily SuperTrend — the cleanest long candidates. Ordered by most recent D1 alignment. |
+| **W1 + D1 Bullish Retest** | W1 bullish but D1 recently flipped bearish (within `maxRetestAgeDays`, default 7). The weekly trend is intact — this is a potential pullback before continuation. |
+| **W1 + D1 Bearish Confluence** | Assets bearish on both timeframes — short candidates. Ordered by most recent D1 alignment. |
+| **W1 + D1 Bearish Retest** | W1 bearish but D1 recently flipped bullish — a potential dead-cat bounce before continuation to the downside. |
 
-The report is ordered by macro bias: on a bearish night the bear shortlist leads, on a bullish night the bull shortlist leads.
-
-```
-GET /api/v1/elder-summary
-```
-
-Returns a formatted Markdown brief ready to read. Everything in the sections above comes from this single call.
+Use `maxRetestAgeDays` to tighten or widen the retest window. If an asset's D1 has been counter-trend for longer than the window, it drops off the retest list entirely.
 
 ---
 
-## The SuperTrend Brief
+## SuperTrend + RSI Brief
 
-A momentum-focused brief based on SuperTrend trend direction and RSI confirmation:
+A broader signal scan across the universe:
 
 | Section | What it tells you |
 |---------|-------------------|
-| **Market Pulse** | How many assets are currently in a SuperTrend bullish vs bearish state — the overall sentiment of the universe. |
-| **Recent Bullish Flips** | Assets that recently flipped to SuperTrend bullish. Trend has just switched up — earliest entry window. |
-| **Recent Bearish Flips** | Assets that recently flipped to SuperTrend bearish. Trend has just switched down. |
-| **Bullish Trend + RSI Cross Above 60** | Assets in a SuperTrend uptrend where RSI has recently crossed above 60 — momentum confirming the trend. High-probability long candidates. |
+| **Market Pulse** | How many assets are currently in a SuperTrend bullish vs bearish state — overall sentiment. |
+| **Recent Bullish Flips** | Assets that recently flipped to SuperTrend bullish. Earliest entry window. |
+| **Recent Bearish Flips** | Assets that recently flipped to SuperTrend bearish. |
+| **Bullish Trend + RSI Cross Above 60** | SuperTrend uptrend with RSI momentum confirming. High-probability long candidates. |
 | **Bearish Trend + RSI Cross Below 40** | Symmetric short side — SuperTrend down and RSI confirming downward momentum. |
 
 ```
 GET /api/v1/summary
+GET /api/v1/summary?timeframe=W1
 ```
 
 ---
 
 ## Strategies
 
-| Strategy | What it does | Full guide |
-|----------|-------------|------------|
-| **Elder Impulse System + Market Thermometer** | Trend-following with volatility-timed entries. Uses W1 and D1 Elder Impulse for direction, D1 Thermometer for entry timing. ~15 minutes each evening. | [📄 Read the guide](docs/strategies/elder-impulse-and-thermometer.md) |
-| **SuperTrend + RSI** | Momentum confirmation strategy. SuperTrend identifies the trend direction; RSI crossing above 60 or below 40 confirms the move has force behind it. | Guide coming soon |
-
-The strategy guides cover:
-- How each indicator works and what it measures
-- The full daily workflow step by step
-- Exit rules (the hardest part)
-- The prohibition rule — what you cannot do in each market state
-- Data requirements and minimum backfill needed for reliable signals
-
----
-
-## Sample Output
-
-*From the 30 May 2026 close — acted on during the 1 June 2026 session:*
-
-```
-## Market Breadth
-- W1 Impulse: 9 GREEN / 32 RED / 4 NEUTRAL  (22% GREEN / 71% RED)
-- D1 Impulse: 9 GREEN /  7 RED / 29 NEUTRAL
-- D1 Thermometer: 30 QUIET / 13 HOT/SPIKE
-- Cross-timeframe alignment: 1 bull-aligned / 2 bear-aligned (6% with conviction)
-
-> Macro environment is bearish — bias to the short side or stand aside.
-
-## Primary Bear Shortlist — W1 RED + D1 RED + D1 QUIET
-- ATOMUSDT  W1 RED 14 days  D1 RED 3 days ⚡ fresh
-            temp=0 (inside bar)  → target: yesterday low − 0.0428
-- DOTUSDT   W1 RED 14 days  D1 RED 3 days ⚡ fresh
-            temp=0 (inside bar)  → target: yesterday low − 0.0188
-
-## Spike Alerts
-W1 RED — short-covering rally into a downtrend. Consider selling into this strength.
-- BNBUSDT:  temp=84, ema=13.4 (6.3× normal)
-```
-
-A full walkthrough of this report with section-by-section interpretation is in the [strategy guide](docs/strategies/elder-impulse-and-thermometer.md#sample-report-walkthrough).
+| Strategy | What it does |
+|----------|-------------|
+| **SuperTrend + RSI** | Momentum confirmation — SuperTrend identifies the trend direction; RSI crossing above 60 or below 40 confirms the move has force behind it. |
+| **Cross-timeframe Alignment** | Use the trend alignment report to find assets where the weekly and daily are in agreement. Use the retest list to time entries into pullbacks within the weekly trend. |
 
 ---
 
@@ -108,7 +71,7 @@ A full walkthrough of this report with section-by-section interpretation is in t
 
 # ⚙️ For Developers
 
-Project Columbo is a Spring Boot backend that ingests OHLCV data from Binance, computes a stack of technical indicators, and exposes a REST API for scanning, signal tracking, and breadth aggregation.
+Project Columbo is a Spring Boot backend that ingests OHLCV data from Binance, computes SuperTrend and RSI indicators, and exposes a REST API for scanning, signal tracking, and cross-timeframe alignment.
 
 ---
 
@@ -133,12 +96,9 @@ Project Columbo is a Spring Boot backend that ingests OHLCV data from Binance, c
              │
 ┌────────────▼─────────────────┐
 │  Indicator Engines           │
+│  (parallelised per-asset)    │
 │  - SuperTrend (10, 2.0)      │
 │  - RSI (14)                  │
-│  - EMA-13 (D1), EMA-26 (W1)  │
-│  - MACD 12-26-9              │
-│  - Market Thermometer        │
-│  - Elder Impulse (D1 + W1)   │
 └────────────┬─────────────────┘
              │
 ┌────────────▼─────────────────┐
@@ -155,8 +115,8 @@ Project Columbo is a Spring Boot backend that ingests OHLCV data from Binance, c
              │
 ┌────────────▼─────────────────┐
 │  REST API + Summary Layer    │
+│  - Trend alignment report    │
 │  - Scan engine               │
-│  - Elder daily brief         │
 │  - Swagger UI                │
 └──────────────────────────────┘
 ```
@@ -180,7 +140,9 @@ Project Columbo is a Spring Boot backend that ingests OHLCV data from Binance, c
 
 ## Development Process
 
-Parts of this project were developed using [gsd-core](https://github.com/open-gsd/gsd-core), a structured software design and delivery framework. The artefacts it generated — requirements, phase plans, and delivery summaries — are kept in the `.planning/` directory.
+Changes are designed and tracked using [OpenSpec](https://github.com/open-gsd/openspec), a spec-driven delivery framework. Each feature goes through a proposal → design → spec → tasks pipeline before implementation. Artefacts live under `openspec/changes/` in the repository.
+
+Earlier milestones were developed with [gsd-core](https://github.com/open-gsd/gsd-core); those artefacts are in `.planning/`.
 
 ---
 
@@ -205,17 +167,17 @@ docker compose logs -f app
 
 On a fresh database, candles are fetched from `app.ingestion.backfill-start` (configured in `application.yaml`, default `2025-01-01`).
 
-The most demanding indicator is the **26-week EMA** used by W1 Elder Impulse. It requires ~86 weekly bars (~20 months of D1 data) to fully converge. The current default of `2025-01-01` (~74 W1 candles) will produce values, but signals should be treated as indicative until ~86 bars have accumulated.
-
-**Recommended minimum backfill start: `2024-01-01`**
+The binding constraint is the **W1 SuperTrend ATR** — it needs approximately 100 weekly bars (~44 candles for the 10-period ATR to converge, plus a calculation warmup). The default backfill start of `2025-01-01` provides ~130 W1 bars, which is comfortable.
 
 | Indicator | Converges after |
 |-----------|----------------|
-| D1 EMA-13, MACD, Thermometer | ~7 weeks of D1 data |
-| W1 SuperTrend (10-period ATR) | ~44 W1 candles (~10 months) |
-| **W1 Elder Impulse (26-week EMA)** | **~86 W1 candles (~20 months) ← binding constraint** |
+| D1 SuperTrend (10-period ATR) | ~100 D1 candles |
+| RSI (14) | ~28 D1 candles |
+| W1 SuperTrend (10-period ATR) | ~100 W1 candles (~2 years) ← binding constraint |
 
-Binance returns 500 candles per request, so a full backfill requires multiple ingestion trigger runs:
+> If the Elder Impulse System is ever reinstated, move `backfill-start` back to `2023-01-01` — W1 EMA-26 needs ~86 weekly bars (~20 months) to converge.
+
+Binance returns up to 500 candles per request. A backfill from `2025-01-01` to present requires multiple ingestion trigger runs:
 
 ```bash
 # Repeat until response shows 0 new candles inserted
@@ -232,8 +194,6 @@ docker compose logs app | grep INGESTION_WINDOW
 
 When all assets show `start >= end`, the backfill is complete.
 
-> Full data requirements breakdown: [Elder Impulse Strategy Guide — Data Requirements](docs/strategies/elder-impulse-and-thermometer.md#️-data-requirements)
-
 ---
 
 ## API & Swagger
@@ -246,12 +206,13 @@ Key endpoints:
 
 | Endpoint | Purpose |
 |----------|---------|
-| `GET /api/v1/elder-summary` | Full Elder daily brief (markdown) |
-| `GET /api/v1/elder-impulse-market-pulse?timeframe=W1` | W1 breadth snapshot |
-| `GET /api/v1/elder-impulse-market-pulse?timeframe=D1` | D1 breadth snapshot |
+| `GET /api/v1/summary/trend-alignment` | Cross-timeframe SuperTrend confluence + retest report |
+| `GET /api/v1/summary` | SuperTrend + RSI signal brief |
 | `POST /api/v1/scan` | Composable multi-indicator scan |
 | `GET /api/v1/signals` | Recent flip events by indicator and timeframe |
 | `POST /api/v1/internal/ingestion/run` | Trigger a manual ingestion run |
+
+All endpoints accept `format=MARKDOWN` for a human-readable brief where supported.
 
 ---
 
@@ -261,33 +222,29 @@ Key endpoints:
 |-------|---------|
 | **asset** | Tracked trading pairs (e.g., BTCUSDT) |
 | **candle** | OHLCV data including quote volume |
-| **indicator_ema** | EMA values (13-period D1, 26-period W1) |
-| **indicator_macd** | MACD line, signal line, histogram (D1 12-26-9) |
-| **indicator_thermometer** | Daily temperature and 22-day EMA |
-| **indicator_supertrend** | SuperTrend values |
-| **indicator_rsi** | RSI values |
+| **indicator_supertrend** | SuperTrend values per asset/timeframe |
+| **indicator_rsi** | RSI values per asset |
 | **signal_state** | Current state and flip events per indicator/asset |
 | **market_pulse** | Breadth snapshots aggregated per indicator |
 | **ingestion_run** | Full audit log of every ingestion execution |
 | **v_asset_liquidity** | View of assets ranked by 7-day average quote volume |
 
+> The schema also contains EMA, MACD, and Thermometer tables from an earlier Elder Impulse milestone. These are retained for schema continuity but are not written to by the current pipeline.
+
 ---
 
 ## Daily Scheduler
 
-A single pipeline (`MarketPipelineScheduler`) runs at **00:05 UTC** every day:
+A single pipeline (`MarketPipelineService`) runs at **00:05 UTC** every day. Indicator computation is parallelised per-asset using a dedicated async thread pool.
 
 | Phase | What it does |
 |-------|-------------|
 | 1 — Ingestion | Fetch finalized D1 candles from Binance |
-| 2 — D1 Indicators | Compute SuperTrend, RSI, EMA-13, MACD, Thermometer |
-| 3 — D1 Signal Detection | Detect state flips for D1 SuperTrend and RSI |
-| 4 — D1 Impulse | Derive Elder Impulse GREEN/RED/NEUTRAL for D1 |
-| 5 — D1 Thermometer | Derive QUIET/HOT/SPIKE from thermometer values |
-| 6 — D1 Market Pulse | Aggregate all D1 states into a breadth snapshot |
-| 7 — W1 Rollup | Derive W1 candles from completed Mon–Sun weeks |
-| 8 — W1 Processing | Compute W1 EMA-26 and Elder Impulse state |
-| 9 — W1 Market Pulse | Aggregate W1 states into a breadth snapshot |
+| 2 — Indicator Computation | Compute SuperTrend and RSI per-asset in parallel |
+| 3 — Signal Detection | Detect state flips for D1 SuperTrend and RSI |
+| 4 — Market Pulse | Aggregate D1 states into a breadth snapshot |
+| 5 — W1 Rollup | Derive W1 candles from completed Mon–Sun weeks |
+| 6 — W1 Processing | Compute W1 SuperTrend and signal state |
 
 Configured via `app.market-pipeline.cron` in `application.yaml`.
 
@@ -306,12 +263,12 @@ Configured via `app.market-pipeline.cron` in `application.yaml`.
 
 - [x] SuperTrend and RSI indicators
 - [x] Multi-timeframe scan with AND/OR logic (v2.0)
-- [x] EMA, MACD, Elder Impulse, Market Thermometer (v3.0)
-- [x] Elder daily brief with bear/bull shortlists and spike alerts
+- [x] EMA, MACD, Elder Impulse, Market Thermometer (implemented, currently disabled)
+- [x] Parallel indicator computation per-asset
+- [x] Cross-timeframe SuperTrend confluence + retest report (`/trend-alignment`)
 - [ ] Prometheus metrics export
 - [ ] Historical re-backfill endpoint
 - [ ] 4H timeframe support
-- [ ] OpenClaw AI assistant integration
 
 ---
 
