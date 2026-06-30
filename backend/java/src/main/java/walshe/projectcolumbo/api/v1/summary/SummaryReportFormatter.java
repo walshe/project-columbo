@@ -89,9 +89,17 @@ public class SummaryReportFormatter {
         sb.append("*Assets bullish on both weekly and daily SuperTrend — ordered by when D1 aligned (most recent first)*\n\n");
         appendConfluenceSignals(sb, report.bullishConfluence());
 
+        sb.append("## W1 + D1 Bullish Retest\n");
+        sb.append("*W1 bullish but D1 recently pulled bearish — potential continuation setup*\n\n");
+        appendRetestSignals(sb, report.bullishRetest());
+
         sb.append("## W1 + D1 Bearish Confluence\n");
         sb.append("*Assets bearish on both weekly and daily SuperTrend — ordered by when D1 aligned (most recent first)*\n\n");
         appendConfluenceSignals(sb, report.bearishConfluence());
+
+        sb.append("## W1 + D1 Bearish Retest\n");
+        sb.append("*W1 bearish but D1 recently pulled bullish — potential continuation setup*\n\n");
+        appendRetestSignals(sb, report.bearishRetest());
 
         return sb.toString();
     }
@@ -106,6 +114,21 @@ public class SummaryReportFormatter {
                     ? s.daysSinceFlip() + " day(s) ago"
                     : "established";
             sb.append(String.format("- [%s](%s): D1 aligned %s (Vol: %s)\n",
+                    s.symbol(), s.tradingviewUrl(), flipStr, formatVolume(s.avgVolume7d())));
+        }
+        sb.append("\n");
+    }
+
+    private void appendRetestSignals(StringBuilder sb, List<SignalStateDto> signals) {
+        if (signals.isEmpty()) {
+            sb.append("None — no retest setups found.\n\n");
+            return;
+        }
+        for (SignalStateDto s : signals) {
+            String flipStr = s.daysSinceFlip() != null
+                    ? s.daysSinceFlip() + " day(s) ago"
+                    : "recently";
+            sb.append(String.format("- [%s](%s): D1 counter-trend %s (Vol: %s)\n",
                     s.symbol(), s.tradingviewUrl(), flipStr, formatVolume(s.avgVolume7d())));
         }
         sb.append("\n");

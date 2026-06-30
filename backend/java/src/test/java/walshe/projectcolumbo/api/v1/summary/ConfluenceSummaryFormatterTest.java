@@ -16,16 +16,20 @@ class ConfluenceSummaryFormatterTest {
 
     private final SummaryReportFormatter formatter = new SummaryReportFormatter();
 
-    private SignalStateDto dto(String symbol, long daysSinceFlip) {
-        return new SignalStateDto(symbol, TrendState.SUPERTREND_BULLISH,
+    private SignalStateDto dto(String symbol, TrendState state, long daysSinceFlip) {
+        return new SignalStateDto(symbol, state,
                 OffsetDateTime.now().minusDays(daysSinceFlip), daysSinceFlip,
                 BigDecimal.valueOf(5_000_000), "http://tv/" + symbol);
+    }
+
+    private ConfluenceSummaryReport emptyReport() {
+        return new ConfluenceSummaryReport(List.of(), List.of(), List.of(), List.of(), null, null);
     }
 
     @Test
     void includesDataFreshnessHeader() {
         ConfluenceSummaryReport report = new ConfluenceSummaryReport(
-                List.of(), List.of(),
+                List.of(), List.of(), List.of(), List.of(),
                 OffsetDateTime.now(), LocalDate.now());
 
         String md = formatter.formatConfluenceMarkdown(report);
@@ -38,8 +42,10 @@ class ConfluenceSummaryFormatterTest {
     @Test
     void rendersBullishAndBearishSections() {
         ConfluenceSummaryReport report = new ConfluenceSummaryReport(
-                List.of(dto("BTC/USDT", 2)),
-                List.of(dto("ETH/USDT", 3)),
+                List.of(dto("BTC/USDT", TrendState.SUPERTREND_BULLISH, 2)),
+                List.of(),
+                List.of(dto("ETH/USDT", TrendState.SUPERTREND_BEARISH, 3)),
+                List.of(),
                 null, null);
 
         String md = formatter.formatConfluenceMarkdown(report);
@@ -51,22 +57,56 @@ class ConfluenceSummaryFormatterTest {
     }
 
     @Test
-    void rendersEmptyListMessage() {
+    void rendersRetestSections() {
         ConfluenceSummaryReport report = new ConfluenceSummaryReport(
-                List.of(), List.of(), null, null);
+                List.of(),
+                List.of(dto("SOL/USDT", TrendState.SUPERTREND_BEARISH, 3)),
+                List.of(),
+                List.of(dto("ADA/USDT", TrendState.SUPERTREND_BULLISH, 2)),
+                null, null);
 
         String md = formatter.formatConfluenceMarkdown(report);
+
+        assertThat(md).contains("## W1 + D1 Bullish Retest");
+        assertThat(md).contains("SOL/USDT");
+        assertThat(md).contains("## W1 + D1 Bearish Retest");
+        assertThat(md).contains("ADA/USDT");
+    }
+
+    @Test
+    void rendersEmptyConfluenceMessage() {
+        String md = formatter.formatConfluenceMarkdown(emptyReport());
 
         assertThat(md).contains("None — no cross-timeframe alignment found.");
     }
 
     @Test
+    void rendersEmptyRetestMessage() {
+        String md = formatter.formatConfluenceMarkdown(emptyReport());
+
+        assertThat(md).contains("None — no retest setups found.");
+    }
+
+    @Test
     void showsDaysSinceD1Flip() {
         ConfluenceSummaryReport report = new ConfluenceSummaryReport(
-                List.of(dto("SOL/USDT", 4)), List.of(), null, null);
+                List.of(dto("SOL/USDT", TrendState.SUPERTREND_BULLISH, 4)),
+                List.of(), List.of(), List.of(), null, null);
 
         String md = formatter.formatConfluenceMarkdown(report);
 
         assertThat(md).contains("4 day(s) ago");
+    }
+
+    @Test
+    void showsDaysSinceRetestFlip() {
+        ConfluenceSummaryReport report = new ConfluenceSummaryReport(
+                List.of(),
+                List.of(dto("DOT/USDT", TrendState.SUPERTREND_BEARISH, 2)),
+                List.of(), List.of(), null, null);
+
+        String md = formatter.formatConfluenceMarkdown(report);
+
+        assertThat(md).contains("2 day(s) ago");
     }
 }
