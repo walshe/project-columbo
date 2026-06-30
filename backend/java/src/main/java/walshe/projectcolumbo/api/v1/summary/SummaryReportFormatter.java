@@ -8,6 +8,7 @@ import walshe.projectcolumbo.api.v1.scan.dto.RsiMatch;
 import walshe.projectcolumbo.api.v1.scan.dto.ScanResult;
 import walshe.projectcolumbo.api.v1.scan.dto.SupertrendMatch;
 import walshe.projectcolumbo.api.v1.scan.dto.ThermometerMatch;
+import walshe.projectcolumbo.api.v1.summary.dto.ConfluenceSummaryReport;
 import walshe.projectcolumbo.api.v1.summary.dto.ElderSummaryReport;
 import walshe.projectcolumbo.api.v1.summary.dto.SummaryReport;
 
@@ -66,6 +67,48 @@ public class SummaryReportFormatter {
         appendScanResults(sb, report.bearishRsiOversold());
 
         return sb.toString();
+    }
+
+    // -------------------------------------------------------------------------
+    // Cross-timeframe SuperTrend confluence summary
+    // -------------------------------------------------------------------------
+
+    public String formatConfluenceMarkdown(ConfluenceSummaryReport report) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("# SuperTrend Confluence Report\n\n");
+
+        String candlesStr = report.candlesThrough() != null
+                ? report.candlesThrough().format(DATE_FMT)
+                : "unknown";
+        String pipelineStr = report.lastIngestionAt() != null
+                ? report.lastIngestionAt().atZoneSameInstant(java.time.ZoneOffset.UTC).format(DATETIME_FMT)
+                : "never";
+        sb.append(String.format("*Data through **%s** — pipeline ran %s*\n\n", candlesStr, pipelineStr));
+
+        sb.append("## W1 + D1 Bullish Confluence\n");
+        sb.append("*Assets bullish on both weekly and daily SuperTrend — ordered by when D1 aligned (most recent first)*\n\n");
+        appendConfluenceSignals(sb, report.bullishConfluence());
+
+        sb.append("## W1 + D1 Bearish Confluence\n");
+        sb.append("*Assets bearish on both weekly and daily SuperTrend — ordered by when D1 aligned (most recent first)*\n\n");
+        appendConfluenceSignals(sb, report.bearishConfluence());
+
+        return sb.toString();
+    }
+
+    private void appendConfluenceSignals(StringBuilder sb, List<SignalStateDto> signals) {
+        if (signals.isEmpty()) {
+            sb.append("None — no cross-timeframe alignment found.\n\n");
+            return;
+        }
+        for (SignalStateDto s : signals) {
+            String flipStr = s.daysSinceFlip() != null
+                    ? s.daysSinceFlip() + " day(s) ago"
+                    : "established";
+            sb.append(String.format("- [%s](%s): D1 aligned %s (Vol: %s)\n",
+                    s.symbol(), s.tradingviewUrl(), flipStr, formatVolume(s.avgVolume7d())));
+        }
+        sb.append("\n");
     }
 
     // -------------------------------------------------------------------------
