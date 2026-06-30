@@ -30,17 +30,24 @@ public class ConfluenceSummaryService {
         this.ingestionStatusService = ingestionStatusService;
     }
 
-    public ConfluenceSummaryReport getConfluence() {
+    public ConfluenceSummaryReport getConfluence(int maxRetestAgeDays) {
         List<SignalStateDto> bullishConfluence = intersect(
                 TrendState.SUPERTREND_BULLISH, TrendState.SUPERTREND_BULLISH);
+        List<SignalStateDto> bullishRetest = retest(
+                TrendState.SUPERTREND_BULLISH, TrendState.SUPERTREND_BEARISH, maxRetestAgeDays);
 
         List<SignalStateDto> bearishConfluence = intersect(
                 TrendState.SUPERTREND_BEARISH, TrendState.SUPERTREND_BEARISH);
+        List<SignalStateDto> bearishRetest = retest(
+                TrendState.SUPERTREND_BEARISH, TrendState.SUPERTREND_BULLISH, maxRetestAgeDays);
 
         OffsetDateTime lastIngestionAt = ingestionStatusService.lastSuccessfulD1IngestionAt().orElse(null);
         LocalDate candlesThrough = ingestionStatusService.latestCandleDate().orElse(null);
 
-        return new ConfluenceSummaryReport(bullishConfluence, bearishConfluence, lastIngestionAt, candlesThrough);
+        return new ConfluenceSummaryReport(
+                bullishConfluence, bullishRetest,
+                bearishConfluence, bearishRetest,
+                lastIngestionAt, candlesThrough);
     }
 
     // Returns D1 signals whose symbol also appears in the W1 list, ordered by D1 flip date descending.
@@ -56,6 +63,24 @@ public class ConfluenceSummaryService {
 
         return d1Signals.stream()
                 .filter(d1 -> w1Symbols.contains(d1.symbol()))
+                .collect(Collectors.toList());
+    }
+
+    // Returns D1 counter-trend signals whose symbol appears in the W1 aligned list,
+    // filtered to assets whose D1 flipped within maxRetestAgeDays, ordered by D1 flip date descending.
+    private List<SignalStateDto> retest(TrendState w1State, TrendState d1CounterState, int maxRetestAgeDays) {
+        List<SignalStateDto> w1Signals = signalQueryService.listSignals(
+                Timeframe.W1, IndicatorType.SUPERTREND, w1State, null);
+        List<SignalStateDto> d1Signals = signalQueryService.listSignals(
+                Timeframe.D1, IndicatorType.SUPERTREND, d1CounterState, SignalSort.LAST_FLIP_DESC);
+
+        Set<String> w1Symbols = w1Signals.stream()
+                .map(SignalStateDto::symbol)
+                .collect(Collectors.toSet());
+
+        return d1Signals.stream()
+                .filter(d1 -> w1Symbols.contains(d1.symbol()))
+                .filter(d1 -> d1.daysSinceFlip() != null && d1.daysSinceFlip() <= maxRetestAgeDays)
                 .collect(Collectors.toList());
     }
 }

@@ -31,14 +31,14 @@ class ConfluenceSummaryControllerTest {
 
     @Test
     void shouldReturnJsonByDefault() throws Exception {
-        mockMvc.perform(get("/api/v1/summary/confluence"))
+        mockMvc.perform(get("/api/v1/summary/trend-alignment"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON));
     }
 
     @Test
     void shouldReturnMarkdownWhenRequested() throws Exception {
-        mockMvc.perform(get("/api/v1/summary/confluence")
+        mockMvc.perform(get("/api/v1/summary/trend-alignment")
                         .param("format", "MARKDOWN"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.valueOf("text/markdown")))
@@ -47,8 +47,22 @@ class ConfluenceSummaryControllerTest {
 
     @Test
     void shouldRejectUnknownFormat() throws Exception {
-        mockMvc.perform(get("/api/v1/summary/confluence")
+        mockMvc.perform(get("/api/v1/summary/trend-alignment")
                         .param("format", "html"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldAcceptMaxRetestAgeDaysParam() throws Exception {
+        mockMvc.perform(get("/api/v1/summary/trend-alignment")
+                        .param("maxRetestAgeDays", "3"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON));
+    }
+
+    @Test
+    void oldConfluencePathShouldReturn404() throws Exception {
+        mockMvc.perform(get("/api/v1/summary/confluence"))
+                .andExpect(status().isNotFound());
     }
 }
