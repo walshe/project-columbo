@@ -19,7 +19,13 @@ class ConfluenceSummaryFormatterTest {
     private SignalStateDto dto(String symbol, TrendState state, long daysSinceFlip) {
         return new SignalStateDto(symbol, state,
                 OffsetDateTime.now().minusDays(daysSinceFlip), daysSinceFlip,
-                BigDecimal.valueOf(5_000_000), "http://tv/" + symbol);
+                BigDecimal.valueOf(5_000_000), "http://tv/" + symbol, null);
+    }
+
+    private SignalStateDto dto(String symbol, TrendState state, long daysSinceFlip, BigDecimal pctChangeSinceFlip) {
+        return new SignalStateDto(symbol, state,
+                OffsetDateTime.now().minusDays(daysSinceFlip), daysSinceFlip,
+                BigDecimal.valueOf(5_000_000), "http://tv/" + symbol, pctChangeSinceFlip);
     }
 
     private ConfluenceSummaryReport emptyReport() {
@@ -108,5 +114,39 @@ class ConfluenceSummaryFormatterTest {
         String md = formatter.formatConfluenceMarkdown(report);
 
         assertThat(md).contains("2 day(s) ago");
+    }
+
+    @Test
+    void showsPositivePctChangeInConfluenceSection() {
+        ConfluenceSummaryReport report = new ConfluenceSummaryReport(
+                List.of(dto("BTC/USDT", TrendState.SUPERTREND_BULLISH, 2, new BigDecimal("12.34"))),
+                List.of(), List.of(), List.of(), null, null);
+
+        String md = formatter.formatConfluenceMarkdown(report);
+
+        assertThat(md).contains("+12.34%");
+    }
+
+    @Test
+    void showsNegativePctChangeInRetestSection() {
+        ConfluenceSummaryReport report = new ConfluenceSummaryReport(
+                List.of(), List.of(),
+                List.of(), List.of(dto("ETH/USDT", TrendState.SUPERTREND_BULLISH, 2, new BigDecimal("-3.21"))),
+                null, null);
+
+        String md = formatter.formatConfluenceMarkdown(report);
+
+        assertThat(md).contains("-3.21%");
+    }
+
+    @Test
+    void omitsPctChangeWhenNull() {
+        ConfluenceSummaryReport report = new ConfluenceSummaryReport(
+                List.of(dto("BTC/USDT", TrendState.SUPERTREND_BULLISH, 2, null)),
+                List.of(), List.of(), List.of(), null, null);
+
+        String md = formatter.formatConfluenceMarkdown(report);
+
+        assertThat(md).doesNotContain("since flip");
     }
 }

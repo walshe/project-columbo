@@ -4,7 +4,10 @@ import walshe.projectcolumbo.persistence.entity.SignalState;
 import walshe.projectcolumbo.persistence.model.IndicatorType;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.model.TrendState;
+import walshe.projectcolumbo.persistence.repository.AssetCloseAtTime;
+import walshe.projectcolumbo.persistence.repository.AssetClosePrice;
 import walshe.projectcolumbo.persistence.repository.AssetLiquidityRepository;
+import walshe.projectcolumbo.persistence.repository.CandleRepository;
 import walshe.projectcolumbo.persistence.repository.SignalStateRepository;
 
 import org.springframework.stereotype.Service;
@@ -27,13 +30,16 @@ public class SignalQueryService {
 
     private final SignalStateRepository signalStateRepository;
     private final AssetLiquidityRepository assetLiquidityRepository;
+    private final CandleRepository candleRepository;
     private final TimeProvider timeProvider;
 
-    public SignalQueryService(SignalStateRepository signalStateRepository, 
+    public SignalQueryService(SignalStateRepository signalStateRepository,
                             AssetLiquidityRepository assetLiquidityRepository,
+                            CandleRepository candleRepository,
                             TimeProvider timeProvider) {
         this.signalStateRepository = signalStateRepository;
         this.assetLiquidityRepository = assetLiquidityRepository;
+        this.candleRepository = candleRepository;
         this.timeProvider = timeProvider;
     }
 
@@ -57,9 +63,20 @@ public class SignalQueryService {
                         AssetLiquidityView::getAssetId,
                         v -> v.getAvgVolume7d() != null ? v.getAvgVolume7d() : BigDecimal.ZERO));
 
+        Map<Long, BigDecimal> latestCloseByAssetId = candleRepository.findLatestClosePricesByTimeframe(timeframe.name()).stream()
+                .collect(Collectors.toMap(AssetClosePrice::getAssetId, AssetClosePrice::getClose));
+
+        Map<Long, OffsetDateTime> flipCloseTimeByAssetId = flipsByAssetId.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getCloseTime()));
+        Map<Long, BigDecimal> flipCloseByAssetId = candleRepository.findClosePricesAtFlipTimes(timeframe, flipCloseTimeByAssetId).stream()
+                .collect(Collectors.toMap(AssetCloseAtTime::assetId, AssetCloseAtTime::close));
+
         List<SignalStateDto> dtos = latestSignals.stream()
                 .filter(s -> stateFilter == null || s.getTrendState() == stateFilter)
-                .map(s -> SignalStateMapper.toDto(s, flipsByAssetId.get(s.getAsset().getId()), now, liquidityMap.getOrDefault(s.getAsset().getId(), BigDecimal.ZERO)))
+                .map(s -> SignalStateMapper.toDto(s, flipsByAssetId.get(s.getAsset().getId()), now,
+                        liquidityMap.getOrDefault(s.getAsset().getId(), BigDecimal.ZERO),
+                        flipCloseByAssetId.get(s.getAsset().getId()),
+                        latestCloseByAssetId.get(s.getAsset().getId())))
                 .collect(Collectors.toList());
 
         if (sort != null) {

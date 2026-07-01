@@ -8,6 +8,7 @@ import walshe.projectcolumbo.persistence.model.SignalEvent;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.model.TrendState;
 import walshe.projectcolumbo.persistence.repository.AssetLiquidityRepository;
+import walshe.projectcolumbo.persistence.repository.CandleRepository;
 import walshe.projectcolumbo.persistence.repository.SignalStateRepository;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +41,9 @@ class SignalQueryServiceTest {
     private AssetLiquidityRepository assetLiquidityRepository;
 
     @Mock
+    private CandleRepository candleRepository;
+
+    @Mock
     private TimeProvider timeProvider;
 
     private SignalQueryService service;
@@ -49,7 +53,7 @@ class SignalQueryServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new SignalQueryService(signalStateRepository, assetLiquidityRepository, timeProvider);
+        service = new SignalQueryService(signalStateRepository, assetLiquidityRepository, candleRepository, timeProvider);
         when(timeProvider.now()).thenReturn(now);
     }
 
