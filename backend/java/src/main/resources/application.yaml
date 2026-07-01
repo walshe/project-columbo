@@ -41,10 +41,13 @@ app:
   market-pipeline:
     cron: "0 5 0 * * *" # Run at 00:05 UTC every day
   ingestion:
-    # 2025-01-01 is sufficient for W1 SuperTrend (~20 weekly candles needed to stabilise ATR).
+    # ~1 year (~52 weekly candles) — comfortably clears W1 SuperTrend's ~20-week ATR warm-up,
+    # and keeps a fresh single-pass backfill under Binance's 500-candle klines default so it is
+    # not silently truncated. BackfillStartValidator fails startup if this is too recent.
     # If Elder Impulse System is reinstated, move this back to 2023-01-01 — EMA-13/MACD on W1
-    # needs ~100 weekly candles (~2 years) for Wilder's smoothing to stabilise.
-    backfill-start: "2025-01-01T00:00:00Z"
+    # needs ~100 weekly candles (~2 years) for Wilder's smoothing to stabilise (and raise
+    # MIN_WEEKLY_CANDLES_REQUIRED in BackfillStartValidator to match).
+    backfill-start: "2025-07-01T00:00:00Z"
   async:
     indicator-computation:
       core-pool-size: 8
