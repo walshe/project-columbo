@@ -89,6 +89,8 @@ public class SignalQueryService {
                         dto -> dto.avgVolume7d() != null ? dto.avgVolume7d() : BigDecimal.ZERO,
                         Comparator.reverseOrder()
                 );
+                case PCT_CHANGE_ASC -> Comparator.comparing(SignalStateDto::pctChangeSinceFlip, Comparator.nullsLast(Comparator.naturalOrder()));
+                case PCT_CHANGE_DESC -> Comparator.comparing(SignalStateDto::pctChangeSinceFlip, Comparator.nullsLast(Comparator.reverseOrder()));
             };
             dtos.sort(comparator);
         } else {

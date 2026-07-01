@@ -7,6 +7,8 @@ import walshe.projectcolumbo.persistence.model.MarketProvider;
 import walshe.projectcolumbo.persistence.model.SignalEvent;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.model.TrendState;
+import walshe.projectcolumbo.persistence.repository.AssetCloseAtTime;
+import walshe.projectcolumbo.persistence.repository.AssetClosePrice;
 import walshe.projectcolumbo.persistence.repository.AssetLiquidityRepository;
 import walshe.projectcolumbo.persistence.repository.CandleRepository;
 import walshe.projectcolumbo.persistence.repository.SignalStateRepository;
@@ -288,6 +290,57 @@ class SignalQueryServiceTest {
     }
 
     @Test
+    void shouldSortByPctChangeSinceFlip() {
+        Asset btc = new Asset("BTC", "Bitcoin", MarketProvider.BINANCE, true);
+        btc.setId(1L);
+        Asset eth = new Asset("ETH", "Ethereum", MarketProvider.BINANCE, true);
+        eth.setId(2L);
+        Asset xrp = new Asset("XRP", "Ripple", MarketProvider.BINANCE, true);
+        xrp.setId(3L);
+        Asset ada = new Asset("ADA", "Cardano", MarketProvider.BINANCE, true);
+        ada.setId(4L);
+
+        SignalState btcLatest = new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, boundary, TrendState.SUPERTREND_BULLISH, SignalEvent.NONE);
+        SignalState ethLatest = new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, boundary, TrendState.SUPERTREND_BULLISH, SignalEvent.NONE);
+        SignalState xrpLatest = new SignalState(xrp, Timeframe.D1, IndicatorType.SUPERTREND, boundary, TrendState.SUPERTREND_BULLISH, SignalEvent.NONE);
+        // ada has a latest signal but no recorded flip → null pct change → sorts last regardless of direction
+        SignalState adaLatest = new SignalState(ada, Timeframe.D1, IndicatorType.SUPERTREND, boundary, TrendState.SUPERTREND_BULLISH, SignalEvent.NONE);
+
+        SignalState btcFlip = new SignalState(btc, Timeframe.D1, IndicatorType.SUPERTREND, boundary.minusDays(5), TrendState.SUPERTREND_BULLISH, SignalEvent.SUPERTREND_BULLISH_REVERSAL);
+        SignalState ethFlip = new SignalState(eth, Timeframe.D1, IndicatorType.SUPERTREND, boundary.minusDays(5), TrendState.SUPERTREND_BULLISH, SignalEvent.SUPERTREND_BULLISH_REVERSAL);
+        SignalState xrpFlip = new SignalState(xrp, Timeframe.D1, IndicatorType.SUPERTREND, boundary.minusDays(5), TrendState.SUPERTREND_BULLISH, SignalEvent.SUPERTREND_BULLISH_REVERSAL);
+
+        when(signalStateRepository.findLatestFinalizedForActiveAssets(any(), any(), any()))
+                .thenReturn(List.of(btcLatest, ethLatest, xrpLatest, adaLatest));
+        when(signalStateRepository.findLatestFinalizedFlipsForActiveAssets(any(), any(), any()))
+                .thenReturn(List.of(btcFlip, ethFlip, xrpFlip));
+        when(signalStateRepository.findEarliestFinalizedForActiveAssets(any(), any(), any()))
+                .thenReturn(List.of());
+        when(assetLiquidityRepository.findAll()).thenReturn(List.of());
+
+        // All flipped at close 100; latest closes give BTC +30%, ETH +10%, XRP -10%.
+        // Build the AssetClosePrice mocks before the when(...) call — nesting mock stubbing
+        // inside thenReturn(...) interleaves the two and trips Mockito's strict stubbing.
+        AssetClosePrice btcClose = mockClosePrice(1L, new java.math.BigDecimal("130"));
+        AssetClosePrice ethClose = mockClosePrice(2L, new java.math.BigDecimal("110"));
+        AssetClosePrice xrpClose = mockClosePrice(3L, new java.math.BigDecimal("90"));
+        when(candleRepository.findLatestClosePricesByTimeframe(eq(Timeframe.D1.name())))
+                .thenReturn(List.of(btcClose, ethClose, xrpClose));
+        when(candleRepository.findClosePricesAtFlipTimes(any(), any())).thenReturn(List.of(
+                new AssetCloseAtTime(1L, boundary.minusDays(5), new java.math.BigDecimal("100")),
+                new AssetCloseAtTime(2L, boundary.minusDays(5), new java.math.BigDecimal("100")),
+                new AssetCloseAtTime(3L, boundary.minusDays(5), new java.math.BigDecimal("100"))));
+
+        // DESC: biggest gain first, null (ADA) last
+        List<SignalStateDto> desc = service.listSignals(Timeframe.D1, IndicatorType.SUPERTREND, null, SignalSort.PCT_CHANGE_DESC);
+        assertThat(desc).extracting(SignalStateDto::symbol).containsExactly("BTC", "ETH", "XRP", "ADA");
+
+        // ASC: biggest drop first, null (ADA) still last
+        List<SignalStateDto> asc = service.listSignals(Timeframe.D1, IndicatorType.SUPERTREND, null, SignalSort.PCT_CHANGE_ASC);
+        assertThat(asc).extracting(SignalStateDto::symbol).containsExactly("XRP", "ETH", "BTC", "ADA");
+    }
+
+    @Test
     void shouldNotThrowWhenAvgVolume7dIsNull() {
         OffsetDateTime now = OffsetDateTime.now();
         when(timeProvider.now()).thenReturn(now);
@@ -319,6 +372,13 @@ class SignalQueryServiceTest {
         AssetLiquidityView view = org.mockito.Mockito.mock(AssetLiquidityView.class);
         when(view.getAssetId()).thenReturn(assetId);
         when(view.getAvgVolume7d()).thenReturn(volume);
+        return view;
+    }
+
+    private AssetClosePrice mockClosePrice(Long assetId, java.math.BigDecimal close) {
+        AssetClosePrice view = org.mockito.Mockito.mock(AssetClosePrice.class);
+        when(view.getAssetId()).thenReturn(assetId);
+        when(view.getClose()).thenReturn(close);
         return view;
     }
 }
