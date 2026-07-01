@@ -33,5 +33,21 @@ public record SummaryReport(
     @Schema(description = "Calendar date (UTC) of the most recent daily candle in the database. " +
             "Tells you what trading day the signals and indicators are based on. " +
             "Null if no candles have been ingested yet.")
-    LocalDate candlesThrough
-) {}
+    LocalDate candlesThrough,
+
+    @Schema(description = "True when the requested timeframe is missing its most recent finalized " +
+            "candle (data is behind). Same determination as /candles/coverage upToDate.")
+    boolean stale
+) {
+    /** Convenience for callers that don't set freshness (e.g. Markdown rendering / tests). */
+    public SummaryReport(MarketPulseDto pulse,
+                         List<SignalStateDto> bullishSignals,
+                         List<SignalStateDto> bearishSignals,
+                         List<ScanResult> bullishRsiOverbought,
+                         List<ScanResult> bearishRsiOversold,
+                         OffsetDateTime lastIngestionAt,
+                         LocalDate candlesThrough) {
+        this(pulse, bullishSignals, bearishSignals, bullishRsiOverbought, bearishRsiOversold,
+                lastIngestionAt, candlesThrough, false);
+    }
+}

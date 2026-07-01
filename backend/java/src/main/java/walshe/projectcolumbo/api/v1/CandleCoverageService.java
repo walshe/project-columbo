@@ -3,10 +3,8 @@ package walshe.projectcolumbo.api.v1;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import walshe.projectcolumbo.api.v1.dto.CandleCoverageDto;
-import walshe.projectcolumbo.config.TimeProvider;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.repository.CandleRepository;
-import walshe.projectcolumbo.persistence.service.CandleFilters;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -18,26 +16,24 @@ import java.util.Map;
 /**
  * Reports, per timeframe, how much candle history is stored and whether it is current.
  *
- * <p>"Current" is defined against the same finalized boundary the ingestion pipeline uses
- * ({@link CandleFilters#utcMidnightToday}), so this endpoint cannot disagree with ingestion
- * about what counts as a finalized candle.
+ * <p>The "current" determination ({@code expectedLatest} / {@code upToDate}) is delegated to
+ * {@link CandleFreshnessService} so this endpoint and the read-endpoint {@code stale} flag can
+ * never disagree about what counts as a finalized candle.
  */
 @Service
 @Transactional(readOnly = true)
 public class CandleCoverageService {
 
     private final CandleRepository candleRepository;
-    private final TimeProvider timeProvider;
+    private final CandleFreshnessService freshnessService;
 
-    public CandleCoverageService(CandleRepository candleRepository, TimeProvider timeProvider) {
+    public CandleCoverageService(CandleRepository candleRepository, CandleFreshnessService freshnessService) {
         this.candleRepository = candleRepository;
-        this.timeProvider = timeProvider;
+        this.freshnessService = freshnessService;
     }
 
     /** Coverage per timeframe, keyed by timeframe name (e.g. "D1", "W1"). */
     public Map<String, CandleCoverageDto> getCoverage() {
-        OffsetDateTime boundary = CandleFilters.utcMidnightToday(timeProvider.now());
-
         Map<String, CandleCoverageDto> coverage = new LinkedHashMap<>();
         for (Timeframe timeframe : Timeframe.values()) {
             String tf = timeframe.name();
@@ -48,22 +44,12 @@ public class CandleCoverageService {
                     .map(this::toOffsetDateTime).orElse(null);
             long assetCount = candleRepository.countDistinctAssetsForTimeframe(tf);
 
-            // Start of the most recent finalized period. latest at or after this means the most
-            // recently finalized candle is present; the period-start threshold avoids fragile
-            // equality against the exact stored close time (e.g. 23:59:59.999).
-            OffsetDateTime expectedLatest = boundary.minusDays(periodDays(timeframe));
-            boolean upToDate = latest != null && !latest.isBefore(expectedLatest);
+            OffsetDateTime expectedLatest = freshnessService.expectedLatest(timeframe);
+            boolean upToDate = freshnessService.isUpToDate(timeframe);
 
             coverage.put(tf, new CandleCoverageDto(earliest, latest, expectedLatest, upToDate, assetCount));
         }
         return coverage;
-    }
-
-    private long periodDays(Timeframe timeframe) {
-        return switch (timeframe) {
-            case D1 -> 1;
-            case W1 -> 7;
-        };
     }
 
     /** Handles the mixed return types PostgreSQL native queries can produce. */

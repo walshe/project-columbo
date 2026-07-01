@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import walshe.projectcolumbo.api.v1.CandleFreshnessService;
+import walshe.projectcolumbo.api.v1.StaleDataResponses;
 import walshe.projectcolumbo.api.v1.summary.dto.SummaryReport;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 
@@ -18,10 +20,13 @@ public class SummaryController {
 
     private final SummaryService summaryService;
     private final SummaryReportFormatter formatter;
+    private final CandleFreshnessService freshnessService;
 
-    public SummaryController(SummaryService summaryService, SummaryReportFormatter formatter) {
+    public SummaryController(SummaryService summaryService, SummaryReportFormatter formatter,
+                             CandleFreshnessService freshnessService) {
         this.summaryService = summaryService;
         this.formatter = formatter;
+        this.freshnessService = freshnessService;
     }
 
     @GetMapping
@@ -32,7 +37,12 @@ public class SummaryController {
     )
     public ResponseEntity<?> getSummary(
             @RequestParam Timeframe timeframe,
-            @RequestParam(required = false, defaultValue = "JSON") SummaryFormat format) {
+            @RequestParam(required = false, defaultValue = "JSON") SummaryFormat format,
+            @RequestParam(required = false, defaultValue = "false") boolean requireFresh) {
+
+        if (requireFresh && freshnessService.isStaleBeyondGrace(timeframe)) {
+            return StaleDataResponses.serviceUnavailable(timeframe, freshnessService);
+        }
 
         SummaryReport report = summaryService.getSummary(timeframe);
 

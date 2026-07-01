@@ -19,5 +19,9 @@ public record SignalListResponse(
         @Schema(description = "Calendar date (UTC) of the most recent daily candle in the database. " +
                 "Tells you what trading day the signal states are based on. " +
                 "Null if no candles have been ingested yet.")
-        LocalDate candlesThrough
+        LocalDate candlesThrough,
+
+        @Schema(description = "True when the requested timeframe is missing its most recent finalized " +
+                "candle (data is behind). Same determination as /candles/coverage upToDate.")
+        boolean stale
 ) {}

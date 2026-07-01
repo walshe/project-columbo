@@ -23,24 +23,30 @@ class SignalController {
 
     private final SignalQueryService signalQueryService;
     private final IngestionStatusService ingestionStatusService;
+    private final CandleFreshnessService freshnessService;
 
     SignalController(SignalQueryService signalQueryService,
-                     IngestionStatusService ingestionStatusService) {
+                     IngestionStatusService ingestionStatusService,
+                     CandleFreshnessService freshnessService) {
         this.signalQueryService = signalQueryService;
         this.ingestionStatusService = ingestionStatusService;
+        this.freshnessService = freshnessService;
     }
 
     @GetMapping("/signals")
-    ResponseEntity<SignalListResponse> getSignals(
+    ResponseEntity<?> getSignals(
             @RequestParam Timeframe timeframe,
             @RequestParam IndicatorType indicatorType,
             @RequestParam(required = false) TrendState state,
-            @RequestParam(required = false) SignalSort sort) {
+            @RequestParam(required = false) SignalSort sort,
+            @RequestParam(required = false, defaultValue = "false") boolean requireFresh) {
+
+        if (requireFresh && freshnessService.isStaleBeyondGrace(timeframe)) {
+            return StaleDataResponses.serviceUnavailable(timeframe, freshnessService);
+        }
 
         List<SignalStateDto> signals = signalQueryService.listSignals(timeframe, indicatorType, state, sort);
-        OffsetDateTime lastIngestionAt = ingestionStatusService.lastSuccessfulD1IngestionAt().orElse(null);
-        LocalDate candlesThrough = ingestionStatusService.latestCandleDate().orElse(null);
-        return ResponseEntity.ok(new SignalListResponse(signals, lastIngestionAt, candlesThrough));
+        return ResponseEntity.ok(buildResponse(signals, timeframe));
     }
 
     @GetMapping("/assets/by-state")
@@ -50,8 +56,13 @@ class SignalController {
             @RequestParam TrendState state) {
 
         List<SignalStateDto> signals = signalQueryService.listSignals(timeframe, indicatorType, state, null);
+        return ResponseEntity.ok(buildResponse(signals, timeframe));
+    }
+
+    private SignalListResponse buildResponse(List<SignalStateDto> signals, Timeframe timeframe) {
         OffsetDateTime lastIngestionAt = ingestionStatusService.lastSuccessfulD1IngestionAt().orElse(null);
         LocalDate candlesThrough = ingestionStatusService.latestCandleDate().orElse(null);
-        return ResponseEntity.ok(new SignalListResponse(signals, lastIngestionAt, candlesThrough));
+        boolean stale = !freshnessService.isUpToDate(timeframe);
+        return new SignalListResponse(signals, lastIngestionAt, candlesThrough, stale);
     }
 }

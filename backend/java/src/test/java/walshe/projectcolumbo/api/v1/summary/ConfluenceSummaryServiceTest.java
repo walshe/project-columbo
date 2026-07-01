@@ -30,6 +30,9 @@ class ConfluenceSummaryServiceTest {
     @Mock
     private IngestionStatusService ingestionStatusService;
 
+    @Mock
+    private walshe.projectcolumbo.api.v1.CandleFreshnessService freshnessService;
+
     private ConfluenceSummaryService service;
 
     private static SignalStateDto dto(String symbol, TrendState state, long daysSinceFlip) {
@@ -41,7 +44,7 @@ class ConfluenceSummaryServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        service = new ConfluenceSummaryService(signalQueryService, ingestionStatusService);
+        service = new ConfluenceSummaryService(signalQueryService, ingestionStatusService, freshnessService);
         when(ingestionStatusService.lastSuccessfulD1IngestionAt()).thenReturn(Optional.empty());
         when(ingestionStatusService.latestCandleDate()).thenReturn(Optional.empty());
         // default: all queries return empty

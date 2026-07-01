@@ -37,7 +37,7 @@ class CandleCoverageServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new CandleCoverageService(candleRepository, timeProvider);
+        service = new CandleCoverageService(candleRepository, new CandleFreshnessService(candleRepository, timeProvider));
         when(timeProvider.now()).thenReturn(now);
     }
 

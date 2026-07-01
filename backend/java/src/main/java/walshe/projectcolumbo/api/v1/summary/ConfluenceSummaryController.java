@@ -8,7 +8,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import walshe.projectcolumbo.api.v1.CandleFreshnessService;
+import walshe.projectcolumbo.api.v1.StaleDataResponses;
 import walshe.projectcolumbo.api.v1.summary.dto.ConfluenceSummaryReport;
+import walshe.projectcolumbo.persistence.model.Timeframe;
 
 @RestController
 @RequestMapping("/api/v1/summary/trend-alignment")
@@ -17,11 +20,14 @@ public class ConfluenceSummaryController {
 
     private final ConfluenceSummaryService confluenceSummaryService;
     private final SummaryReportFormatter formatter;
+    private final CandleFreshnessService freshnessService;
 
     public ConfluenceSummaryController(ConfluenceSummaryService confluenceSummaryService,
-                                       SummaryReportFormatter formatter) {
+                                       SummaryReportFormatter formatter,
+                                       CandleFreshnessService freshnessService) {
         this.confluenceSummaryService = confluenceSummaryService;
         this.formatter = formatter;
+        this.freshnessService = freshnessService;
     }
 
     @GetMapping
@@ -34,7 +40,13 @@ public class ConfluenceSummaryController {
     )
     public ResponseEntity<?> getConfluence(
             @RequestParam(required = false, defaultValue = "JSON") SummaryFormat format,
-            @RequestParam(required = false, defaultValue = "7") int maxRetestAgeDays) {
+            @RequestParam(required = false, defaultValue = "7") int maxRetestAgeDays,
+            @RequestParam(required = false, defaultValue = "false") boolean requireFresh) {
+
+        // D1 is the driving timeframe for this cross-timeframe report.
+        if (requireFresh && freshnessService.isStaleBeyondGrace(Timeframe.D1)) {
+            return StaleDataResponses.serviceUnavailable(Timeframe.D1, freshnessService);
+        }
 
         ConfluenceSummaryReport report = confluenceSummaryService.getConfluence(maxRetestAgeDays);
 
