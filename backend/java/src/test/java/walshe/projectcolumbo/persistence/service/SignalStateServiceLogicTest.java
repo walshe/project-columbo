@@ -13,7 +13,6 @@ import walshe.projectcolumbo.persistence.repository.CandleRepository;
 import walshe.projectcolumbo.persistence.repository.RsiRepository;
 import walshe.projectcolumbo.persistence.repository.SignalStateRepository;
 import walshe.projectcolumbo.persistence.repository.SuperTrendRepository;
-import walshe.projectcolumbo.persistence.service.SignalStateService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +37,7 @@ class SignalStateServiceLogicTest {
     private TestDatabaseCleaner testDatabaseCleaner;
 
     @Autowired
-    private SignalStateService signalStateService;
+    private SignalStateAssetProcessor signalStateAssetProcessor;
 
     @Autowired
     private SignalStateRepository signalStateRepository;
@@ -78,7 +77,7 @@ class SignalStateServiceLogicTest {
         saveSuperTrend(t2, SuperTrendDirection.SUPERTREND_UP);
 
         // When
-        signalStateService.processAsset(btc, Timeframe.D1, false);
+        signalStateAssetProcessor.processAsset(btc, Timeframe.D1, false);
 
         // Then
         List<SignalState> states = signalStateRepository.findAllByAssetIdAndTimeframeAndIndicatorTypeOrderByCloseTimeAsc(
@@ -104,7 +103,7 @@ class SignalStateServiceLogicTest {
         saveSuperTrend(t1, SuperTrendDirection.SUPERTREND_DOWN);
         
         // Initial run
-        signalStateService.processAsset(btc, Timeframe.D1, false);
+        signalStateAssetProcessor.processAsset(btc, Timeframe.D1, false);
         
         List<SignalState> statesBefore = signalStateRepository.findAllByAssetIdAndTimeframeAndIndicatorTypeOrderByCloseTimeAsc(
                 btc.getId(), Timeframe.D1, IndicatorType.SUPERTREND);
@@ -117,7 +116,7 @@ class SignalStateServiceLogicTest {
         superTrendRepository.save(indicator);
 
         // When - run again with fullRecalc to pick up the change
-        signalStateService.processAsset(btc, Timeframe.D1, true);
+        signalStateAssetProcessor.processAsset(btc, Timeframe.D1, true);
 
         // Then
         List<SignalState> statesAfter = signalStateRepository.findAllByAssetIdAndTimeframeAndIndicatorTypeOrderByCloseTimeAsc(
