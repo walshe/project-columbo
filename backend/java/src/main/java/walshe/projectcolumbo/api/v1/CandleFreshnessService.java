@@ -62,8 +62,21 @@ public class CandleFreshnessService {
         if (isUpToDate(timeframe)) {
             return false;
         }
+        // boundary is UTC-anchored (utcMidnightToday normalises to UTC regardless of now's offset);
+        // isAfter compares instants, so this is timezone-independent.
         OffsetDateTime boundary = CandleFilters.utcMidnightToday(timeProvider.now());
         return timeProvider.now().isAfter(boundary.plus(REQUIRE_FRESH_GRACE));
+    }
+
+    /**
+     * Seconds until the next UTC-midnight boundary — roughly when the next daily pipeline run could
+     * refresh the data. A coarse but honest {@code Retry-After} hint: if the pipeline is genuinely
+     * broken the data may still be stale afterwards, but this is the earliest it could plausibly heal.
+     */
+    public long secondsUntilNextBoundary() {
+        OffsetDateTime now = timeProvider.now();
+        OffsetDateTime nextBoundary = CandleFilters.utcMidnightToday(now).plusDays(1);
+        return Math.max(1, Duration.between(now, nextBoundary).getSeconds());
     }
 
     private OffsetDateTime latestClose(Timeframe timeframe) {

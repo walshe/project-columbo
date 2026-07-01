@@ -2,7 +2,6 @@ package walshe.projectcolumbo.api.v1.summary;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import walshe.projectcolumbo.api.v1.CandleFreshnessService;
-import walshe.projectcolumbo.api.v1.dto.StaleDataError;
+import walshe.projectcolumbo.api.v1.StaleDataResponses;
 import walshe.projectcolumbo.api.v1.summary.dto.ConfluenceSummaryReport;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 
@@ -46,12 +45,7 @@ public class ConfluenceSummaryController {
 
         // D1 is the driving timeframe for this cross-timeframe report.
         if (requireFresh && freshnessService.isStaleBeyondGrace(Timeframe.D1)) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .header("Retry-After", "300")
-                    .body(new StaleDataError(
-                            "Candle data for D1 is stale (missing the most recent finalized candle).",
-                            Timeframe.D1.name(),
-                            freshnessService.expectedLatest(Timeframe.D1)));
+            return StaleDataResponses.serviceUnavailable(Timeframe.D1, freshnessService);
         }
 
         ConfluenceSummaryReport report = confluenceSummaryService.getConfluence(maxRetestAgeDays);

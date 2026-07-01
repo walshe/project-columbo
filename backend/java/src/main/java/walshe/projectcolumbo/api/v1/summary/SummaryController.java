@@ -2,7 +2,6 @@ package walshe.projectcolumbo.api.v1.summary;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import walshe.projectcolumbo.api.v1.CandleFreshnessService;
-import walshe.projectcolumbo.api.v1.dto.StaleDataError;
+import walshe.projectcolumbo.api.v1.StaleDataResponses;
 import walshe.projectcolumbo.api.v1.summary.dto.SummaryReport;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 
@@ -42,12 +41,7 @@ public class SummaryController {
             @RequestParam(required = false, defaultValue = "false") boolean requireFresh) {
 
         if (requireFresh && freshnessService.isStaleBeyondGrace(timeframe)) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .header("Retry-After", "300")
-                    .body(new StaleDataError(
-                            "Candle data for " + timeframe + " is stale (missing the most recent finalized candle).",
-                            timeframe.name(),
-                            freshnessService.expectedLatest(timeframe)));
+            return StaleDataResponses.serviceUnavailable(timeframe, freshnessService);
         }
 
         SummaryReport report = summaryService.getSummary(timeframe);
