@@ -66,20 +66,10 @@ public class SignalQueryService {
         Map<Long, BigDecimal> latestCloseByAssetId = candleRepository.findLatestClosePricesByTimeframe(timeframe.name()).stream()
                 .collect(Collectors.toMap(AssetClosePrice::getAssetId, AssetClosePrice::getClose));
 
-        Map<Long, BigDecimal> flipCloseByAssetId = new HashMap<>();
-        if (!flipsByAssetId.isEmpty()) {
-            List<Long> flipAssetIds = flipsByAssetId.values().stream().map(s -> s.getAsset().getId()).toList();
-            List<OffsetDateTime> flipCloseTimes = flipsByAssetId.values().stream().map(SignalState::getCloseTime).toList();
-            List<AssetCloseAtTime> flipCandles = candleRepository.findClosePricesForAssetsAtTimes(timeframe.name(), flipAssetIds, flipCloseTimes);
-            for (var entry : flipsByAssetId.entrySet()) {
-                Long assetId = entry.getKey();
-                OffsetDateTime flipCloseTime = entry.getValue().getCloseTime();
-                flipCandles.stream()
-                        .filter(c -> c.getAssetId().equals(assetId) && c.getCloseTime().isEqual(flipCloseTime))
-                        .findFirst()
-                        .ifPresent(c -> flipCloseByAssetId.put(assetId, c.getClose()));
-            }
-        }
+        Map<Long, OffsetDateTime> flipCloseTimeByAssetId = flipsByAssetId.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getCloseTime()));
+        Map<Long, BigDecimal> flipCloseByAssetId = candleRepository.findClosePricesAtFlipTimes(timeframe, flipCloseTimeByAssetId).stream()
+                .collect(Collectors.toMap(AssetCloseAtTime::assetId, AssetCloseAtTime::close));
 
         List<SignalStateDto> dtos = latestSignals.stream()
                 .filter(s -> stateFilter == null || s.getTrendState() == stateFilter)

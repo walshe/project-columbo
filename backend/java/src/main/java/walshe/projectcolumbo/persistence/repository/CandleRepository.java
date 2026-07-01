@@ -11,7 +11,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface CandleRepository extends JpaRepository<Candle, Long> {
+public interface CandleRepository extends JpaRepository<Candle, Long>, CandleRepositoryCustom {
     List<Candle> findByAssetAndTimeframe(Asset asset, Timeframe timeframe);
 
     List<Candle> findByAssetAndTimeframeOrderByCloseTimeAsc(Asset asset, Timeframe timeframe);
@@ -35,11 +35,4 @@ public interface CandleRepository extends JpaRepository<Candle, Long> {
             "FROM candle WHERE timeframe = CAST(:timeframe AS timeframe) " +
             "ORDER BY asset_id, close_time DESC", nativeQuery = true)
     List<AssetClosePrice> findLatestClosePricesByTimeframe(@Param("timeframe") String timeframe);
-
-    @Query(value = "SELECT asset_id AS assetId, close_time AS closeTime, close AS close " +
-            "FROM candle WHERE timeframe = CAST(:timeframe AS timeframe) " +
-            "AND asset_id IN (:assetIds) AND close_time IN (:closeTimes)", nativeQuery = true)
-    List<AssetCloseAtTime> findClosePricesForAssetsAtTimes(@Param("timeframe") String timeframe,
-                                                            @Param("assetIds") List<Long> assetIds,
-                                                            @Param("closeTimes") List<OffsetDateTime> closeTimes);
 }
