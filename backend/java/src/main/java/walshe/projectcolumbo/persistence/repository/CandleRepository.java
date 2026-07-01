@@ -31,6 +31,12 @@ public interface CandleRepository extends JpaRepository<Candle, Long>, CandleRep
     @Query(value = "SELECT MAX(close_time) FROM candle WHERE timeframe = CAST(:timeframe AS timeframe)", nativeQuery = true)
     Optional<Object> findLatestCloseTimeForTimeframe(@Param("timeframe") String timeframe);
 
+    @Query(value = "SELECT MIN(close_time) FROM candle WHERE timeframe = CAST(:timeframe AS timeframe)", nativeQuery = true)
+    Optional<Object> findEarliestCloseTimeForTimeframe(@Param("timeframe") String timeframe);
+
+    @Query(value = "SELECT COUNT(DISTINCT asset_id) FROM candle WHERE timeframe = CAST(:timeframe AS timeframe)", nativeQuery = true)
+    long countDistinctAssetsForTimeframe(@Param("timeframe") String timeframe);
+
     @Query(value = "SELECT DISTINCT ON (asset_id) asset_id AS assetId, close AS close " +
             "FROM candle WHERE timeframe = CAST(:timeframe AS timeframe) " +
             "ORDER BY asset_id, close_time DESC", nativeQuery = true)
