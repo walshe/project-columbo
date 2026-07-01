@@ -2,6 +2,7 @@ package walshe.projectcolumbo.api.v1.summary;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import walshe.projectcolumbo.api.v1.CandleFreshnessService;
 import walshe.projectcolumbo.api.v1.MarketPulseQueryService;
 import walshe.projectcolumbo.api.v1.SignalQueryService;
 import walshe.projectcolumbo.ingestion.IngestionStatusService;
@@ -31,15 +32,18 @@ public class SummaryService {
     private final MarketPulseQueryService marketPulseQueryService;
     private final ScanService scanService;
     private final IngestionStatusService ingestionStatusService;
+    private final CandleFreshnessService freshnessService;
 
     public SummaryService(SignalQueryService signalQueryService,
                           MarketPulseQueryService marketPulseQueryService,
                           ScanService scanService,
-                          IngestionStatusService ingestionStatusService) {
+                          IngestionStatusService ingestionStatusService,
+                          CandleFreshnessService freshnessService) {
         this.signalQueryService = signalQueryService;
         this.marketPulseQueryService = marketPulseQueryService;
         this.scanService = scanService;
         this.ingestionStatusService = ingestionStatusService;
+        this.freshnessService = freshnessService;
     }
 
     public SummaryReport getSummary(Timeframe timeframe) {
@@ -72,6 +76,7 @@ public class SummaryService {
 
         OffsetDateTime lastIngestionAt = ingestionStatusService.lastSuccessfulD1IngestionAt().orElse(null);
         LocalDate candlesThrough = ingestionStatusService.latestCandleDate().orElse(null);
+        boolean stale = !freshnessService.isUpToDate(timeframe);
 
         return new SummaryReport(
                 pulse,
@@ -80,7 +85,8 @@ public class SummaryService {
                 bullishRsi,
                 bearishRsi,
                 lastIngestionAt,
-                candlesThrough
+                candlesThrough,
+                stale
         );
     }
 }

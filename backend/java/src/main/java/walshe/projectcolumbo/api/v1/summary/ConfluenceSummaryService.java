@@ -2,6 +2,7 @@ package walshe.projectcolumbo.api.v1.summary;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import walshe.projectcolumbo.api.v1.CandleFreshnessService;
 import walshe.projectcolumbo.api.v1.SignalQueryService;
 import walshe.projectcolumbo.api.v1.dto.SignalSort;
 import walshe.projectcolumbo.api.v1.dto.SignalStateDto;
@@ -23,11 +24,14 @@ public class ConfluenceSummaryService {
 
     private final SignalQueryService signalQueryService;
     private final IngestionStatusService ingestionStatusService;
+    private final CandleFreshnessService freshnessService;
 
     public ConfluenceSummaryService(SignalQueryService signalQueryService,
-                                    IngestionStatusService ingestionStatusService) {
+                                    IngestionStatusService ingestionStatusService,
+                                    CandleFreshnessService freshnessService) {
         this.signalQueryService = signalQueryService;
         this.ingestionStatusService = ingestionStatusService;
+        this.freshnessService = freshnessService;
     }
 
     public ConfluenceSummaryReport getConfluence(int maxRetestAgeDays) {
@@ -43,11 +47,13 @@ public class ConfluenceSummaryService {
 
         OffsetDateTime lastIngestionAt = ingestionStatusService.lastSuccessfulD1IngestionAt().orElse(null);
         LocalDate candlesThrough = ingestionStatusService.latestCandleDate().orElse(null);
+        // D1 is the driving timeframe for the cross-timeframe report (W1 is rolled up from D1).
+        boolean stale = !freshnessService.isUpToDate(Timeframe.D1);
 
         return new ConfluenceSummaryReport(
                 bullishConfluence, bullishRetest,
                 bearishConfluence, bearishRetest,
-                lastIngestionAt, candlesThrough);
+                lastIngestionAt, candlesThrough, stale);
     }
 
     // Returns D1 signals whose symbol also appears in the W1 list, ordered by D1 flip date descending.

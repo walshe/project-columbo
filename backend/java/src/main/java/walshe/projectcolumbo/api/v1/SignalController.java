@@ -1,5 +1,6 @@
 package walshe.projectcolumbo.api.v1;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import walshe.projectcolumbo.api.v1.dto.SignalListResponse;
 import walshe.projectcolumbo.api.v1.dto.SignalSort;
 import walshe.projectcolumbo.api.v1.dto.SignalStateDto;
+import walshe.projectcolumbo.api.v1.dto.StaleDataError;
 import walshe.projectcolumbo.ingestion.IngestionStatusService;
 import walshe.projectcolumbo.persistence.model.IndicatorType;
 import walshe.projectcolumbo.persistence.model.Timeframe;
@@ -23,24 +25,30 @@ class SignalController {
 
     private final SignalQueryService signalQueryService;
     private final IngestionStatusService ingestionStatusService;
+    private final CandleFreshnessService freshnessService;
 
     SignalController(SignalQueryService signalQueryService,
-                     IngestionStatusService ingestionStatusService) {
+                     IngestionStatusService ingestionStatusService,
+                     CandleFreshnessService freshnessService) {
         this.signalQueryService = signalQueryService;
         this.ingestionStatusService = ingestionStatusService;
+        this.freshnessService = freshnessService;
     }
 
     @GetMapping("/signals")
-    ResponseEntity<SignalListResponse> getSignals(
+    ResponseEntity<?> getSignals(
             @RequestParam Timeframe timeframe,
             @RequestParam IndicatorType indicatorType,
             @RequestParam(required = false) TrendState state,
-            @RequestParam(required = false) SignalSort sort) {
+            @RequestParam(required = false) SignalSort sort,
+            @RequestParam(required = false, defaultValue = "false") boolean requireFresh) {
+
+        if (requireFresh && freshnessService.isStaleBeyondGrace(timeframe)) {
+            return staleResponse(timeframe);
+        }
 
         List<SignalStateDto> signals = signalQueryService.listSignals(timeframe, indicatorType, state, sort);
-        OffsetDateTime lastIngestionAt = ingestionStatusService.lastSuccessfulD1IngestionAt().orElse(null);
-        LocalDate candlesThrough = ingestionStatusService.latestCandleDate().orElse(null);
-        return ResponseEntity.ok(new SignalListResponse(signals, lastIngestionAt, candlesThrough));
+        return ResponseEntity.ok(buildResponse(signals, timeframe));
     }
 
     @GetMapping("/assets/by-state")
@@ -50,8 +58,22 @@ class SignalController {
             @RequestParam TrendState state) {
 
         List<SignalStateDto> signals = signalQueryService.listSignals(timeframe, indicatorType, state, null);
+        return ResponseEntity.ok(buildResponse(signals, timeframe));
+    }
+
+    private SignalListResponse buildResponse(List<SignalStateDto> signals, Timeframe timeframe) {
         OffsetDateTime lastIngestionAt = ingestionStatusService.lastSuccessfulD1IngestionAt().orElse(null);
         LocalDate candlesThrough = ingestionStatusService.latestCandleDate().orElse(null);
-        return ResponseEntity.ok(new SignalListResponse(signals, lastIngestionAt, candlesThrough));
+        boolean stale = !freshnessService.isUpToDate(timeframe);
+        return new SignalListResponse(signals, lastIngestionAt, candlesThrough, stale);
+    }
+
+    private ResponseEntity<StaleDataError> staleResponse(Timeframe timeframe) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header("Retry-After", "300")
+                .body(new StaleDataError(
+                        "Candle data for " + timeframe + " is stale (missing the most recent finalized candle).",
+                        timeframe.name(),
+                        freshnessService.expectedLatest(timeframe)));
     }
 }

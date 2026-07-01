@@ -25,5 +25,20 @@ public record ConfluenceSummaryReport(
     OffsetDateTime lastIngestionAt,
 
     @Schema(description = "Calendar date (UTC) of the most recent daily candle in the database.")
-    LocalDate candlesThrough
-) {}
+    LocalDate candlesThrough,
+
+    @Schema(description = "True when D1 (the driving timeframe) is missing its most recent finalized " +
+            "candle (data is behind). Same determination as /candles/coverage upToDate for D1.")
+    boolean stale
+) {
+    /** Convenience for callers that don't set freshness (e.g. Markdown rendering / tests). */
+    public ConfluenceSummaryReport(List<SignalStateDto> bullishConfluence,
+                                   List<SignalStateDto> bullishRetest,
+                                   List<SignalStateDto> bearishConfluence,
+                                   List<SignalStateDto> bearishRetest,
+                                   OffsetDateTime lastIngestionAt,
+                                   LocalDate candlesThrough) {
+        this(bullishConfluence, bullishRetest, bearishConfluence, bearishRetest,
+                lastIngestionAt, candlesThrough, false);
+    }
+}

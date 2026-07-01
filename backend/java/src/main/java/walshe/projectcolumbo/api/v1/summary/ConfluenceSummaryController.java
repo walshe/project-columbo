@@ -2,13 +2,17 @@ package walshe.projectcolumbo.api.v1.summary;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import walshe.projectcolumbo.api.v1.CandleFreshnessService;
+import walshe.projectcolumbo.api.v1.dto.StaleDataError;
 import walshe.projectcolumbo.api.v1.summary.dto.ConfluenceSummaryReport;
+import walshe.projectcolumbo.persistence.model.Timeframe;
 
 @RestController
 @RequestMapping("/api/v1/summary/trend-alignment")
@@ -17,11 +21,14 @@ public class ConfluenceSummaryController {
 
     private final ConfluenceSummaryService confluenceSummaryService;
     private final SummaryReportFormatter formatter;
+    private final CandleFreshnessService freshnessService;
 
     public ConfluenceSummaryController(ConfluenceSummaryService confluenceSummaryService,
-                                       SummaryReportFormatter formatter) {
+                                       SummaryReportFormatter formatter,
+                                       CandleFreshnessService freshnessService) {
         this.confluenceSummaryService = confluenceSummaryService;
         this.formatter = formatter;
+        this.freshnessService = freshnessService;
     }
 
     @GetMapping
@@ -34,7 +41,18 @@ public class ConfluenceSummaryController {
     )
     public ResponseEntity<?> getConfluence(
             @RequestParam(required = false, defaultValue = "JSON") SummaryFormat format,
-            @RequestParam(required = false, defaultValue = "7") int maxRetestAgeDays) {
+            @RequestParam(required = false, defaultValue = "7") int maxRetestAgeDays,
+            @RequestParam(required = false, defaultValue = "false") boolean requireFresh) {
+
+        // D1 is the driving timeframe for this cross-timeframe report.
+        if (requireFresh && freshnessService.isStaleBeyondGrace(Timeframe.D1)) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .header("Retry-After", "300")
+                    .body(new StaleDataError(
+                            "Candle data for D1 is stale (missing the most recent finalized candle).",
+                            Timeframe.D1.name(),
+                            freshnessService.expectedLatest(Timeframe.D1)));
+        }
 
         ConfluenceSummaryReport report = confluenceSummaryService.getConfluence(maxRetestAgeDays);
 
