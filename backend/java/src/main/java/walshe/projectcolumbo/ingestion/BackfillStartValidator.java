@@ -36,7 +36,12 @@ class BackfillStartValidator {
      */
     private static final int MIN_WEEKLY_CANDLES_REQUIRED = 20;
 
-    /** Small buffer so a start that lands mid-week still clears the requirement. */
+    /**
+     * One week of slack on top of the raw {@code 20 * 7} days. A backfill can start mid-week, and
+     * that partial first week does not roll up into a usable weekly candle — so the +7 guarantees
+     * ~{@value #MIN_WEEKLY_CANDLES_REQUIRED} <em>whole</em> weekly candles regardless of alignment.
+     * The effective required lookback is therefore {@code 20*7 + 7 = 147} days, not 140.
+     */
     private static final int BUFFER_DAYS = 7;
 
     private static final long REQUIRED_LOOKBACK_DAYS =
@@ -61,6 +66,13 @@ class BackfillStartValidator {
         }
 
         OffsetDateTime now = timeProvider.now();
+        if (backfillStart.isAfter(now)) {
+            throw new IllegalStateException(String.format(
+                    "app.ingestion.backfill-start=%s is in the future (now=%s). Set it at least %d weekly "
+                            + "candles (~%d days) in the past.",
+                    backfillStart, now, MIN_WEEKLY_CANDLES_REQUIRED, REQUIRED_LOOKBACK_DAYS));
+        }
+
         long availableDays = ChronoUnit.DAYS.between(backfillStart, now);
         if (availableDays < REQUIRED_LOOKBACK_DAYS) {
             throw new IllegalStateException(String.format(

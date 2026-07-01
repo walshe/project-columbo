@@ -46,6 +46,15 @@ class BackfillStartValidatorTest {
     }
 
     @Test
+    void throwsWithClearMessageWhenBackfillStartIsInFuture() {
+        BackfillStartValidator validator = validatorFor(NOW.plusDays(30));
+
+        assertThatThrownBy(validator::validate)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("in the future");
+    }
+
+    @Test
     void passesExactlyAtTheRequiredBoundary() {
         // 20 weekly candles (140 days) + 7 day buffer = 147 days required
         BackfillStartValidator validator = validatorFor(NOW.minusDays(147));
