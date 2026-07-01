@@ -113,8 +113,8 @@ public class SummaryReportFormatter {
             String flipStr = s.daysSinceFlip() != null
                     ? s.daysSinceFlip() + " day(s) ago"
                     : "established";
-            sb.append(String.format("- [%s](%s): D1 aligned %s (Vol: %s)\n",
-                    s.symbol(), s.tradingviewUrl(), flipStr, formatVolume(s.avgVolume7d())));
+            sb.append(String.format("- [%s](%s): D1 aligned %s (%s)\n",
+                    s.symbol(), s.tradingviewUrl(), flipStr, formatVolAndPct(s.avgVolume7d(), s.pctChangeSinceFlip())));
         }
         sb.append("\n");
     }
@@ -128,8 +128,8 @@ public class SummaryReportFormatter {
             String flipStr = s.daysSinceFlip() != null
                     ? s.daysSinceFlip() + " day(s) ago"
                     : "recently";
-            sb.append(String.format("- [%s](%s): D1 counter-trend %s (Vol: %s)\n",
-                    s.symbol(), s.tradingviewUrl(), flipStr, formatVolume(s.avgVolume7d())));
+            sb.append(String.format("- [%s](%s): D1 counter-trend %s (%s)\n",
+                    s.symbol(), s.tradingviewUrl(), flipStr, formatVolAndPct(s.avgVolume7d(), s.pctChangeSinceFlip())));
         }
         sb.append("\n");
     }
@@ -416,8 +416,8 @@ public class SummaryReportFormatter {
             sb.append("None found.\n\n");
         } else {
             for (SignalStateDto s : withFlip) {
-                sb.append(String.format("- [%s](%s): Flipped %d days ago (Vol: %s)\n",
-                        s.symbol(), s.tradingviewUrl(), s.daysSinceFlip(), formatVolume(s.avgVolume7d())));
+                sb.append(String.format("- [%s](%s): Flipped %d days ago (%s)\n",
+                        s.symbol(), s.tradingviewUrl(), s.daysSinceFlip(), formatVolAndPct(s.avgVolume7d(), s.pctChangeSinceFlip())));
             }
             sb.append("\n");
         }
@@ -446,6 +446,19 @@ public class SummaryReportFormatter {
         if (value == null) return "0";
         return value.round(new java.math.MathContext(3, java.math.RoundingMode.HALF_UP))
                     .stripTrailingZeros().toPlainString();
+    }
+
+    private String formatVolAndPct(BigDecimal volume, BigDecimal pctChangeSinceFlip) {
+        String pctStr = formatPctChange(pctChangeSinceFlip);
+        return pctStr != null
+                ? String.format("Vol: %s, %s since flip", formatVolume(volume), pctStr)
+                : String.format("Vol: %s", formatVolume(volume));
+    }
+
+    private String formatPctChange(BigDecimal pctChangeSinceFlip) {
+        if (pctChangeSinceFlip == null) return null;
+        String sign = pctChangeSinceFlip.signum() >= 0 ? "+" : "";
+        return sign + pctChangeSinceFlip.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString() + "%";
     }
 
     private String formatVolume(BigDecimal volume) {

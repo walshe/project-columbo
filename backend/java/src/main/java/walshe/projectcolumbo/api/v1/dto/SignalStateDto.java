@@ -9,5 +9,6 @@ public record SignalStateDto(
     OffsetDateTime lastFlipTime,
     Long daysSinceFlip,
     java.math.BigDecimal avgVolume7d,
-    String tradingviewUrl
+    String tradingviewUrl,
+    java.math.BigDecimal pctChangeSinceFlip
 ) {}

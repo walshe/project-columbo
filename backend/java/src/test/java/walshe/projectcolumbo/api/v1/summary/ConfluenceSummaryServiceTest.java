@@ -35,7 +35,7 @@ class ConfluenceSummaryServiceTest {
     private static SignalStateDto dto(String symbol, TrendState state, long daysSinceFlip) {
         return new SignalStateDto(symbol, state,
                 OffsetDateTime.now().minusDays(daysSinceFlip), daysSinceFlip,
-                BigDecimal.valueOf(1000), "http://tv/" + symbol);
+                BigDecimal.valueOf(1000), "http://tv/" + symbol, null);
     }
 
     @BeforeEach
