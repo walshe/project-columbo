@@ -14,7 +14,6 @@ import walshe.projectcolumbo.persistence.repository.CandleRepository;
 import walshe.projectcolumbo.persistence.repository.RsiRepository;
 import walshe.projectcolumbo.persistence.repository.SignalStateRepository;
 import walshe.projectcolumbo.persistence.repository.SuperTrendRepository;
-import walshe.projectcolumbo.persistence.service.SignalStateService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,7 +38,7 @@ class SignalStateUpdateUnknownTest {
     private TestDatabaseCleaner testDatabaseCleaner;
 
     @Autowired
-    private SignalStateService signalStateService;
+    private SignalStateAssetProcessor signalStateAssetProcessor;
 
     @Autowired
     private SignalStateRepository signalStateRepository;
@@ -73,7 +72,7 @@ class SignalStateUpdateUnknownTest {
         saveCandle(asset, t2);
 
         // When
-        signalStateService.processAsset(asset, Timeframe.D1, false);
+        signalStateAssetProcessor.processAsset(asset, Timeframe.D1, false);
 
         // Then
         Optional<SignalState> latest = signalStateRepository.findFirstByAssetIdAndTimeframeAndIndicatorTypeOrderByCloseTimeDesc(
@@ -111,7 +110,7 @@ class SignalStateUpdateUnknownTest {
         superTrendRepository.save(indicator);
 
         // When
-        signalStateService.processAsset(asset, Timeframe.D1, false);
+        signalStateAssetProcessor.processAsset(asset, Timeframe.D1, false);
 
         // Then
         // We should now have a BEARISH state at t2
