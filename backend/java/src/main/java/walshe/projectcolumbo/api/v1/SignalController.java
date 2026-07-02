@@ -1,5 +1,6 @@
 package walshe.projectcolumbo.api.v1;
 
+import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,10 +36,16 @@ class SignalController {
 
     @GetMapping("/signals")
     ResponseEntity<?> getSignals(
+            @Parameter(description = "Candle timeframe to query (D1 or W1)")
             @RequestParam Timeframe timeframe,
+            @Parameter(description = "Indicator whose signal states to return")
             @RequestParam IndicatorType indicatorType,
+            @Parameter(description = "Optional trend-state filter; when omitted, all states are returned")
             @RequestParam(required = false) TrendState state,
+            @Parameter(description = "Optional result ordering; defaults to symbol ascending when omitted")
             @RequestParam(required = false) SignalSort sort,
+            @Parameter(description = "When true, respond 503 instead of serving data that is stale beyond "
+                    + "the ingestion grace window")
             @RequestParam(required = false, defaultValue = "false") boolean requireFresh) {
 
         if (requireFresh && freshnessService.isStaleBeyondGrace(timeframe)) {
@@ -51,8 +58,11 @@ class SignalController {
 
     @GetMapping("/assets/by-state")
     ResponseEntity<SignalListResponse> getAssetsByState(
+            @Parameter(description = "Candle timeframe to query (D1 or W1)")
             @RequestParam Timeframe timeframe,
+            @Parameter(description = "Indicator whose signal states to filter")
             @RequestParam IndicatorType indicatorType,
+            @Parameter(description = "Trend state to filter assets by (required)")
             @RequestParam TrendState state) {
 
         List<SignalStateDto> signals = signalQueryService.listSignals(timeframe, indicatorType, state, null);

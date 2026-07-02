@@ -1,5 +1,11 @@
 package walshe.projectcolumbo.persistence.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "The state an indicator reports for an asset on a timeframe. Values are namespaced by "
+        + "indicator: SUPERTREND_* (trend direction, or UNKNOWN before warm-up), RSI_* (above 60 / below 40 / "
+        + "neutral), ELDER_IMPULSE_* (GREEN long-permission / RED short-permission / NEUTRAL), and "
+        + "ELDER_THERMOMETER_* (QUIET / HOT / SPIKE volatility regime).")
 public enum TrendState {
     SUPERTREND_BULLISH,
     SUPERTREND_BEARISH,
