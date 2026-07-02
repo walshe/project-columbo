@@ -3,6 +3,9 @@ package walshe.projectcolumbo.api.v1.summary;
 import org.junit.jupiter.api.Test;
 import walshe.projectcolumbo.api.v1.dto.SignalStateDto;
 import walshe.projectcolumbo.api.v1.summary.dto.SummaryReport;
+import walshe.projectcolumbo.api.v1.util.TradingViewUtil;
+import walshe.projectcolumbo.persistence.model.MarketProvider;
+import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.model.TrendState;
 
 import java.math.BigDecimal;
@@ -56,5 +59,38 @@ class SummaryReportFormatterTest {
         String md = formatter.formatMarkdown(report);
 
         assertThat(md).doesNotContain("since flip");
+    }
+
+    @Test
+    void watchlistRendersFlipSectionsWithSymbols() {
+        SignalStateDto bull = new SignalStateDto("BTC", TrendState.SUPERTREND_BULLISH,
+                OffsetDateTime.now().minusDays(2), 2L, BigDecimal.valueOf(5_000_000),
+                TradingViewUtil.generateUrl(MarketProvider.BINANCE, "BTC", Timeframe.D1), null);
+        SignalStateDto bear = new SignalStateDto("ETH", TrendState.SUPERTREND_BEARISH,
+                OffsetDateTime.now().minusDays(3), 3L, BigDecimal.valueOf(5_000_000),
+                TradingViewUtil.generateUrl(MarketProvider.BINANCE, "ETH", Timeframe.D1), null);
+
+        String watchlist = formatter.formatWatchlist(report(List.of(bull), List.of(bear)));
+
+        assertThat(watchlist).contains("###Recent Bullish Flips");
+        assertThat(watchlist).contains("BINANCE:BTCUSDT");
+        assertThat(watchlist).contains("###Recent Bearish Flips");
+        assertThat(watchlist).contains("BINANCE:ETHUSDT");
+        // RSI sections empty → omitted; no per-asset detail
+        assertThat(watchlist).doesNotContain("RSI Cross");
+        assertThat(watchlist).doesNotContain("Vol:");
+    }
+
+    @Test
+    void watchlistExcludesFlipsWithoutRecordedFlip() {
+        // daysSinceFlip == null → not a "recent flip" → excluded, mirroring the Markdown section
+        SignalStateDto noFlip = new SignalStateDto("XRP", TrendState.SUPERTREND_BULLISH,
+                null, null, BigDecimal.valueOf(5_000_000),
+                TradingViewUtil.generateUrl(MarketProvider.BINANCE, "XRP", Timeframe.D1), null);
+
+        String watchlist = formatter.formatWatchlist(report(List.of(noFlip), List.of()));
+
+        assertThat(watchlist).doesNotContain("BINANCE:XRPUSDT");
+        assertThat(watchlist).doesNotContain("###Recent Bullish Flips");
     }
 }

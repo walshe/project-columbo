@@ -56,6 +56,12 @@ public class ConfluenceSummaryController {
                     .body(formatter.formatConfluenceMarkdown(report));
         }
 
+        if (format == SummaryFormat.WATCHLIST) {
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(formatter.formatConfluenceWatchlist(report));
+        }
+
         return ResponseEntity.ok(report);
     }
 }

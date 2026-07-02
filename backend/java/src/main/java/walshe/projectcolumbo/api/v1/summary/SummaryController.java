@@ -52,6 +52,12 @@ public class SummaryController {
                     .body(formatter.formatMarkdown(report));
         }
 
+        if (format == SummaryFormat.WATCHLIST) {
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(formatter.formatWatchlist(report));
+        }
+
         return ResponseEntity.ok(report);
     }
 }
