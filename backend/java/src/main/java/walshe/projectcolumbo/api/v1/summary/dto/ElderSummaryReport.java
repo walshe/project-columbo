@@ -14,6 +14,7 @@ import java.util.List;
         and any active spike alerts into a single report. No timeframe selector — Elder
         always uses both weekly and daily together.
         """)
+// DISABLED: Elder Impulse System is not active — this report is not served by any live endpoint.
 public record ElderSummaryReport(
 
         @Schema(description = "W1 Elder Impulse breadth — bullishCount = ELDER_IMPULSE_GREEN, bearishCount = ELDER_IMPULSE_RED, missingCount = ELDER_IMPULSE_NEUTRAL")

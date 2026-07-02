@@ -163,8 +163,11 @@ class ScanValidatorTest {
         assertDoesNotThrow(() -> validator.validate(request));
     }
 
+    // DISABLED: Elder Impulse System / Market Thermometer are not active — scan conditions on
+    // them are now rejected. These cases assert the rejection; flip back to assertDoesNotThrow
+    // (and restore the ScanValidator entries) to re-enable Elder scans.
     @Test
-    void shouldAcceptValidThermometerStateCondition() {
+    void shouldRejectThermometerStateConditionWhileDisabled() {
         ScanRequest request = new ScanRequest(
             ScanOperator.AND,
             List.of(new ScanCondition(Timeframe.D1, IndicatorType.ELDER_THERMOMETER, null,
@@ -172,11 +175,11 @@ class ScanValidatorTest {
             null
         );
 
-        assertDoesNotThrow(() -> validator.validate(request));
+        assertThrows(BadRequestException.class, () -> validator.validate(request));
     }
 
     @Test
-    void shouldAcceptValidThermometerEventCondition() {
+    void shouldRejectThermometerEventConditionWhileDisabled() {
         ScanRequest request = new ScanRequest(
             ScanOperator.AND,
             List.of(new ScanCondition(Timeframe.D1, IndicatorType.ELDER_THERMOMETER,
@@ -184,6 +187,18 @@ class ScanValidatorTest {
             null
         );
 
-        assertDoesNotThrow(() -> validator.validate(request));
+        assertThrows(BadRequestException.class, () -> validator.validate(request));
+    }
+
+    @Test
+    void shouldRejectElderImpulseConditionWhileDisabled() {
+        ScanRequest request = new ScanRequest(
+            ScanOperator.AND,
+            List.of(new ScanCondition(Timeframe.D1, IndicatorType.ELDER_IMPULSE, null,
+                    TrendState.ELDER_IMPULSE_GREEN, null, null)),
+            null
+        );
+
+        assertThrows(BadRequestException.class, () -> validator.validate(request));
     }
 }

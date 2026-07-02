@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+/** DISABLED: Market Thermometer is not active — not invoked by the pipeline. Retained (functional) for re-enablement. */
 public class ThermometerStateService {
 
     private static final Logger log = LoggerFactory.getLogger(ThermometerStateService.class);

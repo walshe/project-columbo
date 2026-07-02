@@ -22,6 +22,7 @@ import java.util.Map;
  * temperatureEma is null for the first 21 results (insufficient history to seed EMA).
  */
 @Component
+/** DISABLED: Market Thermometer is not active. Retained (functional) for re-enablement. */
 public class ThermometerCalculator {
 
     public static final int EMA_PERIOD = 22;

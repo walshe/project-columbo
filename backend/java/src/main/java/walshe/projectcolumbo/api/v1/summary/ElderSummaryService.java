@@ -21,6 +21,7 @@ import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
+/** DISABLED: Elder Impulse System is not active (its controller endpoint is disabled). Retained for re-enablement. */
 public class ElderSummaryService {
 
     private final MarketPulseQueryService marketPulseQueryService;

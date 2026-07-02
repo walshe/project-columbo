@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
+/** DISABLED: Elder Impulse System is not active. Retained (functional) for re-enablement. */
 public class ElderImpulseMarketPulseQueryService {
 
     private final MarketBreadthSnapshotRepository repository;
