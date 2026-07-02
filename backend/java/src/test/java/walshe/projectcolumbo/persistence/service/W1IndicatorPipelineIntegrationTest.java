@@ -8,6 +8,7 @@ import walshe.projectcolumbo.persistence.entity.Asset;
 import walshe.projectcolumbo.persistence.entity.Candle;
 import walshe.projectcolumbo.persistence.model.MarketProvider;
 import walshe.projectcolumbo.persistence.model.Timeframe;
+import walshe.projectcolumbo.persistence.model.TrendState;
 import walshe.projectcolumbo.persistence.repository.AssetRepository;
 import walshe.projectcolumbo.persistence.repository.CandleRepository;
 import walshe.projectcolumbo.persistence.repository.MarketBreadthSnapshotRepository;
@@ -168,9 +169,13 @@ class W1IndicatorPipelineIntegrationTest {
                 .isNotEmpty();
         assertThat(rsiRepository.findByAssetAndTimeframeOrderByCloseTimeAsc(btc, Timeframe.W1))
                 .isNotEmpty();
+        // Detection must produce a REAL trend state, not an UNKNOWN placeholder. If the orchestrator
+        // ran in a single transaction, the REQUIRES_NEW detection would not see the uncommitted W1
+        // indicators and would record only UNKNOWN — so assert a non-UNKNOWN state exists.
         assertThat(signalStateRepository.findAll().stream()
-                .filter(s -> s.getTimeframe() == Timeframe.W1))
-                .isNotEmpty();
+                .filter(s -> s.getTimeframe() == Timeframe.W1)
+                .anyMatch(s -> s.getTrendState() != TrendState.SUPERTREND_UNKNOWN))
+                .isTrue();
         assertThat(marketBreadthSnapshotRepository.findAll().stream()
                 .filter(s -> s.getTimeframe() == Timeframe.W1))
                 .isNotEmpty();

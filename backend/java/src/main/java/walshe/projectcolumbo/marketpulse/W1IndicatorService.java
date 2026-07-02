@@ -10,7 +10,6 @@ import walshe.projectcolumbo.persistence.service.SuperTrendService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
@@ -57,8 +56,14 @@ public class W1IndicatorService {
      *                               MUST run after both indicators (RESEARCH Pitfall 4)
      *   4. computeForTimeframe(W1) — breadth snapshot requires prior W1 signal states
      *                                (RESEARCH Pitfall 2)
+     *
+     * NOT @Transactional: each step must COMMIT before the next runs. Signal detection uses
+     * REQUIRES_NEW per asset, so it runs in a separate transaction and can only see the W1
+     * SuperTrend/RSI indicators if they are already committed. Wrapping this method in a single
+     * transaction leaves those indicator writes uncommitted, so detection (READ_COMMITTED) sees
+     * nothing and records UNKNOWN states — mirrors how the D1 flow commits indicators (Phase 2)
+     * before D1 detection (Phase 3).
      */
-    @Transactional
     public void processAllActiveAssets() {
         log.info("Starting phase: W1_SUPERTREND");
         long superTrendStart = System.currentTimeMillis();
