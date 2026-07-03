@@ -14,6 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1")
+/** DISABLED: Elder Impulse System is not active — all endpoints below are commented out. */
 class ElderImpulseMarketPulseController {
 
     private final ElderImpulseMarketPulseQueryService queryService;

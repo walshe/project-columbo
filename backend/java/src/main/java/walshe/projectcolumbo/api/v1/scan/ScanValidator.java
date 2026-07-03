@@ -25,19 +25,22 @@ public class ScanValidator {
         VALID_STATES.put(IndicatorType.SUPERTREND, Set.of(TrendState.SUPERTREND_BULLISH, TrendState.SUPERTREND_BEARISH));
         VALID_STATES.put(IndicatorType.RSI, Set.of(TrendState.RSI_ABOVE_60, TrendState.RSI_BELOW_40, TrendState.RSI_NEUTRAL));
 
-        VALID_EVENTS.put(IndicatorType.ELDER_IMPULSE,
-                Set.of(SignalEvent.ELDER_IMPULSE_TURNED_GREEN, SignalEvent.ELDER_IMPULSE_TURNED_RED, SignalEvent.ELDER_IMPULSE_TURNED_NEUTRAL));
-
-        VALID_STATES.put(IndicatorType.ELDER_IMPULSE,
-                Set.of(TrendState.ELDER_IMPULSE_GREEN, TrendState.ELDER_IMPULSE_RED, TrendState.ELDER_IMPULSE_NEUTRAL));
-
-        VALID_EVENTS.put(IndicatorType.ELDER_THERMOMETER,
-                Set.of(SignalEvent.ELDER_THERMOMETER_CROSSED_ABOVE_EMA,
-                       SignalEvent.ELDER_THERMOMETER_CROSSED_BELOW_EMA,
-                       SignalEvent.ELDER_THERMOMETER_TRIPLE_SPIKE));
-
-        VALID_STATES.put(IndicatorType.ELDER_THERMOMETER,
-                Set.of(TrendState.ELDER_THERMOMETER_QUIET, TrendState.ELDER_THERMOMETER_HOT, TrendState.ELDER_THERMOMETER_SPIKE));
+        // DISABLED: Elder Impulse System / Market Thermometer are not computed by the pipeline,
+        // so scan conditions on them are rejected up front in validateCondition(). Restore these
+        // entries (and remove the guard) to re-enable Elder scans.
+        // VALID_EVENTS.put(IndicatorType.ELDER_IMPULSE,
+        //         Set.of(SignalEvent.ELDER_IMPULSE_TURNED_GREEN, SignalEvent.ELDER_IMPULSE_TURNED_RED, SignalEvent.ELDER_IMPULSE_TURNED_NEUTRAL));
+        //
+        // VALID_STATES.put(IndicatorType.ELDER_IMPULSE,
+        //         Set.of(TrendState.ELDER_IMPULSE_GREEN, TrendState.ELDER_IMPULSE_RED, TrendState.ELDER_IMPULSE_NEUTRAL));
+        //
+        // VALID_EVENTS.put(IndicatorType.ELDER_THERMOMETER,
+        //         Set.of(SignalEvent.ELDER_THERMOMETER_CROSSED_ABOVE_EMA,
+        //                SignalEvent.ELDER_THERMOMETER_CROSSED_BELOW_EMA,
+        //                SignalEvent.ELDER_THERMOMETER_TRIPLE_SPIKE));
+        //
+        // VALID_STATES.put(IndicatorType.ELDER_THERMOMETER,
+        //         Set.of(TrendState.ELDER_THERMOMETER_QUIET, TrendState.ELDER_THERMOMETER_HOT, TrendState.ELDER_THERMOMETER_SPIKE));
     }
 
     void validate(ScanRequest request) {
@@ -56,6 +59,12 @@ public class ScanValidator {
         TrendState state = condition.state();
         Integer maxDaysSinceFlip = condition.maxDaysSinceFlip();
         Integer maxDaysSinceCross = condition.maxDaysSinceCross();
+
+        // DISABLED: Elder Impulse System / Market Thermometer are not active — reject scans on them.
+        if (type == IndicatorType.ELDER_IMPULSE || type == IndicatorType.ELDER_THERMOMETER) {
+            throw new BadRequestException(String.format(
+                    "Indicator %s is currently disabled (Elder Impulse System not active)", type));
+        }
 
         if (event == null && state == null) {
             throw new BadRequestException(String.format("Either event or state must be provided for indicator %s", type));

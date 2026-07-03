@@ -8,7 +8,9 @@ import walshe.projectcolumbo.persistence.model.TrendState;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
-@Schema(description = "Market Thermometer match details")
+// DISABLED: Market Thermometer is not active — scan conditions on it are rejected, so this
+// match type is not currently returned. Retained as a MatchedIndicator subtype for re-enablement.
+@Schema(description = "Market Thermometer match details (Elder disabled — not currently returned)")
 public record ThermometerMatch(
     @Schema(description = "The type of indicator", example = "ELDER_THERMOMETER")
     IndicatorType indicatorType,

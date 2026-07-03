@@ -8,7 +8,9 @@ import walshe.projectcolumbo.persistence.model.TrendState;
 
 import java.time.OffsetDateTime;
 
-@Schema(description = "Elder Impulse System match details")
+// DISABLED: Elder Impulse System is not active — scan conditions on it are rejected, so this
+// match type is not currently returned. Retained as a MatchedIndicator subtype for re-enablement.
+@Schema(description = "Elder Impulse System match details (Elder disabled — not currently returned)")
 public record ElderImpulseMatch(
     @Schema(description = "The type of indicator", example = "ELDER_IMPULSE")
     IndicatorType indicatorType,

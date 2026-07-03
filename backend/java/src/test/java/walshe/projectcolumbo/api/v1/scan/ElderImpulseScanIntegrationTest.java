@@ -44,6 +44,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+// DISABLED: Elder Impulse System is not active — scan conditions on it are now rejected by
+// ScanValidator, so these end-to-end scan tests no longer apply. Re-enable alongside Elder.
+@org.junit.jupiter.api.Disabled("Elder Impulse System disabled — Elder scan conditions are rejected")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 class ElderImpulseScanIntegrationTest {
