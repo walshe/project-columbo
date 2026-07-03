@@ -30,4 +30,23 @@ class TradingViewUtilTest {
     void watchlistSymbolIsNullWhenNoSymbolParam() {
         assertThat(TradingViewUtil.watchlistSymbol("https://www.tradingview.com/chart/")).isNull();
     }
+
+    @Test
+    void watchlistSymbolIgnoresTrailingFragment() {
+        // A trailing #fragment (even one containing "symbol=") must not confuse the query parse
+        String url = "https://www.tradingview.com/chart/?symbol=BINANCE%3ABTCUSDT&interval=1D#symbol=EVIL";
+        assertThat(TradingViewUtil.watchlistSymbol(url)).isEqualTo("BINANCE:BTCUSDT");
+    }
+
+    @Test
+    void watchlistSymbolHandlesEncodedAmpersandInValue() {
+        // An encoded & inside the symbol value must not be treated as a param separator
+        String url = "https://www.tradingview.com/chart/?symbol=FOO%26BAR%3ABTCUSDT&interval=1D";
+        assertThat(TradingViewUtil.watchlistSymbol(url)).isEqualTo("FOO&BAR:BTCUSDT");
+    }
+
+    @Test
+    void watchlistSymbolIsNullForMalformedUrl() {
+        assertThat(TradingViewUtil.watchlistSymbol("ht tp://bad url")).isNull();
+    }
 }

@@ -3,6 +3,8 @@ package walshe.projectcolumbo.api.v1.util;
 import walshe.projectcolumbo.persistence.model.MarketProvider;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -29,14 +31,21 @@ public class TradingViewUtil {
         if (tradingviewUrl == null) {
             return null;
         }
-        String marker = "symbol=";
-        int start = tradingviewUrl.indexOf(marker);
-        if (start < 0) {
+        String rawQuery;
+        try {
+            rawQuery = new URI(tradingviewUrl).getRawQuery();
+        } catch (URISyntaxException e) {
             return null;
         }
-        start += marker.length();
-        int end = tradingviewUrl.indexOf('&', start);
-        String raw = end < 0 ? tradingviewUrl.substring(start) : tradingviewUrl.substring(start, end);
-        return URLDecoder.decode(raw, StandardCharsets.UTF_8);
+        if (rawQuery == null) {
+            return null;
+        }
+        for (String pair : rawQuery.split("&")) {
+            if (pair.startsWith("symbol=")) {
+                String raw = pair.substring("symbol=".length());
+                return URLDecoder.decode(raw, StandardCharsets.UTF_8);
+            }
+        }
+        return null;
     }
 }
