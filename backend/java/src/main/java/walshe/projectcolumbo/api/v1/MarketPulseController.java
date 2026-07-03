@@ -1,5 +1,6 @@
 package walshe.projectcolumbo.api.v1;
 
+import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +25,7 @@ class MarketPulseController {
 
     @GetMapping("/supertrend-market-pulse")
     ResponseEntity<MarketPulseDto> getLatestPulse(
+            @Parameter(description = "Candle timeframe of the breadth snapshot (D1 or W1)")
             @RequestParam Timeframe timeframe) {
 
         return marketPulseQueryService.getLatestPulse(timeframe)
@@ -33,8 +35,11 @@ class MarketPulseController {
 
     @GetMapping("/supertrend-market-pulse/history")
     ResponseEntity<List<MarketPulseDto>> getPulseHistory(
+            @Parameter(description = "Candle timeframe of the breadth snapshots (D1 or W1)")
             @RequestParam Timeframe timeframe,
+            @Parameter(description = "Optional inclusive lower bound (ISO-8601) on snapshot close time")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @Parameter(description = "Optional inclusive upper bound (ISO-8601) on snapshot close time")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
 
         List<MarketPulseDto> history = marketPulseQueryService.getPulseHistory(timeframe, from, to);
