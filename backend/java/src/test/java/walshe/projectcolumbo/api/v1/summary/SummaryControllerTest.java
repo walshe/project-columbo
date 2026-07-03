@@ -47,6 +47,15 @@ class SummaryControllerTest {
     }
 
     @Test
+    void shouldReturnWatchlistWhenRequested() throws Exception {
+        mockMvc.perform(get("/api/v1/summary")
+                        .param("timeframe", "D1")
+                        .param("format", "WATCHLIST"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_PLAIN));
+    }
+
+    @Test
     void shouldRejectUnknownFormat() throws Exception {
         mockMvc.perform(get("/api/v1/summary")
                         .param("timeframe", "D1")

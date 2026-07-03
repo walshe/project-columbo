@@ -1,5 +1,10 @@
 package walshe.projectcolumbo.persistence.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "A discrete state-change event on a candle. NONE means no change at that candle; the "
+        + "remaining values mark a specific transition (SuperTrend reversal, RSI 60/40 cross, Elder Impulse "
+        + "colour change, or Thermometer EMA cross / triple spike).")
 public enum SignalEvent {
     NONE,
     SUPERTREND_BULLISH_REVERSAL,

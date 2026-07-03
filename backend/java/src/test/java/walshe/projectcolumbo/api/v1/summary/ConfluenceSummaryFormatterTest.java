@@ -3,6 +3,9 @@ package walshe.projectcolumbo.api.v1.summary;
 import org.junit.jupiter.api.Test;
 import walshe.projectcolumbo.api.v1.dto.SignalStateDto;
 import walshe.projectcolumbo.api.v1.summary.dto.ConfluenceSummaryReport;
+import walshe.projectcolumbo.api.v1.util.TradingViewUtil;
+import walshe.projectcolumbo.persistence.model.MarketProvider;
+import walshe.projectcolumbo.persistence.model.Timeframe;
 import walshe.projectcolumbo.persistence.model.TrendState;
 
 import java.math.BigDecimal;
@@ -26,6 +29,14 @@ class ConfluenceSummaryFormatterTest {
         return new SignalStateDto(symbol, state,
                 OffsetDateTime.now().minusDays(daysSinceFlip), daysSinceFlip,
                 BigDecimal.valueOf(5_000_000), "http://tv/" + symbol, pctChangeSinceFlip);
+    }
+
+    // A dto whose tradingviewUrl is a real generated URL, so watchlistSymbol can extract EXCHANGE:SYMBOL.
+    private SignalStateDto dtoTv(String symbol, TrendState state, long daysSinceFlip) {
+        return new SignalStateDto(symbol, state,
+                OffsetDateTime.now().minusDays(daysSinceFlip), daysSinceFlip,
+                BigDecimal.valueOf(5_000_000),
+                TradingViewUtil.generateUrl(MarketProvider.BINANCE, symbol, Timeframe.D1), null);
     }
 
     private ConfluenceSummaryReport emptyReport() {
@@ -148,5 +159,40 @@ class ConfluenceSummaryFormatterTest {
         String md = formatter.formatConfluenceMarkdown(report);
 
         assertThat(md).doesNotContain("since flip");
+    }
+
+    @Test
+    void watchlistRendersSectionHeadersAndSymbols() {
+        ConfluenceSummaryReport report = new ConfluenceSummaryReport(
+                List.of(dtoTv("BTC", TrendState.SUPERTREND_BULLISH, 2)),
+                List.of(),
+                List.of(dtoTv("ETH", TrendState.SUPERTREND_BEARISH, 3)),
+                List.of(),
+                null, null);
+
+        String watchlist = formatter.formatConfluenceWatchlist(report);
+
+        assertThat(watchlist).contains("###W1 + D1 Bullish Confluence");
+        assertThat(watchlist).contains("BINANCE:BTCUSDT");
+        assertThat(watchlist).contains("###W1 + D1 Bearish Confluence");
+        assertThat(watchlist).contains("BINANCE:ETHUSDT");
+    }
+
+    @Test
+    void watchlistOmitsEmptySectionsAndPerAssetDetail() {
+        ConfluenceSummaryReport report = new ConfluenceSummaryReport(
+                List.of(dtoTv("BTC", TrendState.SUPERTREND_BULLISH, 2)),
+                List.of(), List.of(), List.of(),
+                null, null);
+
+        String watchlist = formatter.formatConfluenceWatchlist(report);
+
+        // Only the populated section appears
+        assertThat(watchlist).contains("###W1 + D1 Bullish Confluence");
+        assertThat(watchlist).doesNotContain("###W1 + D1 Bearish Confluence");
+        assertThat(watchlist).doesNotContain("###W1 + D1 Bullish Retest");
+        // No per-asset detail (dates, "day(s)", volume)
+        assertThat(watchlist).doesNotContain("day(s)");
+        assertThat(watchlist).doesNotContain("Vol:");
     }
 }

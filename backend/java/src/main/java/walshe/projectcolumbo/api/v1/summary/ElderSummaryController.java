@@ -1,6 +1,7 @@
 package walshe.projectcolumbo.api.v1.summary;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -53,6 +54,7 @@ public class ElderSummaryController {
     //                 """
     // )
     // public ResponseEntity<?> getElderSummary(
+    //         @Parameter(description = "Response format: JSON (default) or MARKDOWN for a human-readable brief")
     //         @RequestParam(required = false, defaultValue = "JSON") SummaryFormat format) {
     //
     //     ElderSummaryReport report = elderSummaryService.getSummary();

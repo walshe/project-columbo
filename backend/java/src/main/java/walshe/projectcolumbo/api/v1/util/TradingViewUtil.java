@@ -3,6 +3,9 @@ package walshe.projectcolumbo.api.v1.util;
 import walshe.projectcolumbo.persistence.model.MarketProvider;
 import walshe.projectcolumbo.persistence.model.Timeframe;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
@@ -17,5 +20,32 @@ public class TradingViewUtil {
         return String.format("https://www.tradingview.com/chart/?symbol=%s&interval=%s",
                 encodedSymbol,
                 encodedInterval);
+    }
+
+    /**
+     * Extracts the TradingView watchlist token ({@code EXCHANGE:SYMBOL}, e.g. {@code BINANCE:BTCUSDT})
+     * from a chart URL produced by {@link #generateUrl}, by decoding its {@code symbol=} query param.
+     * Returns {@code null} for a null URL or one without a {@code symbol=} param.
+     */
+    public static String watchlistSymbol(String tradingviewUrl) {
+        if (tradingviewUrl == null) {
+            return null;
+        }
+        String rawQuery;
+        try {
+            rawQuery = new URI(tradingviewUrl).getRawQuery();
+        } catch (URISyntaxException e) {
+            return null;
+        }
+        if (rawQuery == null) {
+            return null;
+        }
+        for (String pair : rawQuery.split("&")) {
+            if (pair.startsWith("symbol=")) {
+                String raw = pair.substring("symbol=".length());
+                return URLDecoder.decode(raw, StandardCharsets.UTF_8);
+            }
+        }
+        return null;
     }
 }

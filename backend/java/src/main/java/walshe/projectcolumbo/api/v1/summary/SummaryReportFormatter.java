@@ -11,12 +11,14 @@ import walshe.projectcolumbo.api.v1.scan.dto.ThermometerMatch;
 import walshe.projectcolumbo.api.v1.summary.dto.ConfluenceSummaryReport;
 import walshe.projectcolumbo.api.v1.summary.dto.ElderSummaryReport;
 import walshe.projectcolumbo.api.v1.summary.dto.SummaryReport;
+import walshe.projectcolumbo.api.v1.util.TradingViewUtil;
 
 import walshe.projectcolumbo.persistence.model.Timeframe;
 
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -102,6 +104,61 @@ public class SummaryReportFormatter {
         appendRetestSignals(sb, report.bearishRetest());
 
         return sb.toString();
+    }
+
+    // -------------------------------------------------------------------------
+    // TradingView watchlist export (###Section headers + EXCHANGE:SYMBOL lines)
+    // -------------------------------------------------------------------------
+
+    public String formatWatchlist(SummaryReport report) {
+        StringBuilder sb = new StringBuilder();
+        // Mirror the Markdown "Recent … Flips" sections, which show only assets with a recorded flip.
+        appendWatchlistSection(sb, "Recent Bullish Flips", flipSymbols(report.bullishSignals()));
+        appendWatchlistSection(sb, "Recent Bearish Flips", flipSymbols(report.bearishSignals()));
+        appendWatchlistSection(sb, "Bullish Trend + RSI Cross Above 60", scanSymbols(report.bullishRsiOverbought()));
+        appendWatchlistSection(sb, "Bearish Trend + RSI Cross Below 40", scanSymbols(report.bearishRsiOversold()));
+        return sb.toString();
+    }
+
+    public String formatConfluenceWatchlist(ConfluenceSummaryReport report) {
+        StringBuilder sb = new StringBuilder();
+        appendWatchlistSection(sb, "W1 + D1 Bullish Confluence", signalSymbols(report.bullishConfluence()));
+        appendWatchlistSection(sb, "W1 + D1 Bullish Retest", signalSymbols(report.bullishRetest()));
+        appendWatchlistSection(sb, "W1 + D1 Bearish Confluence", signalSymbols(report.bearishConfluence()));
+        appendWatchlistSection(sb, "W1 + D1 Bearish Retest", signalSymbols(report.bearishRetest()));
+        return sb.toString();
+    }
+
+    private void appendWatchlistSection(StringBuilder sb, String header, List<String> symbols) {
+        if (symbols.isEmpty()) {
+            return; // omit empty sections rather than emit a stray ###header
+        }
+        sb.append("###").append(header).append("\n");
+        for (String symbol : symbols) {
+            sb.append(symbol).append("\n");
+        }
+    }
+
+    private List<String> signalSymbols(List<SignalStateDto> signals) {
+        return signals.stream()
+                .map(s -> TradingViewUtil.watchlistSymbol(s.tradingviewUrl()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private List<String> flipSymbols(List<SignalStateDto> signals) {
+        return signals.stream()
+                .filter(s -> s.daysSinceFlip() != null)
+                .map(s -> TradingViewUtil.watchlistSymbol(s.tradingviewUrl()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private List<String> scanSymbols(List<ScanResult> results) {
+        return results.stream()
+                .map(r -> TradingViewUtil.watchlistSymbol(r.tradingviewUrl()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     private void appendConfluenceSignals(StringBuilder sb, List<SignalStateDto> signals) {
