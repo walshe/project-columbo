@@ -23,6 +23,7 @@ public record MarketPulseDto(
     @Schema(description = "Total number of active assets considered in this snapshot", example = "45")
     int totalAssets,
 
-    @Schema(description = "Fraction of assets that are bullish (bullishCount / totalAssets), 0.0–1.0", example = "0.60")
+    @Schema(description = "Fraction of directional assets that are bullish (bullishCount / (bullishCount + "
+            + "bearishCount)); excludes missingCount. Zero when there are no directional assets.", example = "0.64")
     BigDecimal bullishRatio
 ) {}
