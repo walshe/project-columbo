@@ -46,6 +46,14 @@ class ConfluenceSummaryControllerTest {
     }
 
     @Test
+    void shouldReturnWatchlistWhenRequested() throws Exception {
+        mockMvc.perform(get("/api/v1/summary/trend-alignment")
+                        .param("format", "WATCHLIST"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_PLAIN));
+    }
+
+    @Test
     void shouldRejectUnknownFormat() throws Exception {
         mockMvc.perform(get("/api/v1/summary/trend-alignment")
                         .param("format", "html"))

@@ -1,6 +1,7 @@
 package walshe.projectcolumbo.api.v1.summary;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -39,8 +40,15 @@ public class ConfluenceSummaryController {
                     "Use maxRetestAgeDays to control the retest window (default 7)."
     )
     public ResponseEntity<?> getConfluence(
+            @Parameter(description = "Output format: JSON (default), MARKDOWN (human-readable brief), or "
+                    + "WATCHLIST (TradingView-importable text — '###Section' headers + EXCHANGE:SYMBOL lines "
+                    + "for pulling every flagged asset into one chart)")
             @RequestParam(required = false, defaultValue = "JSON") SummaryFormat format,
+            @Parameter(description = "Retest window in days — D1 counter-trend flips older than this are "
+                    + "excluded from the retest sections (default 7)")
             @RequestParam(required = false, defaultValue = "7") int maxRetestAgeDays,
+            @Parameter(description = "When true, respond 503 instead of serving data that is stale beyond "
+                    + "the ingestion grace window (freshness is judged on D1)")
             @RequestParam(required = false, defaultValue = "false") boolean requireFresh) {
 
         // D1 is the driving timeframe for this cross-timeframe report.
@@ -54,6 +62,12 @@ public class ConfluenceSummaryController {
             return ResponseEntity.ok()
                     .contentType(MediaType.TEXT_MARKDOWN)
                     .body(formatter.formatConfluenceMarkdown(report));
+        }
+
+        if (format == SummaryFormat.WATCHLIST) {
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(formatter.formatConfluenceWatchlist(report));
         }
 
         return ResponseEntity.ok(report);

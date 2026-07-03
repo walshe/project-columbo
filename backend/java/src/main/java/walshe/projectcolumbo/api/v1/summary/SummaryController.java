@@ -1,6 +1,7 @@
 package walshe.projectcolumbo.api.v1.summary;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -36,8 +37,14 @@ public class SummaryController {
                     "Use format=MARKDOWN for a human-readable brief."
     )
     public ResponseEntity<?> getSummary(
+            @Parameter(description = "Candle timeframe the summary is built for (D1 or W1)")
             @RequestParam Timeframe timeframe,
+            @Parameter(description = "Output format: JSON (default), MARKDOWN (human-readable brief), or "
+                    + "WATCHLIST (TradingView-importable text — '###Section' headers + EXCHANGE:SYMBOL lines "
+                    + "for pulling every flagged asset into one chart)")
             @RequestParam(required = false, defaultValue = "JSON") SummaryFormat format,
+            @Parameter(description = "When true, respond 503 instead of serving data that is stale beyond "
+                    + "the ingestion grace window")
             @RequestParam(required = false, defaultValue = "false") boolean requireFresh) {
 
         if (requireFresh && freshnessService.isStaleBeyondGrace(timeframe)) {
@@ -50,6 +57,12 @@ public class SummaryController {
             return ResponseEntity.ok()
                     .contentType(MediaType.TEXT_MARKDOWN)
                     .body(formatter.formatMarkdown(report));
+        }
+
+        if (format == SummaryFormat.WATCHLIST) {
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(formatter.formatWatchlist(report));
         }
 
         return ResponseEntity.ok(report);
