@@ -1,5 +1,8 @@
-## MODIFIED Requirements
+# supertrend-confluence Specification
 
+## Purpose
+TBD - created by archiving change supertrend-confluence-summary. Update Purpose after archive.
+## Requirements
 ### Requirement: Confluence endpoint returns cross-timeframe aligned assets
 The system SHALL expose `GET /api/v1/summary/trend-alignment` (renamed from `/api/v1/summary/confluence`) which returns assets that are simultaneously bullish on W1 and D1 SuperTrend (bull-aligned), assets simultaneously bearish on both (bear-aligned), assets in bullish retest, and assets in bearish retest. The confluence lists SHALL be ordered by D1 signal flip date descending. Assets with no recorded D1 flip date SHALL appear at the end of their respective list.
 
@@ -44,3 +47,4 @@ The system SHALL return a Markdown-formatted report when `format=MARKDOWN` is pa
 #### Scenario: JSON format is the default
 - **WHEN** `GET /api/v1/summary/trend-alignment` is called without a `format` parameter
 - **THEN** the response is JSON
+
