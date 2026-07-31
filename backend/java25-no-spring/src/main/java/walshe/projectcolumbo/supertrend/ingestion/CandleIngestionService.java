@@ -78,9 +78,17 @@ public final class CandleIngestionService {
         OffsetDateTime finalizedBoundary = FinalizedBoundary.utcMidnightToday(OffsetDateTime.now(clock));
         Optional<OffsetDateTime> lastClose = candleDao.findLatestCloseTime(asset.id(), Timeframe.D1);
 
-        long startTimeMs = lastClose
-                .map(t -> t.toInstant().toEpochMilli() + 1)
-                .orElseGet(() -> ingestionConfig.backfillStart().toInstant().toEpochMilli());
+        long startTimeMs;
+        if (lastClose.isPresent()) {
+            startTimeMs = lastClose.get().toInstant().toEpochMilli() + 1;
+        } else {
+            OffsetDateTime backfillStart = ingestionConfig.backfillStart();
+            if (backfillStart == null) {
+                throw new IllegalStateException(
+                        "SUPERTREND_BACKFILL_START is not configured; cannot backfill asset " + asset.symbol());
+            }
+            startTimeMs = backfillStart.toInstant().toEpochMilli();
+        }
         long endTimeMs = finalizedBoundary.toInstant().toEpochMilli();
 
         if (startTimeMs >= endTimeMs) {

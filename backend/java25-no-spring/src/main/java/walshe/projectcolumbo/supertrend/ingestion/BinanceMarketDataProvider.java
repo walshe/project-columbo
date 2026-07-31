@@ -54,10 +54,10 @@ public final class BinanceMarketDataProvider implements MarketDataProvider {
         try {
             response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (IOException e) {
-            throw new RuntimeException("Failed to reach Binance for symbol " + normalizedSymbol, e);
+            throw new MarketDataProviderException("Failed to reach Binance for symbol " + normalizedSymbol, e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Interrupted while reaching Binance for symbol " + normalizedSymbol, e);
+            throw new MarketDataProviderException("Interrupted while reaching Binance for symbol " + normalizedSymbol, e);
         }
 
         if (response.statusCode() != 200) {
@@ -71,7 +71,7 @@ public final class BinanceMarketDataProvider implements MarketDataProvider {
         if (isInvalidSymbolResponse(response.body())) {
             throw new InvalidSymbolException(normalizedSymbol);
         }
-        throw new RuntimeException("Binance returned HTTP " + response.statusCode() + " for symbol "
+        throw new MarketDataProviderException("Binance returned HTTP " + response.statusCode() + " for symbol "
                 + normalizedSymbol + ": " + response.body());
     }
 
@@ -85,7 +85,7 @@ public final class BinanceMarketDataProvider implements MarketDataProvider {
         try {
             rows = objectMapper.readTree(responseBody);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to parse Binance klines response", e);
+            throw new MarketDataProviderException("Failed to parse Binance klines response", e);
         }
 
         List<Candle> candles = new ArrayList<>(rows.size());

@@ -33,8 +33,8 @@ class CandleRollupServiceTest {
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
 
-    // Deliberately not the same Monday as MONDAY_WEEK_1 below - keeps every test's week grouping
-    // independent so tests can run in any order without seeing each other's rows.
+    // Base Monday - each test offsets from here by a distinct .plusWeeks(N), so tests can run
+    // in any order without their week groupings overlapping.
     private static final OffsetDateTime MONDAY_WEEK_1 = OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
 
     static DataSource dataSource;
