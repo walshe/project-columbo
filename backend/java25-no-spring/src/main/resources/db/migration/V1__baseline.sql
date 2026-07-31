@@ -1,0 +1,3 @@
+-- Baseline migration for supertrend-core-java25.
+-- Intentionally empty: schema tables are added in subsequent migrations.
+-- See openspec/changes/supertrend-core-java25-rewrite/tasks.md, task group 3.
