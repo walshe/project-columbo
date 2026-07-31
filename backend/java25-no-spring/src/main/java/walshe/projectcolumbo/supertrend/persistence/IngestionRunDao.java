@@ -1,6 +1,8 @@
 package walshe.projectcolumbo.supertrend.persistence;
 
+import walshe.projectcolumbo.supertrend.pipeline.IngestionRun;
 import walshe.projectcolumbo.supertrend.pipeline.IngestionRunOutcome;
+import walshe.projectcolumbo.supertrend.pipeline.IngestionRunStatus;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
@@ -11,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 
 public final class IngestionRunDao {
 
@@ -86,5 +89,42 @@ public final class IngestionRunDao {
         } catch (SQLException e) {
             throw new PersistenceException("Failed to complete ingestion run " + runId, e);
         }
+    }
+
+    public Optional<IngestionRun> findById(long runId) {
+        String sql = """
+                SELECT id, provider, timeframe, started_at, finished_at, duration_ms, status, asset_count,
+                       inserted_count, updated_count, skipped_count, error_count, error_sample
+                FROM ingestion_run
+                WHERE id = ?
+                """;
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, runId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next() ? Optional.of(mapRow(resultSet)) : Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load ingestion run " + runId, e);
+        }
+    }
+
+    private static IngestionRun mapRow(ResultSet resultSet) throws SQLException {
+        Long durationMs = (Long) resultSet.getObject("duration_ms");
+        return new IngestionRun(
+                resultSet.getLong("id"),
+                Provider.valueOf(resultSet.getString("provider")),
+                Timeframe.valueOf(resultSet.getString("timeframe")),
+                resultSet.getObject("started_at", OffsetDateTime.class),
+                resultSet.getObject("finished_at", OffsetDateTime.class),
+                durationMs,
+                IngestionRunStatus.valueOf(resultSet.getString("status")),
+                resultSet.getInt("asset_count"),
+                resultSet.getInt("inserted_count"),
+                resultSet.getInt("updated_count"),
+                resultSet.getInt("skipped_count"),
+                resultSet.getInt("error_count"),
+                resultSet.getString("error_sample")
+        );
     }
 }
