@@ -27,7 +27,7 @@
 ## 4. market-data-ingestion
 
 - [ ] 4.1 Implement `MarketDataProvider` interface (single method: fetch daily candles for a symbol + time range)
-- [ ] 4.2 Implement Binance provider using `java.net.http.HttpClient` + hand-written klines JSON parsing
+- [ ] 4.2 Implement Binance provider using `java.net.http.HttpClient` + a JSON library for klines parsing (Jackson core or similar — libraries are fine when pragmatic, per design.md)
 - [ ] 4.3 Implement invalid-symbol handling → asset deactivation
 - [ ] 4.4 Implement incremental time-window computation per asset (last stored close time, or configured backfill-start if none)
 - [ ] 4.5 Implement per-asset error isolation (continue on provider error, record error count + truncated error sample)
@@ -70,7 +70,7 @@
 
 - [ ] 9.1 Stand up `com.sun.net.httpserver.HttpServer` with a small path+method router
 - [ ] 9.2 Implement query-param parsing helpers (required/optional params, enum params, boolean flags)
-- [ ] 9.3 Implement hand-rolled JSON response writer for the DTO shapes needed by the APIs below (primitives, `BigDecimal`, `OffsetDateTime`, enums, lists, nested records)
+- [ ] 9.3 Wire up JSON serialization (Jackson core or similar) for the DTO shapes needed by the APIs below (primitives, `BigDecimal`, `OffsetDateTime`, enums, lists, nested records)
 - [ ] 9.4 Implement shared error-response mapping (400 for bad input, 404 for not-found-but-valid-request, 409 for conflicting run, 503 for stale data) replacing the old `@RestControllerAdvice` pattern
 - [ ] 9.5 Implement `text/markdown` and `text/plain` (watchlist) response writers alongside JSON
 
