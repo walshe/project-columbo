@@ -1,6 +1,6 @@
 package walshe.projectcolumbo.supertrend.persistence;
 
-import walshe.projectcolumbo.supertrend.pipeline.IngestionRunStatus;
+import walshe.projectcolumbo.supertrend.pipeline.IngestionRunOutcome;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
@@ -58,17 +58,7 @@ public final class IngestionRunDao {
     }
 
     /** Finalizes a run with its terminal status and counts. */
-    public void complete(
-            long runId,
-            IngestionRunStatus status,
-            OffsetDateTime finishedAt,
-            long durationMs,
-            int insertedCount,
-            int updatedCount,
-            int skippedCount,
-            int errorCount,
-            String errorSample
-    ) {
+    public void complete(long runId, IngestionRunOutcome outcome) {
         String sql = """
                 UPDATE ingestion_run
                 SET status = ?::ingestion_run_status,
@@ -83,14 +73,14 @@ public final class IngestionRunDao {
                 """;
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, status.name());
-            statement.setObject(2, finishedAt);
-            statement.setLong(3, durationMs);
-            statement.setInt(4, insertedCount);
-            statement.setInt(5, updatedCount);
-            statement.setInt(6, skippedCount);
-            statement.setInt(7, errorCount);
-            statement.setString(8, errorSample);
+            statement.setString(1, outcome.status().name());
+            statement.setObject(2, outcome.finishedAt());
+            statement.setLong(3, outcome.durationMs());
+            statement.setInt(4, outcome.insertedCount());
+            statement.setInt(5, outcome.updatedCount());
+            statement.setInt(6, outcome.skippedCount());
+            statement.setInt(7, outcome.errorCount());
+            statement.setString(8, outcome.errorSample());
             statement.setLong(9, runId);
             statement.executeUpdate();
         } catch (SQLException e) {

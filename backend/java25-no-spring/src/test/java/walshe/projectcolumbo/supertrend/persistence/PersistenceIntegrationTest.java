@@ -13,6 +13,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import walshe.projectcolumbo.supertrend.indicator.Candle;
 import walshe.projectcolumbo.supertrend.indicator.SuperTrendDirection;
 import walshe.projectcolumbo.supertrend.indicator.SuperTrendResult;
+import walshe.projectcolumbo.supertrend.pipeline.IngestionRunOutcome;
 import walshe.projectcolumbo.supertrend.pipeline.IngestionRunStatus;
 import walshe.projectcolumbo.supertrend.pulse.MarketBreadthSnapshot;
 import walshe.projectcolumbo.supertrend.shared.Provider;
@@ -162,7 +163,7 @@ class PersistenceIntegrationTest {
         long runId = dao.start(Provider.BINANCE, Timeframe.D1, 60, OffsetDateTime.now(ZoneOffset.UTC));
         assertThat(dao.isRunning(Provider.BINANCE, Timeframe.D1)).isTrue();
 
-        dao.complete(runId, IngestionRunStatus.SUCCESS, OffsetDateTime.now(ZoneOffset.UTC), 1234, 60, 0, 0, 0, null);
+        dao.complete(runId, new IngestionRunOutcome(IngestionRunStatus.SUCCESS, OffsetDateTime.now(ZoneOffset.UTC), 1234, 60, 0, 0, 0, null));
         assertThat(dao.isRunning(Provider.BINANCE, Timeframe.D1)).isFalse();
     }
 
