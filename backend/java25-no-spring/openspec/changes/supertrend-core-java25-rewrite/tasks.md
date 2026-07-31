@@ -26,14 +26,14 @@
 
 ## 4. market-data-ingestion
 
-- [ ] 4.1 Implement `MarketDataProvider` interface (single method: fetch daily candles for a symbol + time range)
-- [ ] 4.2 Implement Binance provider using `java.net.http.HttpClient` + hand-written klines JSON parsing
-- [ ] 4.3 Implement invalid-symbol handling → asset deactivation
-- [ ] 4.4 Implement incremental time-window computation per asset (last stored close time, or configured backfill-start if none)
-- [ ] 4.5 Implement per-asset error isolation (continue on provider error, record error count + truncated error sample)
-- [ ] 4.6 Implement D1→W1 rollup (Monday-start week grouping, require exactly 7 finalized source candles)
-- [ ] 4.7 Implement backfill-window startup validation (≥147 days / 20 weekly candles, fail fast if insufficient)
-- [ ] 4.8 Tests: idempotent re-ingestion (no-op vs. revision-with-warning), rollup completeness rules, backfill validation failure case
+- [x] 4.1 Implement `MarketDataProvider` interface (single method: fetch daily candles for a symbol + time range) — returns `indicator.Candle` directly (timeframe=D1), no separate DTO needed since this system only ever fetches D1 from a provider
+- [x] 4.2 Implement Binance provider using `java.net.http.HttpClient` + a JSON library for klines parsing (Jackson core) — volume read from kline index 7 (quote-asset/USDT volume, not index 5 base-asset volume), matching `backend/java`'s behavior exactly
+- [x] 4.3 Implement invalid-symbol handling → asset deactivation (`InvalidSymbolException`, detected via Binance's `-1121` error code)
+- [x] 4.4 Implement incremental time-window computation per asset (last stored close time, or configured backfill-start if none) — `SUPERTREND_BACKFILL_START` env var
+- [x] 4.5 Implement per-asset error isolation (continue on provider error, record error count + truncated error sample) — `IngestionStats` (immutable record) accumulates across assets
+- [x] 4.6 Implement D1→W1 rollup (Monday-start week grouping, require exactly 7 finalized source candles) — `CandleRollupService`, reuses `CandleDao.upsert`'s idempotent warn-on-revision semantics for W1 rows too
+- [x] 4.7 Implement backfill-window startup validation (≥147 days / 20 weekly candles, fail fast if insufficient) — `BackfillStartValidator`, matches old semantics exactly; not yet wired into `Main`'s startup sequence (Main isn't the full composition root yet — happens when group 5's pipeline entry point is built)
+- [x] 4.8 Tests: idempotent re-ingestion (no-op vs. revision-with-warning), rollup completeness rules, backfill validation failure case — 37/37 passing across `BinanceMarketDataProviderTest`, `BackfillStartValidatorTest`, `CandleRollupServiceTest` (Testcontainers), `CandleIngestionServiceTest` (Testcontainers + fake provider)
 
 ## 5. pipeline-orchestration
 
@@ -70,7 +70,7 @@
 
 - [ ] 9.1 Stand up `com.sun.net.httpserver.HttpServer` with a small path+method router
 - [ ] 9.2 Implement query-param parsing helpers (required/optional params, enum params, boolean flags)
-- [ ] 9.3 Implement hand-rolled JSON response writer for the DTO shapes needed by the APIs below (primitives, `BigDecimal`, `OffsetDateTime`, enums, lists, nested records)
+- [ ] 9.3 Wire up JSON serialization (Jackson core or similar) for the DTO shapes needed by the APIs below (primitives, `BigDecimal`, `OffsetDateTime`, enums, lists, nested records)
 - [ ] 9.4 Implement shared error-response mapping (400 for bad input, 404 for not-found-but-valid-request, 409 for conflicting run, 503 for stale data) replacing the old `@RestControllerAdvice` pattern
 - [ ] 9.5 Implement `text/markdown` and `text/plain` (watchlist) response writers alongside JSON
 
