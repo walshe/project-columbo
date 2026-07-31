@@ -1,0 +1,171 @@
+package walshe.projectcolumbo.supertrend.persistence;
+
+import walshe.projectcolumbo.supertrend.indicator.Candle;
+import walshe.projectcolumbo.supertrend.shared.Timeframe;
+
+import javax.sql.DataSource;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+public final class CandleDao {
+
+    private static final Logger LOG = System.getLogger(CandleDao.class.getName());
+
+    private final DataSource dataSource;
+
+    public CandleDao(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    public List<Candle> findByAssetAndTimeframe(long assetId, Timeframe timeframe) {
+        String sql = """
+                SELECT open_time, close_time, open, high, low, close, volume
+                FROM candle
+                WHERE asset_id = ? AND timeframe = ?::timeframe
+                ORDER BY close_time ASC
+                """;
+        List<Candle> candles = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, assetId);
+            statement.setString(2, timeframe.name());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    candles.add(mapRow(resultSet, timeframe));
+                }
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load candles for asset " + assetId + " " + timeframe, e);
+        }
+        return candles;
+    }
+
+    public Optional<OffsetDateTime> findLatestCloseTime(long assetId, Timeframe timeframe) {
+        String sql = "SELECT MAX(close_time) AS latest FROM candle WHERE asset_id = ? AND timeframe = ?::timeframe";
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, assetId);
+            statement.setString(2, timeframe.name());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.ofNullable(resultSet.getObject("latest", OffsetDateTime.class));
+                }
+                return Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load latest close time for asset " + assetId + " " + timeframe, e);
+        }
+    }
+
+    /**
+     * Idempotent upsert keyed on (asset, timeframe, close_time): inserts if absent, is a no-op
+     * if an identical row already exists, or updates and logs a warning if the stored row's
+     * OHLCV differs from the newly ingested candle.
+     */
+    public UpsertOutcome upsert(long assetId, Candle candle) {
+        try (Connection connection = dataSource.getConnection()) {
+            Optional<Candle> existing = findExisting(connection, assetId, candle.timeframe(), candle.closeTime());
+            if (existing.isEmpty()) {
+                insert(connection, assetId, candle);
+                return UpsertOutcome.INSERTED;
+            }
+            if (isSameOhlcv(existing.get(), candle)) {
+                return UpsertOutcome.UNCHANGED;
+            }
+            update(connection, assetId, candle);
+            LOG.log(Level.WARNING,
+                    "Candle revision for asset {0} {1} at {2}: stored={3} new={4}",
+                    assetId, candle.timeframe(), candle.closeTime(), existing.get(), candle);
+            return UpsertOutcome.UPDATED;
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to upsert candle for asset " + assetId, e);
+        }
+    }
+
+    private Optional<Candle> findExisting(Connection connection, long assetId, Timeframe timeframe, OffsetDateTime closeTime) throws SQLException {
+        String sql = """
+                SELECT open_time, close_time, open, high, low, close, volume
+                FROM candle
+                WHERE asset_id = ? AND timeframe = ?::timeframe AND close_time = ?
+                """;
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, assetId);
+            statement.setString(2, timeframe.name());
+            statement.setObject(3, closeTime);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.of(mapRow(resultSet, timeframe));
+                }
+                return Optional.empty();
+            }
+        }
+    }
+
+    private void insert(Connection connection, long assetId, Candle candle) throws SQLException {
+        String sql = """
+                INSERT INTO candle (asset_id, timeframe, open_time, close_time, open, high, low, close, volume)
+                VALUES (?, ?::timeframe, ?, ?, ?, ?, ?, ?, ?)
+                """;
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, assetId);
+            statement.setString(2, candle.timeframe().name());
+            statement.setObject(3, candle.openTime());
+            statement.setObject(4, candle.closeTime());
+            statement.setBigDecimal(5, candle.open());
+            statement.setBigDecimal(6, candle.high());
+            statement.setBigDecimal(7, candle.low());
+            statement.setBigDecimal(8, candle.close());
+            statement.setBigDecimal(9, candle.volume());
+            statement.executeUpdate();
+        }
+    }
+
+    private void update(Connection connection, long assetId, Candle candle) throws SQLException {
+        String sql = """
+                UPDATE candle
+                SET open_time = ?, open = ?, high = ?, low = ?, close = ?, volume = ?
+                WHERE asset_id = ? AND timeframe = ?::timeframe AND close_time = ?
+                """;
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setObject(1, candle.openTime());
+            statement.setBigDecimal(2, candle.open());
+            statement.setBigDecimal(3, candle.high());
+            statement.setBigDecimal(4, candle.low());
+            statement.setBigDecimal(5, candle.close());
+            statement.setBigDecimal(6, candle.volume());
+            statement.setLong(7, assetId);
+            statement.setString(8, candle.timeframe().name());
+            statement.setObject(9, candle.closeTime());
+            statement.executeUpdate();
+        }
+    }
+
+    private static boolean isSameOhlcv(Candle a, Candle b) {
+        return a.open().compareTo(b.open()) == 0
+                && a.high().compareTo(b.high()) == 0
+                && a.low().compareTo(b.low()) == 0
+                && a.close().compareTo(b.close()) == 0
+                && a.volume().compareTo(b.volume()) == 0;
+    }
+
+    private static Candle mapRow(ResultSet resultSet, Timeframe timeframe) throws SQLException {
+        return new Candle(
+                resultSet.getObject("open_time", OffsetDateTime.class),
+                resultSet.getObject("close_time", OffsetDateTime.class),
+                timeframe,
+                resultSet.getBigDecimal("open"),
+                resultSet.getBigDecimal("high"),
+                resultSet.getBigDecimal("low"),
+                resultSet.getBigDecimal("close"),
+                resultSet.getBigDecimal("volume")
+        );
+    }
+}

@@ -1,28 +1,28 @@
 ## 1. Project foundations
 
-- [ ] 1.1 Scaffold `backend/java25-no-spring/` as a standalone Java 25 module (build tool TBD during implementation — plain `javac`/`jar`, Maven, or Gradle; no Spring Boot parent POM regardless of choice)
-- [ ] 1.2 Decide and document final package layout (starting point: `indicator`, `ingestion`, `signal`, `pulse`, `pipeline`, `api`, `persistence`, `freshness` — per design.md's package sketch)
-- [ ] 1.3 Set up `System.Logger`-based logging convention (no SLF4J/Logback)
-- [ ] 1.4 Set up Postgres connection handling (plain JDBC `DataSource`/connection pooling choice — e.g. HikariCP as a minimal, non-Spring-coupled pool, or hand-rolled) — decide and document the choice
-- [ ] 1.5 Set up Flyway (retained per design.md) with an empty baseline migration
+- [x] 1.1 Scaffold `backend/java25-no-spring/` as a standalone Java 25 module (Maven, no Spring Boot parent POM — see `pom.xml`; JDK 25/Maven pinned locally via `.sdkmanrc`)
+- [x] 1.2 Decide and document final package layout (`indicator`, `ingestion`, `signal`, `pulse`, `pipeline`, `api`, `persistence`, `freshness` under `walshe.projectcolumbo.supertrend` — matches design.md's sketch, created as empty packages ready for group 2+)
+- [x] 1.3 Set up `System.Logger`-based logging convention (no SLF4J/Logback) — see `package-info.java` + `logging.properties`, wired in `Main`
+- [x] 1.4 Set up Postgres connection handling (`DataSourceFactory` — HikariCP, configured via `SUPERTREND_DB_*` env vars with local-dev defaults)
+- [x] 1.5 Set up Flyway (retained per design.md) with an empty baseline migration (`SchemaMigrator` + `V1__baseline.sql`) — compiles clean; full DB smoke-test deferred to 16.1 since no local Postgres is running yet
 
 ## 2. supertrend-indicator-core
 
-- [ ] 2.1 Implement `Candle` domain type (OHLC + close time, timeframe) as a plain record
-- [ ] 2.2 Implement True Range / Wilder ATR calculation (`BigDecimal`, scale/rounding per design.md)
-- [ ] 2.3 Implement basic and final (sticky) band calculation
-- [ ] 2.4 Implement SuperTrend value + direction + flip detection over an ordered candle series
-- [ ] 2.5 Implement incremental recomputation with warm-up window (`atrLength * 10`) and full-recalculation mode
-- [ ] 2.6 Unit tests: deterministic repeat calculation, band stickiness edge cases, flip detection, incremental-vs-full-recalc equivalence on overlapping ranges
-- [ ] 2.7 Characterization test: run against a known historical candle series and diff output against `backend/java`'s stored `indicator_supertrend` values for the same asset/range (validates the 2.0 multiplier decision reproduces real output)
+- [x] 2.1 Implement `Candle` domain type (OHLC + close time, timeframe) as a plain record
+- [x] 2.2 Implement True Range / Wilder ATR calculation (`BigDecimal`, scale/rounding per design.md)
+- [x] 2.3 Implement basic and final (sticky) band calculation
+- [x] 2.4 Implement SuperTrend value + direction + flip detection over an ordered candle series
+- [x] 2.5 Implement incremental recomputation with warm-up window (`atrLength * 10`) and full-recalculation mode
+- [x] 2.6 Unit tests: deterministic repeat calculation, band stickiness edge cases, flip detection, incremental-vs-full-recalc equivalence on overlapping ranges (8/8 passing — `SuperTrendCalculatorTest`)
+- [ ] 2.7 Characterization test: run against a known historical candle series and diff output against `backend/java`'s stored `indicator_supertrend` values for the same asset/range (validates the 2.0 multiplier decision reproduces real output) — DEFERRED into 16.2 (both need the same one-time `backend/java` stack + real data setup; doing it once at the end covers indicator + all endpoints together)
 
 ## 3. Persistence & schema
 
-- [ ] 3.1 Author fresh Flyway migrations for: `asset`, `candle`, `indicator_supertrend`, `signal_state` (no `indicator_type` column), `market_breadth_snapshot`, `ingestion_run`, and the `v_asset_liquidity` view
-- [ ] 3.2 Define Postgres native enums: `timeframe`, `provider`, `supertrend_direction`, `trend_state`, `signal_event`, `ingestion_run_status`
-- [ ] 3.3 Implement DAOs with hand-written JDBC + row mappers: `AssetDao`, `CandleDao`, `SuperTrendIndicatorDao`, `SignalStateDao`, `MarketBreadthSnapshotDao`, `IngestionRunDao`
-- [ ] 3.4 Implement idempotent upsert semantics for candles and indicator rows (insert-if-absent, update-with-warn-if-different, unique on `(asset, timeframe, close_time)`)
-- [ ] 3.5 Seed initial asset list (decide during implementation whether to reuse `backend/java`'s ~60-asset seed list or define independently, per design.md open question)
+- [x] 3.1 Author fresh Flyway migrations for: `asset`, `candle`, `indicator_supertrend`, `signal_state` (no `indicator_type` column), `market_breadth_snapshot`, `ingestion_run`, and the `v_asset_liquidity` view — V2-V8, verified against a real throwaway Postgres container (all 8 migrations apply cleanly, idempotent re-run confirmed)
+- [x] 3.2 Define Postgres native enums: `timeframe`, `provider`, `supertrend_direction`, `trend_state`, `signal_event`, `ingestion_run_status` — defined with full value sets up front, no incremental ALTER TYPE history replayed
+- [x] 3.3 Implement DAOs with hand-written JDBC + row mappers: `AssetDao`, `CandleDao`, `SuperTrendIndicatorDao`, `SignalStateDao`, `MarketBreadthSnapshotDao`, `IngestionRunDao`
+- [x] 3.4 Implement idempotent upsert semantics for candles and indicator rows (insert-if-absent, update-with-warn-if-different, unique on `(asset, timeframe, close_time)`) — added Testcontainers (test-scope) so `PersistenceIntegrationTest` spins up its own throwaway Postgres and verifies all 6 DAOs for real (16/16 tests passing)
+- [x] 3.5 Seed initial asset list — reused `backend/java`'s 60-asset list (final USDT-suffixed form), verified 60 rows present after migration
 
 ## 4. market-data-ingestion
 
@@ -116,6 +116,6 @@
 ## 16. End-to-end validation
 
 - [ ] 16.1 Seed an independent dev database and run the full pipeline once end-to-end (ingest → indicators → signals → pulse → rollup → W1)
-- [ ] 16.2 Characterization-test every in-scope endpoint's JSON output against `backend/java`'s equivalent endpoint for the same underlying data
+- [ ] 16.2 Characterization-test every in-scope endpoint's JSON output against `backend/java`'s equivalent endpoint for the same underlying data (also covers the indicator-level comparison deferred from 2.7 — diff raw `indicator_supertrend` values, not just endpoint JSON)
 - [ ] 16.3 Confirm no Spring, JPA/Hibernate, Lombok, SLF4J, or Micrometer dependency exists anywhere in the module's dependency tree
 - [ ] 16.4 Document final package layout and any deviations from the design.md sketch back into design.md
