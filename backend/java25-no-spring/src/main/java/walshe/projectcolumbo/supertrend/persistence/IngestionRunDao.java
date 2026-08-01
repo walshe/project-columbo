@@ -1,5 +1,6 @@
 package walshe.projectcolumbo.supertrend.persistence;
 
+import walshe.projectcolumbo.supertrend.pipeline.IngestionAlreadyRunningException;
 import walshe.projectcolumbo.supertrend.pipeline.IngestionRun;
 import walshe.projectcolumbo.supertrend.pipeline.IngestionRunOutcome;
 import walshe.projectcolumbo.supertrend.pipeline.IngestionRunStatus;
@@ -38,7 +39,14 @@ public final class IngestionRunDao {
         }
     }
 
-    /** Inserts a new RUNNING run record and returns its id. */
+    private static final String UNIQUE_VIOLATION_SQLSTATE = "23505";
+
+    /**
+     * Inserts a new RUNNING run record and returns its id. The unique partial index on
+     * (provider, timeframe) WHERE status = 'RUNNING' (see V9 migration) is the actual source of
+     * truth against two concurrent callers both starting a run — {@link #isRunning} is only a
+     * cheap fast-path check and can't prevent that race on its own.
+     */
     public long start(Provider provider, Timeframe timeframe, int assetCount, OffsetDateTime startedAt) {
         String sql = """
                 INSERT INTO ingestion_run (provider, timeframe, started_at, status, asset_count)
@@ -56,6 +64,9 @@ public final class IngestionRunDao {
                 return keys.getLong(1);
             }
         } catch (SQLException e) {
+            if (UNIQUE_VIOLATION_SQLSTATE.equals(e.getSQLState())) {
+                throw new IngestionAlreadyRunningException(provider, timeframe);
+            }
             throw new PersistenceException("Failed to start ingestion run for " + provider + " " + timeframe, e);
         }
     }
@@ -110,7 +121,7 @@ public final class IngestionRunDao {
     }
 
     private static IngestionRun mapRow(ResultSet resultSet) throws SQLException {
-        Long durationMs = (Long) resultSet.getObject("duration_ms");
+        Long durationMs = resultSet.getObject("duration_ms", Long.class);
         return new IngestionRun(
                 resultSet.getLong("id"),
                 Provider.valueOf(resultSet.getString("provider")),

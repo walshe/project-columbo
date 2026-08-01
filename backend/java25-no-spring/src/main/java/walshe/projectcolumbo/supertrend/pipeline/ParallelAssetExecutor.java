@@ -41,7 +41,11 @@ public final class ParallelAssetExecutor {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Interrupted while awaiting parallel asset work", e);
         } catch (ExecutionException e) {
-            throw new RuntimeException("Parallel asset work failed", e.getCause());
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+            throw new RuntimeException("Parallel asset work failed", cause);
         }
     }
 }

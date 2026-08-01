@@ -68,7 +68,9 @@ public final class PipelineOrchestrator {
             indicatorComputationService.computeForAllActiveAssets(Timeframe.D1);
             candleRollupService.rollupForAllActiveAssets();
             indicatorComputationService.computeForAllActiveAssets(Timeframe.W1);
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
+            // Catches Exception, not just RuntimeException: a run left RUNNING forever because an
+            // unexpected checked/wrapped failure slipped past this catch is worse than a broad net.
             LOG.log(Level.ERROR, "Pipeline run " + runId + " failed unexpectedly", e);
             complete(runId, startedAt, IngestionRunStatus.FAILED, new IngestionStats(0, 0, 0, 1, e.getMessage()));
             throw e;
