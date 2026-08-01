@@ -37,12 +37,12 @@
 
 ## 5. pipeline-orchestration
 
-- [ ] 5.1 Implement `ingestion_run` lifecycle tracking (RUNNING → SUCCESS/PARTIAL/FAILED with counts)
-- [ ] 5.2 Implement concurrent-run rejection (reject new run if one is `RUNNING` for the same provider+timeframe)
-- [ ] 5.3 Implement per-asset parallel fan-out within a phase using virtual threads / `StructuredTaskScope`
-- [ ] 5.4 Implement the full sequential phase chain: ingest → D1 indicators → D1 signal detection → D1 pulse → W1 rollup → W1 indicators → W1 signal detection → W1 pulse
-- [ ] 5.5 Implement the daily scheduled trigger (`ScheduledExecutorService` or explicit sleep-until-next-boundary loop) invoking the identical orchestration path as the manual trigger
-- [ ] 5.6 Tests: phase-ordering guarantee (signal detection never sees uncommitted indicator writes), concurrent-run rejection, mixed-success run produces `PARTIAL` status
+- [x] 5.1 Implement `ingestion_run` lifecycle tracking (RUNNING → SUCCESS/PARTIAL/FAILED with counts) — `PipelineOrchestrator`, status derived from `IngestionStats.errorCount()` vs active asset count (0 errors → SUCCESS, errorCount ≥ assetCount → FAILED, else PARTIAL); unhandled exceptions also mark the run FAILED rather than leaving it stuck RUNNING
+- [x] 5.2 Implement concurrent-run rejection (reject new run if one is `RUNNING` for the same provider+timeframe) — `IngestionAlreadyRunningException`, checked via `IngestionRunDao.isRunning` before starting
+- [x] 5.3 Implement per-asset parallel fan-out within a phase using virtual threads / `StructuredTaskScope` — `ParallelAssetExecutor` (`Executors.newVirtualThreadPerTaskExecutor()`, not `StructuredTaskScope` — that API's preview status in JDK 25 was unclear, so went with the unambiguously-stable option); used by the new `IndicatorComputationService`
+- [x] 5.4 (PARTIAL) Implement the sequential phase chain — built the 4 phases that currently exist: ingest → D1 indicators → W1 rollup → W1 indicators, each fully committed before the next reads it. **D1/W1 signal detection and market pulse phases (groups 6/7) are not built yet and are NOT in this chain** — `PipelineOrchestrator`'s class doc explicitly says where they slot in once those groups exist. Do not check this off as fully done until groups 6/7 are wired in.
+- [x] 5.5 Implement the daily scheduled trigger (`ScheduledExecutorService` or explicit sleep-until-next-boundary loop) invoking the identical orchestration path as the manual trigger — `DailyScheduler`, self-reschedules after each firing so a slow run never overlaps the next
+- [x] 5.6 (PARTIAL) Tests: concurrent-run rejection and mixed-success → `PARTIAL` status are fully tested (plus SUCCESS/FAILED, not originally called out but straightforward to add). The "signal detection never sees uncommitted indicator writes" case can't be tested until group 6 exists — instead verified phase-ordering for what exists now (end-to-end: ingest → D1 indicators → W1 rollup → W1 indicators all produce correct output from one `runDaily` call). `PipelineOrchestratorTest` (4 tests) + `IndicatorComputationServiceTest` (3 tests), Testcontainers.
 
 ## 6. signal-state-detection
 
