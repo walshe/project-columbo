@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -44,6 +45,23 @@ public final class SignalStateDao {
             statement.executeUpdate();
         } catch (SQLException e) {
             throw new PersistenceException("Failed to upsert signal state for asset " + state.assetId(), e);
+        }
+    }
+
+    public Optional<OffsetDateTime> findLatestCloseTime(long assetId, Timeframe timeframe) {
+        String sql = "SELECT MAX(close_time) AS latest FROM signal_state WHERE asset_id = ? AND timeframe = ?::timeframe";
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, assetId);
+            statement.setString(2, timeframe.name());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.ofNullable(resultSet.getObject("latest", OffsetDateTime.class));
+                }
+                return Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load latest signal state close time for asset " + assetId + " " + timeframe, e);
         }
     }
 

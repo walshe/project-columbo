@@ -46,10 +46,12 @@
 
 ## 6. signal-state-detection
 
-- [ ] 6.1 Implement SuperTrend direction → trend state mapping (`UP`→`BULLISH`, `DOWN`→`BEARISH`, insufficient-history→`UNKNOWN`)
-- [ ] 6.2 Implement flip-event emission (bullish-reversal/bearish-reversal exactly on direction change, `NONE` otherwise)
-- [ ] 6.3 Persist signal state keyed by `(asset, timeframe, close_time)`, no indicator-type dimension
-- [ ] 6.4 Tests: reversal event timing, `UNKNOWN` state for warm-up-insufficient assets, idempotent re-detection
+- [x] 6.1 Implement SuperTrend direction → trend state mapping (`UP`→`BULLISH`, `DOWN`→`BEARISH`, insufficient-history→`UNKNOWN`)
+- [x] 6.2 Implement flip-event emission (bullish-reversal/bearish-reversal exactly on direction change, `NONE` otherwise)
+- [x] 6.3 Persist signal state keyed by `(asset, timeframe, close_time)`, no indicator-type dimension
+- [x] 6.4 Tests: reversal event timing, `UNKNOWN` state for warm-up-insufficient assets, idempotent re-detection
+
+(PipelineOrchestrator wiring for this phase is deferred alongside group 7's, per the note on tasks 5.4/5.6 — both signal-state-detection and market-breadth-pulse slot in together once both exist.)
 
 ## 7. market-breadth-pulse
 
