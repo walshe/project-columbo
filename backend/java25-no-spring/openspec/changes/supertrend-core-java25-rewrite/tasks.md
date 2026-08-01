@@ -64,11 +64,13 @@
 
 ## 8. data-freshness (cross-cutting)
 
-- [ ] 8.1 Implement expected-latest-candle boundary computation (D1: UTC-midnight-today minus 1 day; W1: minus 7 days)
-- [ ] 8.2 Implement up-to-date comparison against actual latest stored close time
-- [ ] 8.3 Implement 6-hour grace window and `requireFresh` 503 rejection with `Retry-After` header
-- [ ] 8.4 Implement shared freshness-metadata lookup (last successful ingestion timestamp, latest candle date) for reuse across all read APIs
-- [ ] 8.5 Tests: grace-window boundary cases, freshness fields null before first ingestion
+- [x] 8.1 Implement expected-latest-candle boundary computation (D1: UTC-midnight-today minus 1 day; W1: minus 7 days)
+- [x] 8.2 Implement up-to-date comparison against actual latest stored close time
+- [x] 8.3 Implement 6-hour grace window and `requireFresh` 503 rejection with `Retry-After` header
+- [x] 8.4 Implement shared freshness-metadata lookup (last successful ingestion timestamp, latest candle date) for reuse across all read APIs
+- [x] 8.5 Tests: grace-window boundary cases, freshness fields null before first ingestion
+
+(8.3's 503-with-Retry-After is implemented as `StaleDataException` carrying a fixed `retryAfterSeconds()` — actual HTTP mapping happens once group 9's error-response layer exists. `FreshnessService` isn't wired into any read path yet, same deferred-wiring pattern as groups 5/6/7.)
 
 ## 9. HTTP layer & JSON foundations
 

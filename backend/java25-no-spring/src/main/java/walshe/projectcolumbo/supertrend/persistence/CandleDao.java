@@ -65,6 +65,23 @@ public final class CandleDao {
         }
     }
 
+    /** System-wide latest close time across every asset for a timeframe (not scoped to one asset) - used for freshness checks. */
+    public Optional<OffsetDateTime> findLatestCloseTimeAcrossAllAssets(Timeframe timeframe) {
+        String sql = "SELECT MAX(close_time) AS latest FROM candle WHERE timeframe = ?::timeframe";
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, timeframe.name());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.ofNullable(resultSet.getObject("latest", OffsetDateTime.class));
+                }
+                return Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load latest close time across all assets for " + timeframe, e);
+        }
+    }
+
     /**
      * Idempotent upsert keyed on (asset, timeframe, close_time): inserts if absent, is a no-op
      * if an identical row already exists, or updates and logs a warning if the stored row's
