@@ -102,6 +102,28 @@ public final class IngestionRunDao {
         }
     }
 
+    /** Finished-at of the most recent non-FAILED run (SUCCESS or PARTIAL both count as "some data was ingested") - used for freshness metadata. */
+    public Optional<OffsetDateTime> findLatestSuccessfulFinishedAt(Provider provider, Timeframe timeframe) {
+        String sql = """
+                SELECT MAX(finished_at) AS latest
+                FROM ingestion_run
+                WHERE provider = ?::provider AND timeframe = ?::timeframe AND status IN ('SUCCESS', 'PARTIAL')
+                """;
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, provider.name());
+            statement.setString(2, timeframe.name());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.ofNullable(resultSet.getObject("latest", OffsetDateTime.class));
+                }
+                return Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load latest successful ingestion time for " + provider + " " + timeframe, e);
+        }
+    }
+
     public Optional<IngestionRun> findById(long runId) {
         String sql = """
                 SELECT id, provider, timeframe, started_at, finished_at, duration_ms, status, asset_count,
