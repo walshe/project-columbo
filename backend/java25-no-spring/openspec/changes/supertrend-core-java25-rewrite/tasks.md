@@ -55,10 +55,12 @@
 
 ## 7. market-breadth-pulse
 
-- [ ] 7.1 Implement per-run breadth snapshot computation (bullish/bearish/missing counts, bullish ratio) keyed by `(timeframe, snapshot_close_time)`
-- [ ] 7.2 Implement latest-snapshot retrieval per timeframe
-- [ ] 7.3 Implement historical snapshot retrieval with optional date range
-- [ ] 7.4 Tests: count consistency (bullish+bearish+missing = total), empty-history case returns no result rather than an error
+- [x] 7.1 Implement per-run breadth snapshot computation (bullish/bearish/missing counts, bullish ratio) keyed by `(timeframe, snapshot_close_time)`
+- [x] 7.2 Implement latest-snapshot retrieval per timeframe
+- [x] 7.3 Implement historical snapshot retrieval with optional date range
+- [x] 7.4 Tests: count consistency (bullish+bearish+missing = total), empty-history case returns no result rather than an error
+
+(7.2/7.3 were already implemented by `MarketBreadthSnapshotDao.findLatest`/`findRange` in group 3 foundations; this group added the computation service. PipelineOrchestrator wiring for both this phase and signal-state-detection is deferred together — see the note on tasks 5.4/5.6.)
 
 ## 8. data-freshness (cross-cutting)
 
