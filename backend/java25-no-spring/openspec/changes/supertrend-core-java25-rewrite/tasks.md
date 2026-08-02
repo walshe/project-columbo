@@ -111,9 +111,11 @@
 
 ## 13. scan-api
 
-- [ ] 13.1 Implement `ScanCondition` (timeframe, trend-state filter, max-days-since-flip) with implicit SuperTrend-only targeting (no indicator-type field)
-- [ ] 13.2 Implement AND/OR condition combination and result-limit truncation
-- [ ] 13.3 Tests: single-condition match, AND-combined cross-timeframe match, days-since-flip filter, limit truncation
+- [x] 13.1 Implement `ScanCondition` (timeframe, trend-state filter, max-days-since-flip) with implicit SuperTrend-only targeting (no indicator-type field) — `ScanCondition`/`ScanRequest`/`ScanOperator` (signal package). tasks.md's checklist for this group didn't call out an HTTP endpoint explicitly (unlike groups 10-12's "Implement GET /api/v1/..." lines), but the change's own `specs/scan-api/spec.md` (already present, ADDED requirements) unambiguously requires `POST /api/v1/scan` as "a standalone public endpoint for composable SuperTrend condition queries" - implemented via `ScanHandler`. JSON-only (no Markdown/Watchlist - the old app never had that for `/scan` either), no `requireFresh` gating (conditions can span multiple/different timeframes, so there's no single timeframe to check, matching the old app)
+- [x] 13.2 Implement AND/OR condition combination and result-limit truncation — `ScanService.combine` (pure static core): each condition matched independently against its own timeframe via `SignalQueryService`, then asset-symbol sets intersected (AND) or unioned (OR); results sorted by symbol, then `limit`-truncated last (after combination and sorting, matching the old app's ordering)
+- [x] 13.3 Tests: single-condition match, AND-combined cross-timeframe match, days-since-flip filter, limit truncation — `ScanServiceTest` (pure, 8 tests), `ScanServiceIntegrationTest` (Testcontainers), `ScanHandlerIntegrationTest` (Testcontainers + `javalin-testtools`, including malformed-body and negative-limit 400s)
+
+(`spec.md`'s "Standalone capability, not an internal dependency" requirement is already satisfied - confirmed in group 12: `summary-api`/`trend-alignment-api` never call `ScanService`.)
 
 ## 14. candle-coverage-api
 

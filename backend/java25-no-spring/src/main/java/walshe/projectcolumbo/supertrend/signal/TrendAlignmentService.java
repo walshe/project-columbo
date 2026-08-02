@@ -4,7 +4,6 @@ import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -71,13 +70,9 @@ public final class TrendAlignmentService {
         return d1CounterTrend.stream()
                 .filter(entry -> w1Symbols.contains(entry.symbol()))
                 .filter(entry -> {
-                    Long days = daysSinceFlip(entry, now);
+                    Long days = entry.daysSinceFlip(now);
                     return days != null && days <= maxRetestAgeDays;
                 })
                 .toList();
-    }
-
-    static Long daysSinceFlip(SignalSummary summary, OffsetDateTime now) {
-        return summary.lastFlipTime() != null ? ChronoUnit.DAYS.between(summary.lastFlipTime().toLocalDate(), now.toLocalDate()) : null;
     }
 }

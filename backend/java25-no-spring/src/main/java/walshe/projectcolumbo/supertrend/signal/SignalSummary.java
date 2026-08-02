@@ -2,6 +2,7 @@ package walshe.projectcolumbo.supertrend.signal;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 
 /**
  * @param lastFlipTime         close time of the most recent flip (event != NONE); null if the
@@ -16,4 +17,8 @@ public record SignalSummary(
         BigDecimal avgVolume7d,
         BigDecimal pctChangeSinceFlip
 ) {
+    /** Whole UTC calendar days between {@link #lastFlipTime} and {@code now}; null if there's no recorded flip. */
+    public Long daysSinceFlip(OffsetDateTime now) {
+        return lastFlipTime != null ? ChronoUnit.DAYS.between(lastFlipTime.toLocalDate(), now.toLocalDate()) : null;
+    }
 }

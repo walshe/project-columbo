@@ -53,6 +53,6 @@ public final class TrendAlignmentFormatter {
         if (entry.lastFlipTime() == null) {
             return "established";
         }
-        return SignalTextFormatting.daysSince(entry.lastFlipTime(), now) + " day(s) ago";
+        return entry.daysSinceFlip(now) + " day(s) ago";
     }
 }
