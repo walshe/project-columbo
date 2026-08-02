@@ -94,11 +94,11 @@
 
 ## 11. trend-alignment-api
 
-- [ ] 11.1 Implement cross-timeframe (W1+D1) bull/bear confluence list computation, ordered by D1 flip date descending
-- [ ] 11.2 Implement bullish/bearish retest detection within `maxRetestAgeDays`
-- [ ] 11.3 Implement JSON, Markdown, and Watchlist output formats
-- [ ] 11.4 Wire freshness metadata and `requireFresh` gating
-- [ ] 11.5 Characterization test against `backend/java`'s `/summary/trend-alignment` output for the same seeded data
+- [x] 11.1 Implement cross-timeframe (W1+D1) bull/bear confluence list computation, ordered by D1 flip date descending — `TrendAlignmentService.computeAlignment`/`align` (pure static core): confluence = exact-trend-state match on both timeframes (symbol intersection), an asset `UNKNOWN` on either timeframe is silently excluded (never in either W1 symbol set); ordering comes from fetching D1 via `SignalQueryService`'s existing `SignalSort.LAST_FLIP_DESC` and preserving encounter order through the intersection, no extra sort needed
+- [x] 11.2 Implement bullish/bearish retest detection within `maxRetestAgeDays` — W1-aligned ∩ D1-counter-trend, filtered to `daysSinceFlip != null && daysSinceFlip <= maxRetestAgeDays` (inclusive boundary, matches old app); `daysSinceFlip` is computed on the fly from `SignalSummary.lastFlipTime()` rather than stored, since group 10 deliberately didn't add that field to `SignalSummary`
+- [x] 11.3 Implement JSON, Markdown, and Watchlist output formats — `TrendAlignmentResponse` (JSON), `TrendAlignmentFormatter.toMarkdown`/`toWatchlist`; selected via `?format=JSON|MARKDOWN|WATCHLIST` (new `SummaryFormat` enum, case-insensitive like the other query-param enums), default `JSON`. No `tradingviewUrl` links (out of scope per group 10's precedent) - Markdown/Watchlist entries use plain symbols
+- [x] 11.4 Wire freshness metadata and `requireFresh` gating — `TrendAlignmentHandler`, same single-`evaluate()`-per-request pattern as `SignalsHandler` (group 10 fix); always checks **D1 only**, never W1, matching the old app's "D1 is the driving timeframe" rule (W1 is rolled up from D1)
+- [ ] 11.5 Characterization test against `backend/java`'s `/summary/trend-alignment` output for the same seeded data — DEFERRED into 16.2 alongside the other characterization tests (needs the same one-time `backend/java` stack + real seeded data setup)
 
 ## 12. summary-api
 

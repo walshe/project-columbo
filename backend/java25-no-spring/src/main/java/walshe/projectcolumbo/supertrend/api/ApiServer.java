@@ -45,6 +45,7 @@ public final class ApiServer {
             config.validation.register(Timeframe.class, value -> Timeframe.valueOf(value.toUpperCase(Locale.ROOT)));
             config.validation.register(TrendState.class, value -> TrendState.valueOf(value.toUpperCase(Locale.ROOT)));
             config.validation.register(SignalSort.class, value -> SignalSort.valueOf(value.toUpperCase(Locale.ROOT)));
+            config.validation.register(SummaryFormat.class, value -> SummaryFormat.valueOf(value.toUpperCase(Locale.ROOT)));
 
             config.registerPlugin(new OpenApiPlugin(openApiConfig -> openApiConfig
                     .withDocumentationPath(OPENAPI_DOCS_PATH)
