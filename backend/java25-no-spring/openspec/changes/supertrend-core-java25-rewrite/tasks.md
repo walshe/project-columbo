@@ -74,11 +74,13 @@
 
 ## 9. HTTP layer & JSON foundations
 
-- [ ] 9.1 Stand up `com.sun.net.httpserver.HttpServer` with a small path+method router
-- [ ] 9.2 Implement query-param parsing helpers (required/optional params, enum params, boolean flags)
-- [ ] 9.3 Wire up JSON serialization (Jackson core or similar) for the DTO shapes needed by the APIs below (primitives, `BigDecimal`, `OffsetDateTime`, enums, lists, nested records)
-- [ ] 9.4 Implement shared error-response mapping (400 for bad input, 404 for not-found-but-valid-request, 409 for conflicting run, 503 for stale data) replacing the old `@RestControllerAdvice` pattern
-- [ ] 9.5 Implement `text/markdown` and `text/plain` (watchlist) response writers alongside JSON
+- [x] 9.1 Stand up the HTTP layer with a path+method router — revised mid-group from a hand-rolled `com.sun.net.httpserver.HttpServer` router to Javalin (`ApiServer`), to support OpenAPI/Swagger UI; see the amended HTTP layer decision and Non-Goals in design.md
+- [x] 9.2 Implement query-param parsing (required/optional params, enum params, boolean flags) — via Javalin's built-in `Context.queryParamAsClass`/`Validator`, with a case-insensitive converter registered for `Timeframe`, rather than a hand-written parser
+- [x] 9.3 Wire up JSON serialization (Jackson) for the DTO shapes needed by the APIs below (primitives, `BigDecimal`, `OffsetDateTime`, enums, lists, nested records) — shared `ObjectMapper` (`JsonSupport`) fed into Javalin via `JavalinJackson`
+- [x] 9.4 Implement shared error-response mapping (400 for bad input, 404 for not-found-but-valid-request, 409 for conflicting run, 503 for stale data) replacing the old `@RestControllerAdvice` pattern — Javalin's built-in `HttpResponseException` subclasses handle 400/404/409/etc. automatically; `app.exception(...)` handlers added for this codebase's own `IngestionAlreadyRunningException` (409) and `StaleDataException` (503 + `Retry-After`)
+- [x] 9.5 Implement `text/markdown` and `text/plain` (watchlist) response writers alongside JSON — via `ctx.contentType(...).result(...)`; Javalin's `Context` already covers this natively, so no separate writer utility class is needed (verified with dedicated markdown/plain-text routes in `ApiServerIntegrationTest`)
+
+(No real endpoints registered yet - `ApiServer.create()` isn't started from Main. Verified end-to-end with `javalin-testtools` against throwaway test routes in `ApiServerIntegrationTest`, including the OpenAPI spec and Swagger UI being served; real routes land with groups 10+.)
 
 ## 10. signals-api
 
