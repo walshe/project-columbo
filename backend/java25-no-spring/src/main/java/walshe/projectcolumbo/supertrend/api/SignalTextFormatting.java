@@ -3,18 +3,12 @@ package walshe.projectcolumbo.supertrend.api;
 import walshe.projectcolumbo.supertrend.signal.SignalSummary;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 /** Small rendering helpers shared by the Markdown/Watchlist formatters ({@link TrendAlignmentFormatter}, {@link SummaryFormatter}). */
 final class SignalTextFormatting {
 
     private SignalTextFormatting() {
-    }
-
-    static long daysSince(OffsetDateTime pastTime, OffsetDateTime now) {
-        return ChronoUnit.DAYS.between(pastTime.toLocalDate(), now.toLocalDate());
     }
 
     static String formatPctChange(BigDecimal pctChangeSinceFlip) {
