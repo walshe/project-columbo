@@ -3,10 +3,8 @@ package walshe.projectcolumbo.supertrend.api;
 import walshe.projectcolumbo.supertrend.signal.SignalSummary;
 import walshe.projectcolumbo.supertrend.signal.TrendAlignment;
 
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 /** Renders a {@link TrendAlignment} as {@code text/markdown} or a plain-text watchlist. */
@@ -33,7 +31,7 @@ public final class TrendAlignmentFormatter {
         }
         for (SignalSummary entry : entries) {
             markdown.append("- ").append(entry.symbol()).append(": D1 ").append(verb).append(' ').append(recency(entry, now));
-            String pct = formatPctChange(entry.pctChangeSinceFlip());
+            String pct = SignalTextFormatting.formatPctChange(entry.pctChangeSinceFlip());
             if (pct != null) {
                 markdown.append(" (").append(pct).append(" since flip)");
             }
@@ -44,36 +42,17 @@ public final class TrendAlignmentFormatter {
 
     public static String toWatchlist(TrendAlignment alignment) {
         StringBuilder watchlist = new StringBuilder();
-        appendWatchlistSection(watchlist, "Bullish Confluence", alignment.bullishConfluence());
-        appendWatchlistSection(watchlist, "Bullish Retest", alignment.bullishRetest());
-        appendWatchlistSection(watchlist, "Bearish Confluence", alignment.bearishConfluence());
-        appendWatchlistSection(watchlist, "Bearish Retest", alignment.bearishRetest());
+        SignalTextFormatting.appendWatchlistSection(watchlist, "Bullish Confluence", alignment.bullishConfluence());
+        SignalTextFormatting.appendWatchlistSection(watchlist, "Bullish Retest", alignment.bullishRetest());
+        SignalTextFormatting.appendWatchlistSection(watchlist, "Bearish Confluence", alignment.bearishConfluence());
+        SignalTextFormatting.appendWatchlistSection(watchlist, "Bearish Retest", alignment.bearishRetest());
         return watchlist.toString();
-    }
-
-    private static void appendWatchlistSection(StringBuilder watchlist, String header, List<SignalSummary> entries) {
-        if (entries.isEmpty()) {
-            return;
-        }
-        watchlist.append("### ").append(header).append('\n');
-        for (SignalSummary entry : entries) {
-            watchlist.append(entry.symbol()).append('\n');
-        }
     }
 
     private static String recency(SignalSummary entry, OffsetDateTime now) {
         if (entry.lastFlipTime() == null) {
             return "established";
         }
-        long days = ChronoUnit.DAYS.between(entry.lastFlipTime().toLocalDate(), now.toLocalDate());
-        return days + " day(s) ago";
-    }
-
-    private static String formatPctChange(BigDecimal pctChangeSinceFlip) {
-        if (pctChangeSinceFlip == null) {
-            return null;
-        }
-        String sign = pctChangeSinceFlip.signum() >= 0 ? "+" : "";
-        return sign + pctChangeSinceFlip + "%";
+        return SignalTextFormatting.daysSince(entry.lastFlipTime(), now) + " day(s) ago";
     }
 }

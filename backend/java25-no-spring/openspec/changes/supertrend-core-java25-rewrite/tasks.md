@@ -102,10 +102,12 @@
 
 ## 12. summary-api
 
-- [ ] 12.1 Implement SuperTrend-only bullish/bearish asset lists (direct signal-state query, no scan-engine dependency)
-- [ ] 12.2 Wire in market pulse for the requested timeframe
-- [ ] 12.3 Implement JSON, Markdown, and Watchlist output formats
-- [ ] 12.4 Confirm no RSI-related fields exist anywhere in the response shape (deliberate breaking change vs. old impl)
+- [x] 12.1 Implement SuperTrend-only bullish/bearish asset lists (direct signal-state query, no scan-engine dependency) — `SummaryHandler` calls `SignalQueryService.listSignals(timeframe, BULLISH/BEARISH, LAST_FLIP_DESC)` directly; no scan engine exists in this rewrite at all (the old app's `/summary` used one only to combine SuperTrend + RSI conditions, which doesn't apply here)
+- [x] 12.2 Wire in market pulse for the requested timeframe — `MarketBreadthSnapshotDao.findLatest(timeframe)` (already existed from group 3/7), `null` in the response if no snapshot exists yet for that timeframe, matching the old app
+- [x] 12.3 Implement JSON, Markdown, and Watchlist output formats — reuses the `SummaryFormat` enum/converter from group 11; extracted a small shared `SignalTextFormatting` helper (day-count, pct-change, watchlist-section rendering) used by both `SummaryFormatter` and `TrendAlignmentFormatter` rather than duplicating it a second time
+- [x] 12.4 Confirm no RSI-related fields exist anywhere in the response shape — `SummaryResponse` has exactly `pulse`, `bullishSignals`, `bearishSignals`, `lastIngestionAt`, `candlesThrough`, `stale`; verified in `SummaryHandlerIntegrationTest.defaultFormatIsJsonWithSignalsPulseAndFreshnessFields` (asserts the JSON body contains no `rsi`/`Rsi`/`RSI` substring) and `watchlistFormatOmitsRsiSectionsAndUnflippedAssets`
+
+(Unlike `/summary/trend-alignment`, `requireFresh`/`stale` here check the *requested* timeframe directly, not hardcoded D1 - `/summary` is genuinely single-timeframe, matching the old app.)
 
 ## 13. scan-api
 
