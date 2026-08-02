@@ -119,7 +119,7 @@
 
 ## 14. candle-coverage-api
 
-- [ ] 14.1 Implement `GET /api/v1/candles/coverage` (per-timeframe earliest/latest/expectedLatest/upToDate/assetCount)
+- [x] 14.1 Implement `GET /api/v1/candles/coverage` (per-timeframe earliest/latest/expectedLatest/upToDate/assetCount) — `CandleCoverageHandler`, keyed by `Timeframe` (serializes as `"D1"`/`"W1"` map keys). `expectedLatest`/`upToDate`/`latest` are delegated to `FreshnessService.evaluate(timeframe)` (same source of truth every other read endpoint's `stale` flag uses) rather than a second, separately-computed latest-close query; new `CandleDao.findEarliestCloseTimeAcrossAllAssets`/`countDistinctAssetsForTimeframe` cover the two remaining fields
 
 ## 15. ingestion-trigger-api
 

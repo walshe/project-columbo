@@ -85,6 +85,38 @@ public final class CandleDao {
         }
     }
 
+    /** System-wide earliest close time across every asset for a timeframe - used for candle coverage reporting. */
+    public Optional<OffsetDateTime> findEarliestCloseTimeAcrossAllAssets(Timeframe timeframe) {
+        String sql = "SELECT MIN(close_time) AS earliest FROM candle WHERE timeframe = ?::timeframe";
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, timeframe.name());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.ofNullable(resultSet.getObject("earliest", OffsetDateTime.class));
+                }
+                return Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load earliest close time across all assets for " + timeframe, e);
+        }
+    }
+
+    /** Number of distinct assets with at least one stored candle for a timeframe - used for candle coverage reporting. */
+    public long countDistinctAssetsForTimeframe(Timeframe timeframe) {
+        String sql = "SELECT COUNT(DISTINCT asset_id) AS asset_count FROM candle WHERE timeframe = ?::timeframe";
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, timeframe.name());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                resultSet.next();
+                return resultSet.getLong("asset_count");
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to count distinct assets for " + timeframe, e);
+        }
+    }
+
     /** Latest close price per asset for a timeframe - used for percentage-change-since-flip. */
     public Map<Long, BigDecimal> findLatestCloseByAssetForTimeframe(Timeframe timeframe) {
         String sql = """
