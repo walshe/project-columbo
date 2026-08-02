@@ -84,11 +84,13 @@
 
 ## 10. signals-api
 
-- [ ] 10.1 Implement `GET /api/v1/signals` (timeframe required, state/sort/requireFresh optional)
-- [ ] 10.2 Implement all `SignalSort` orderings (asset asc, last-flip asc/desc, trend-state asc, liquidity desc, pct-change asc/desc)
-- [ ] 10.3 Implement `GET /api/v1/assets/by-state` (state required, no sort/freshness gating)
-- [ ] 10.4 Implement percentage-change-since-flip and 7-day average volume enrichment (via `v_asset_liquidity`)
-- [ ] 10.5 Tests: sort orderings, required-param validation, stale-rejection behavior
+- [x] 10.1 Implement `GET /api/v1/signals` (timeframe required, state/sort/requireFresh optional) — `SignalsHandler`, registered independently of `ApiServer.create()` (called by tests now, by `Main` once the composition root is wired at the end of the API groups)
+- [x] 10.2 Implement all `SignalSort` orderings (asset asc, last-flip asc/desc, trend-state asc, liquidity desc, pct-change asc/desc) — `SignalSort` (7 values, no `LIQUIDITY_ASC` - matches old app), sorting logic in `SignalQueryService.summarize` (pure, unit-tested without a DB)
+- [x] 10.3 Implement `GET /api/v1/assets/by-state` (state required, no sort/freshness gating) — reuses `SignalQueryService.listSignals(timeframe, state, null)`, no `requireFresh` check
+- [x] 10.4 Implement percentage-change-since-flip and 7-day average volume enrichment (via `v_asset_liquidity`) — new `AssetLiquidityDao`, new `CandleDao.findLatestCloseByAssetForTimeframe`/`findCloseAtTimes` (batched, one query for all assets rather than N+1); formula matches the old app's (`(latest-flip)/flip*100`, 2dp, `HALF_UP`, null on zero/missing)
+- [x] 10.5 Tests: sort orderings, required-param validation, stale-rejection behavior — `SignalQueryServiceTest` (pure, 11 tests covering every sort ordering + pct-change edge cases), `SignalQueryServiceIntegrationTest` (Testcontainers), `SignalsHandlerIntegrationTest` (Testcontainers + `javalin-testtools`, covers 400 on missing required params, 503+`Retry-After` on `requireFresh` with stale data, and that `/assets/by-state` doesn't gate on freshness)
+
+(No `IndicatorType`/RSI-namespaced `TrendState` values, `daysSinceFlip`, or `tradingviewUrl` fields — out of scope per this rewrite's SuperTrend-only, single-indicator design; not itemized in this group's task list. `ApiServer.create()` itself is unchanged; `SignalsHandler.register(app)` is called by the composition root once it exists.)
 
 ## 11. trend-alignment-api
 

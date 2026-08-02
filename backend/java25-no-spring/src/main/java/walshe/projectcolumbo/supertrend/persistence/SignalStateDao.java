@@ -88,6 +88,29 @@ public final class SignalStateDao {
         return states;
     }
 
+    /** Most recent flip (event != NONE) per asset for a timeframe (one row per distinct asset that has ever flipped). */
+    public List<SignalState> findLatestFlipsForAllAssets(Timeframe timeframe) {
+        String sql = """
+                SELECT DISTINCT ON (asset_id) asset_id, timeframe, close_time, trend_state, event
+                FROM signal_state
+                WHERE timeframe = ?::timeframe AND event != 'NONE'
+                ORDER BY asset_id, close_time DESC
+                """;
+        List<SignalState> states = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, timeframe.name());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    states.add(mapRow(resultSet, timeframe));
+                }
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load latest flips for " + timeframe, e);
+        }
+        return states;
+    }
+
     /** Most recent flip (event != NONE) for one asset/timeframe, if any. */
     public Optional<SignalState> findLatestFlipForAsset(long assetId, Timeframe timeframe) {
         String sql = """
