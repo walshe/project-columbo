@@ -44,9 +44,13 @@ public final class FreshnessService {
     }
 
     public FreshnessMetadata metadataFor(Provider provider, Timeframe timeframe) {
-        OffsetDateTime lastSuccessfulIngestionAt = ingestionRunDao.findLatestSuccessfulFinishedAt(provider, timeframe).orElse(null);
-        OffsetDateTime latestCandleDate = candleDao.findLatestCloseTimeAcrossAllAssets(timeframe).orElse(null);
-        return new FreshnessMetadata(lastSuccessfulIngestionAt, latestCandleDate);
+        return metadataFor(provider, evaluate(timeframe));
+    }
+
+    /** Reuses an already-computed status's candle lookup instead of re-querying it - see {@link #metadataFor(Provider, Timeframe)}. */
+    public FreshnessMetadata metadataFor(Provider provider, FreshnessStatus status) {
+        OffsetDateTime lastSuccessfulIngestionAt = ingestionRunDao.findLatestSuccessfulFinishedAt(provider, status.timeframe()).orElse(null);
+        return new FreshnessMetadata(lastSuccessfulIngestionAt, status.actualLatestCloseTime());
     }
 
     /**

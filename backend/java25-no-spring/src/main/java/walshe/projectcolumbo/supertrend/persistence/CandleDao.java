@@ -6,13 +6,16 @@ import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import javax.sql.DataSource;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public final class CandleDao {
@@ -80,6 +83,68 @@ public final class CandleDao {
         } catch (SQLException e) {
             throw new PersistenceException("Failed to load latest close time across all assets for " + timeframe, e);
         }
+    }
+
+    /** Latest close price per asset for a timeframe - used for percentage-change-since-flip. */
+    public Map<Long, BigDecimal> findLatestCloseByAssetForTimeframe(Timeframe timeframe) {
+        String sql = """
+                SELECT DISTINCT ON (asset_id) asset_id, close
+                FROM candle
+                WHERE timeframe = ?::timeframe
+                ORDER BY asset_id, close_time DESC
+                """;
+        Map<Long, BigDecimal> closeByAssetId = new HashMap<>();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, timeframe.name());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    closeByAssetId.put(resultSet.getLong("asset_id"), resultSet.getBigDecimal("close"));
+                }
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load latest close prices for " + timeframe, e);
+        }
+        return closeByAssetId;
+    }
+
+    /**
+     * Close price for each asset at its own given close time (e.g. the candle a flip happened
+     * on) - one query for the whole batch rather than one per asset. Each asset is matched only
+     * against its own close time, never another asset's.
+     */
+    public Map<Long, BigDecimal> findCloseAtTimes(Timeframe timeframe, Map<Long, OffsetDateTime> closeTimeByAssetId) {
+        if (closeTimeByAssetId.isEmpty()) {
+            return Map.of();
+        }
+        List<Map.Entry<Long, OffsetDateTime>> entries = new ArrayList<>(closeTimeByAssetId.entrySet());
+        StringBuilder sql = new StringBuilder("SELECT asset_id, close FROM candle WHERE timeframe = ?::timeframe AND (");
+        for (int i = 0; i < entries.size(); i++) {
+            if (i > 0) {
+                sql.append(" OR ");
+            }
+            sql.append("(asset_id = ? AND close_time = ?)");
+        }
+        sql.append(")");
+
+        Map<Long, BigDecimal> closeByAssetId = new HashMap<>();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+            statement.setString(1, timeframe.name());
+            int paramIndex = 2;
+            for (Map.Entry<Long, OffsetDateTime> entry : entries) {
+                statement.setLong(paramIndex++, entry.getKey());
+                statement.setObject(paramIndex++, entry.getValue());
+            }
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    closeByAssetId.put(resultSet.getLong("asset_id"), resultSet.getBigDecimal("close"));
+                }
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load close prices at given times for " + timeframe, e);
+        }
+        return closeByAssetId;
     }
 
     /**
