@@ -145,6 +145,42 @@ class PipelineOrchestratorTest {
         assertThat(result.status()).isEqualTo(IngestionRunStatus.FAILED);
     }
 
+    @Test
+    @Order(5)
+    void triggerAsyncReturnsImmediatelyAndCompletesInTheBackground() throws InterruptedException {
+        long assetId = seedAsset("PIPE5USDT");
+        FakeMarketDataProvider provider = new FakeMarketDataProvider();
+        provider.onFetch("PIPE5USDT", () -> dailyCandles(70));
+
+        long runId = orchestrator(provider).triggerAsync(Provider.BINANCE, Timeframe.D1);
+
+        IngestionRun run = awaitCompletion(runId);
+        assertThat(run.status()).isEqualTo(IngestionRunStatus.SUCCESS);
+        assertThat(candleDao.findByAssetAndTimeframe(assetId, Timeframe.D1)).hasSize(70);
+    }
+
+    @Test
+    @Order(6)
+    void triggerAsyncRejectsANewRunWhileOneIsAlreadyRunning() {
+        // No fresh RUNNING row needed here - @Order(2) already left one stuck at RUNNING forever
+        // for (BINANCE, W1) (runDaily was never called to complete it), and the unique partial
+        // index on (provider, timeframe) WHERE status = 'RUNNING' means inserting a second one
+        // for the same pair would itself throw, rather than exercising the isRunning() fast path.
+        assertThatThrownBy(() -> orchestrator(new FakeMarketDataProvider()).triggerAsync(Provider.BINANCE, Timeframe.W1))
+                .isInstanceOf(IngestionAlreadyRunningException.class);
+    }
+
+    private static IngestionRun awaitCompletion(long runId) throws InterruptedException {
+        for (int i = 0; i < 100; i++) {
+            IngestionRun run = ingestionRunDao.findById(runId).orElseThrow();
+            if (run.status() != IngestionRunStatus.RUNNING) {
+                return run;
+            }
+            Thread.sleep(50);
+        }
+        throw new AssertionError("Run " + runId + " did not complete in time");
+    }
+
     private static PipelineOrchestrator orchestrator(MarketDataProvider provider) {
         CandleIngestionService candleIngestionService =
                 new CandleIngestionService(assetDao, candleDao, provider, ingestionConfig, clock);

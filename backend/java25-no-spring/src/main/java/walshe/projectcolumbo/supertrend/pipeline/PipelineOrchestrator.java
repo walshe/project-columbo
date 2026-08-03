@@ -53,6 +53,33 @@ public final class PipelineOrchestrator {
     }
 
     public PipelineRunResult runDaily(Provider provider, Timeframe timeframe) {
+        RunHandle handle = start(provider, timeframe);
+        return executePhases(handle);
+    }
+
+    /**
+     * Starts a run (synchronously - so a concurrent-run 409 and the new run's id are both known
+     * immediately) and runs its phases on a virtual thread rather than the caller's thread, for an
+     * HTTP trigger that must return before the pipeline finishes. Failures during the background
+     * phases are recorded on the run the same way {@link #runDaily} records them; there's nothing
+     * further to propagate to a caller who has already received their response.
+     */
+    public long triggerAsync(Provider provider, Timeframe timeframe) {
+        RunHandle handle = start(provider, timeframe);
+        Thread.ofVirtual().name("ingestion-trigger-" + handle.runId()).start(() -> {
+            try {
+                executePhases(handle);
+            } catch (Exception e) {
+                // executePhases already logged this and recorded the run FAILED before rethrowing
+                // (for runDaily's synchronous caller to see) - on this background thread there is no
+                // caller, so letting it propagate would only print a second, redundant stack trace
+                // to the default uncaught-exception handler for the same already-handled failure.
+            }
+        });
+        return handle.runId();
+    }
+
+    private RunHandle start(Provider provider, Timeframe timeframe) {
         if (ingestionRunDao.isRunning(provider, timeframe)) {
             throw new IngestionAlreadyRunningException(provider, timeframe);
         }
@@ -61,7 +88,11 @@ public final class PipelineOrchestrator {
         OffsetDateTime startedAt = OffsetDateTime.now(clock);
         long runId = ingestionRunDao.start(provider, timeframe, assetCount, startedAt);
         LOG.log(Level.INFO, "Pipeline run {0} started for {1} {2} ({3} active assets)", runId, provider, timeframe, assetCount);
+        return new RunHandle(runId, assetCount, startedAt);
+    }
 
+    private PipelineRunResult executePhases(RunHandle handle) {
+        long runId = handle.runId();
         IngestionStats ingestionStats;
         try {
             ingestionStats = candleIngestionService.ingestDaily();
@@ -72,20 +103,23 @@ public final class PipelineOrchestrator {
             // Catches Exception, not just RuntimeException: a run left RUNNING forever because an
             // unexpected checked/wrapped failure slipped past this catch is worse than a broad net.
             LOG.log(Level.ERROR, "Pipeline run " + runId + " failed unexpectedly", e);
-            complete(runId, startedAt, IngestionRunStatus.FAILED, new IngestionStats(0, 0, 0, 1, e.getMessage()));
+            complete(handle, IngestionRunStatus.FAILED, new IngestionStats(0, 0, 0, 1, e.getMessage()));
             throw e;
         }
 
-        IngestionRunStatus status = determineStatus(ingestionStats, assetCount);
-        complete(runId, startedAt, status, ingestionStats);
+        IngestionRunStatus status = determineStatus(ingestionStats, handle.assetCount());
+        complete(handle, status, ingestionStats);
         LOG.log(Level.INFO, "Pipeline run {0} finished with status {1}", runId, status);
         return new PipelineRunResult(runId, status);
     }
 
-    private void complete(long runId, OffsetDateTime startedAt, IngestionRunStatus status, IngestionStats stats) {
+    private record RunHandle(long runId, int assetCount, OffsetDateTime startedAt) {
+    }
+
+    private void complete(RunHandle handle, IngestionRunStatus status, IngestionStats stats) {
         OffsetDateTime finishedAt = OffsetDateTime.now(clock);
-        long durationMs = Duration.between(startedAt, finishedAt).toMillis();
-        ingestionRunDao.complete(runId, new IngestionRunOutcome(
+        long durationMs = Duration.between(handle.startedAt(), finishedAt).toMillis();
+        ingestionRunDao.complete(handle.runId(), new IngestionRunOutcome(
                 status,
                 finishedAt,
                 durationMs,
