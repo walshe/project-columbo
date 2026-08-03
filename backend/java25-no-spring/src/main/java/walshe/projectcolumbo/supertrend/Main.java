@@ -1,27 +1,123 @@
 package walshe.projectcolumbo.supertrend;
 
+import io.javalin.Javalin;
+import walshe.projectcolumbo.supertrend.api.ApiServer;
+import walshe.projectcolumbo.supertrend.api.CandleCoverageHandler;
+import walshe.projectcolumbo.supertrend.api.IngestionTriggerHandler;
+import walshe.projectcolumbo.supertrend.api.ScanHandler;
+import walshe.projectcolumbo.supertrend.api.SignalsHandler;
+import walshe.projectcolumbo.supertrend.api.SummaryHandler;
+import walshe.projectcolumbo.supertrend.api.TrendAlignmentHandler;
+import walshe.projectcolumbo.supertrend.freshness.FreshnessService;
+import walshe.projectcolumbo.supertrend.indicator.IndicatorComputationService;
+import walshe.projectcolumbo.supertrend.ingestion.BackfillStartValidator;
+import walshe.projectcolumbo.supertrend.ingestion.BinanceMarketDataProvider;
+import walshe.projectcolumbo.supertrend.ingestion.CandleIngestionService;
+import walshe.projectcolumbo.supertrend.ingestion.IngestionConfig;
+import walshe.projectcolumbo.supertrend.persistence.AssetDao;
+import walshe.projectcolumbo.supertrend.persistence.AssetLiquidityDao;
+import walshe.projectcolumbo.supertrend.persistence.CandleDao;
 import walshe.projectcolumbo.supertrend.persistence.DataSourceFactory;
+import walshe.projectcolumbo.supertrend.persistence.IngestionRunDao;
+import walshe.projectcolumbo.supertrend.persistence.MarketBreadthSnapshotDao;
 import walshe.projectcolumbo.supertrend.persistence.SchemaMigrator;
+import walshe.projectcolumbo.supertrend.persistence.SignalStateDao;
+import walshe.projectcolumbo.supertrend.persistence.SuperTrendIndicatorDao;
+import walshe.projectcolumbo.supertrend.pipeline.DailyScheduler;
+import walshe.projectcolumbo.supertrend.pipeline.PipelineOrchestrator;
+import walshe.projectcolumbo.supertrend.pulse.MarketBreadthPulseService;
+import walshe.projectcolumbo.supertrend.rollup.CandleRollupService;
+import walshe.projectcolumbo.supertrend.shared.Provider;
+import walshe.projectcolumbo.supertrend.shared.Timeframe;
+import walshe.projectcolumbo.supertrend.signal.ScanService;
+import walshe.projectcolumbo.supertrend.signal.SignalQueryService;
+import walshe.projectcolumbo.supertrend.signal.SignalStateDetectionService;
+import walshe.projectcolumbo.supertrend.signal.TrendAlignmentService;
 
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.time.Clock;
 import java.util.logging.LogManager;
 
+/** Composition root: wires every DAO/service/handler by hand (no DI container) and starts the HTTP server + daily scheduler. */
 public final class Main {
 
     private static final Logger LOG = System.getLogger(Main.class.getName());
+    private static final int DEFAULT_HTTP_PORT = 8080;
 
     public static void main(String[] args) throws IOException {
         configureLogging();
         LOG.log(Level.INFO, "SuperTrend Core starting (Java {0})", Runtime.version());
 
+        Clock clock = Clock.systemUTC();
         DataSource dataSource = DataSourceFactory.create();
         SchemaMigrator.migrate(dataSource);
 
+        IngestionConfig ingestionConfig = IngestionConfig.fromEnvironment();
+        new BackfillStartValidator(clock).validate(ingestionConfig.backfillStart());
+
+        AssetDao assetDao = new AssetDao(dataSource);
+        CandleDao candleDao = new CandleDao(dataSource);
+        SuperTrendIndicatorDao superTrendIndicatorDao = new SuperTrendIndicatorDao(dataSource);
+        SignalStateDao signalStateDao = new SignalStateDao(dataSource);
+        MarketBreadthSnapshotDao marketBreadthSnapshotDao = new MarketBreadthSnapshotDao(dataSource);
+        IngestionRunDao ingestionRunDao = new IngestionRunDao(dataSource);
+        AssetLiquidityDao assetLiquidityDao = new AssetLiquidityDao(dataSource);
+
+        CandleIngestionService candleIngestionService =
+                new CandleIngestionService(assetDao, candleDao, new BinanceMarketDataProvider(), ingestionConfig, clock);
+        IndicatorComputationService indicatorComputationService =
+                new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao);
+        CandleRollupService candleRollupService = new CandleRollupService(assetDao, candleDao, clock);
+        SignalStateDetectionService signalStateDetectionService =
+                new SignalStateDetectionService(assetDao, candleDao, signalStateDao);
+        MarketBreadthPulseService marketBreadthPulseService =
+                new MarketBreadthPulseService(assetDao, signalStateDao, marketBreadthSnapshotDao);
+        PipelineOrchestrator pipelineOrchestrator = new PipelineOrchestrator(
+                assetDao, ingestionRunDao, candleIngestionService, indicatorComputationService,
+                candleRollupService, signalStateDetectionService, marketBreadthPulseService, clock);
+
+        FreshnessService freshnessService = new FreshnessService(candleDao, ingestionRunDao, clock);
+        SignalQueryService signalQueryService = new SignalQueryService(assetDao, signalStateDao, candleDao, assetLiquidityDao);
+        TrendAlignmentService trendAlignmentService = new TrendAlignmentService(signalQueryService, clock);
+        ScanService scanService = new ScanService(signalQueryService, clock);
+
+        Javalin app = ApiServer.create();
+        new SignalsHandler(signalQueryService, freshnessService).register(app);
+        new TrendAlignmentHandler(trendAlignmentService, freshnessService, clock).register(app);
+        new SummaryHandler(signalQueryService, marketBreadthSnapshotDao, freshnessService, clock).register(app);
+        new ScanHandler(scanService).register(app);
+        new CandleCoverageHandler(candleDao, freshnessService).register(app);
+        new IngestionTriggerHandler(pipelineOrchestrator).register(app);
+        app.start(httpPort());
+
+        DailyScheduler dailyScheduler = new DailyScheduler(pipelineOrchestrator, Provider.BINANCE, Timeframe.D1, clock);
+        dailyScheduler.start();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> shutdown(dailyScheduler, app, dataSource), "shutdown-hook"));
+
         LOG.log(Level.INFO, "SuperTrend Core ready.");
+    }
+
+    private static void shutdown(DailyScheduler dailyScheduler, Javalin app, DataSource dataSource) {
+        LOG.log(Level.INFO, "SuperTrend Core shutting down...");
+        dailyScheduler.stop();
+        app.stop();
+        if (dataSource instanceof AutoCloseable closeable) {
+            try {
+                closeable.close();
+            } catch (Exception e) {
+                LOG.log(Level.WARNING, "Failed to close data source cleanly", e);
+            }
+        }
+    }
+
+    private static int httpPort() {
+        String value = System.getenv("SUPERTREND_HTTP_PORT");
+        return (value == null || value.isBlank()) ? DEFAULT_HTTP_PORT : Integer.parseInt(value);
     }
 
     private static void configureLogging() throws IOException {

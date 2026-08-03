@@ -5,9 +5,11 @@ import walshe.projectcolumbo.supertrend.ingestion.CandleIngestionService;
 import walshe.projectcolumbo.supertrend.ingestion.IngestionStats;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.IngestionRunDao;
+import walshe.projectcolumbo.supertrend.pulse.MarketBreadthPulseService;
 import walshe.projectcolumbo.supertrend.rollup.CandleRollupService;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
+import walshe.projectcolumbo.supertrend.signal.SignalStateDetectionService;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -16,14 +18,11 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 
 /**
- * Runs the daily pipeline in a strict phase order: ingest -&gt; D1 indicators -&gt; W1 rollup
- * -&gt; W1 indicators. Only work <em>within</em> a phase is parallelized (per-asset, via
- * {@link IndicatorComputationService}) — phases themselves always run in this sequence, and
- * each phase's writes are fully committed before the next phase reads them.
- * <p>
- * D1/W1 signal detection and market pulse phases slot in between "D1 indicators" and "W1
- * rollup", and after "W1 indicators", respectively, once those capabilities exist (see
- * openspec tasks.md groups 6 and 7 — this class intentionally doesn't call them yet).
+ * Runs the daily pipeline in a strict phase order: ingest -&gt; D1 indicators -&gt; D1 signals -&gt;
+ * D1 pulse -&gt; W1 rollup -&gt; W1 indicators -&gt; W1 signals -&gt; W1 pulse. Only work
+ * <em>within</em> a phase is parallelized (per-asset, via {@link IndicatorComputationService}/
+ * {@link SignalStateDetectionService}) — phases themselves always run in this sequence, and each
+ * phase's writes are fully committed before the next phase reads them.
  */
 public final class PipelineOrchestrator {
 
@@ -34,6 +33,8 @@ public final class PipelineOrchestrator {
     private final CandleIngestionService candleIngestionService;
     private final IndicatorComputationService indicatorComputationService;
     private final CandleRollupService candleRollupService;
+    private final SignalStateDetectionService signalStateDetectionService;
+    private final MarketBreadthPulseService marketBreadthPulseService;
     private final Clock clock;
 
     public PipelineOrchestrator(
@@ -42,6 +43,8 @@ public final class PipelineOrchestrator {
             CandleIngestionService candleIngestionService,
             IndicatorComputationService indicatorComputationService,
             CandleRollupService candleRollupService,
+            SignalStateDetectionService signalStateDetectionService,
+            MarketBreadthPulseService marketBreadthPulseService,
             Clock clock
     ) {
         this.assetDao = assetDao;
@@ -49,6 +52,8 @@ public final class PipelineOrchestrator {
         this.candleIngestionService = candleIngestionService;
         this.indicatorComputationService = indicatorComputationService;
         this.candleRollupService = candleRollupService;
+        this.signalStateDetectionService = signalStateDetectionService;
+        this.marketBreadthPulseService = marketBreadthPulseService;
         this.clock = clock;
     }
 
@@ -97,8 +102,12 @@ public final class PipelineOrchestrator {
         try {
             ingestionStats = candleIngestionService.ingestDaily();
             indicatorComputationService.computeForAllActiveAssets(Timeframe.D1);
+            signalStateDetectionService.computeForAllActiveAssets(Timeframe.D1);
+            marketBreadthPulseService.computeForAllActiveAssets(Timeframe.D1);
             candleRollupService.rollupForAllActiveAssets();
             indicatorComputationService.computeForAllActiveAssets(Timeframe.W1);
+            signalStateDetectionService.computeForAllActiveAssets(Timeframe.W1);
+            marketBreadthPulseService.computeForAllActiveAssets(Timeframe.W1);
         } catch (Exception e) {
             // Catches Exception, not just RuntimeException: a run left RUNNING forever because an
             // unexpected checked/wrapped failure slipped past this catch is worse than a broad net.
