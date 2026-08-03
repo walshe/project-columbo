@@ -19,11 +19,15 @@ import walshe.projectcolumbo.supertrend.ingestion.MarketDataProvider;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
 import walshe.projectcolumbo.supertrend.persistence.IngestionRunDao;
+import walshe.projectcolumbo.supertrend.persistence.MarketBreadthSnapshotDao;
 import walshe.projectcolumbo.supertrend.persistence.SchemaMigrator;
+import walshe.projectcolumbo.supertrend.persistence.SignalStateDao;
 import walshe.projectcolumbo.supertrend.persistence.SuperTrendIndicatorDao;
+import walshe.projectcolumbo.supertrend.pulse.MarketBreadthPulseService;
 import walshe.projectcolumbo.supertrend.rollup.CandleRollupService;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
+import walshe.projectcolumbo.supertrend.signal.SignalStateDetectionService;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
@@ -56,6 +60,8 @@ class PipelineOrchestratorTest {
     static CandleDao candleDao;
     static SuperTrendIndicatorDao superTrendIndicatorDao;
     static IngestionRunDao ingestionRunDao;
+    static SignalStateDao signalStateDao;
+    static MarketBreadthSnapshotDao marketBreadthSnapshotDao;
     static IngestionConfig ingestionConfig;
     static Clock clock;
 
@@ -71,6 +77,8 @@ class PipelineOrchestratorTest {
         candleDao = new CandleDao(dataSource);
         superTrendIndicatorDao = new SuperTrendIndicatorDao(dataSource);
         ingestionRunDao = new IngestionRunDao(dataSource);
+        signalStateDao = new SignalStateDao(dataSource);
+        marketBreadthSnapshotDao = new MarketBreadthSnapshotDao(dataSource);
         ingestionConfig = new IngestionConfig(BACKFILL_START);
         clock = Clock.fixed(Instant.from(NOW), ZoneOffset.UTC);
 
@@ -187,7 +195,10 @@ class PipelineOrchestratorTest {
         IndicatorComputationService indicatorComputationService =
                 new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao);
         CandleRollupService candleRollupService = new CandleRollupService(assetDao, candleDao, clock);
-        return new PipelineOrchestrator(assetDao, ingestionRunDao, candleIngestionService, indicatorComputationService, candleRollupService, clock);
+        SignalStateDetectionService signalStateDetectionService = new SignalStateDetectionService(assetDao, candleDao, signalStateDao);
+        MarketBreadthPulseService marketBreadthPulseService = new MarketBreadthPulseService(assetDao, signalStateDao, marketBreadthSnapshotDao);
+        return new PipelineOrchestrator(assetDao, ingestionRunDao, candleIngestionService, indicatorComputationService,
+                candleRollupService, signalStateDetectionService, marketBreadthPulseService, clock);
     }
 
     private static long seedAsset(String symbol) {

@@ -72,4 +72,27 @@ Not applicable in the deployment-cutover sense — this is a new, independent pa
 
 **Resolved**: seed data reuses `backend/java`'s ~60-asset list (done, see tasks.md 3.5); Flyway is retained (see Decisions).
 
+## Final Package Layout (group 16.4)
+
+Ten packages under `walshe.projectcolumbo.supertrend`, one more than the original sketch:
+
+- `indicator` — `Candle`, `SuperTrendCalculator`, `IndicatorComputationService`
+- `ingestion` — `MarketDataProvider`/`BinanceMarketDataProvider`, `CandleIngestionService`, `BackfillStartValidator`, `IngestionConfig`, `IngestionStats`
+- `rollup` — `CandleRollupService` (D1→W1) — **not in the original sketch**; split out of `ingestion` once it became clear rollup is a distinct responsibility (weekly-grouping logic) from per-asset provider fetching, not a sub-step of it
+- `signal` — trend-state/flip detection (`SignalStateDetectionService`), the read model (`SignalQueryService`, `SignalSummary`, `SignalSort`), cross-timeframe confluence (`TrendAlignmentService`), and condition scanning (`ScanService`) — these three read-side services all live here rather than in `api`, since they're reusable computation over signal state, not HTTP concerns; only their HTTP handlers/response-shaping live in `api`
+- `pulse` — `MarketBreadthPulseService`, `MarketBreadthSnapshot`
+- `pipeline` — `PipelineOrchestrator`, `DailyScheduler`, `ParallelAssetExecutor`, ingestion-run types
+- `api` — Javalin bootstrap (`ApiServer`), one handler + response DTO(s) per capability, shared Markdown/Watchlist rendering helpers (`SignalTextFormatting`)
+- `persistence` — hand-written JDBC DAOs, `DataSourceFactory`, `SchemaMigrator`
+- `freshness` — `FreshnessService`/`FreshnessBoundary`/`FreshnessStatus`/`StaleDataException`, shared by every read endpoint's `stale`/`requireFresh` handling
+- `shared` — cross-cutting value types (`Timeframe`, `Provider`) with no other natural home
+
+No package is parameterized over "which indicator" anywhere, per the original design goal.
+
+## Group 16 Validation Results
+
+- **16.1 (end-to-end run)**: `Main` now wires the full composition root (all DAOs, all services, `PipelineOrchestrator` with the complete ingest→D1 indicators→D1 signals→D1 pulse→W1 rollup→W1 indicators→W1 signals→W1 pulse phase chain, `ApiServer` with every handler registered, `DailyScheduler`). Run once against a throwaway Postgres and the real Binance API with the full 60-asset seed list: completed in ~47s, correctly deactivated 15 delisted/invalid symbols, produced consistent D1+W1 candles/indicators/signal-states/pulse snapshots (bullish+bearish+missing == totalAssets held for both timeframes), and a second trigger against the same data was a clean no-op (0 inserted/updated/errors) confirming incremental idempotency end-to-end.
+- **16.2 (characterization testing)**: ran `backend/java` (Java 17/Spring) and this rewrite side by side, each against its own throwaway Postgres, with the same ~60-asset seed list and the same backfill window, both ingesting real, live Binance data. Diffed `indicator_supertrend` directly: **6758/6758 common rows matched exactly** (ATR, upper/lower band, SuperTrend value, direction — bit-for-bit, once `SUPERTREND_UP`/`SUPERTREND_DOWN` naming is normalized to `UP`/`DOWN`). The only non-overlapping rows (42, all at a single `close_time`) were fully explained by the two runs being triggered a few minutes apart, straddling a UTC-midnight daily-candle boundary — not a computation discrepancy. `/signals`, `/summary`'s pulse counts, and `/candles/coverage` were cross-checked the same way, with the one observed mismatch (`BTCUSDT`'s D1 trend state) traceable to that same one-extra-day gap. This validates both the SuperTrend algorithm port (task 2.7) and every downstream read endpoint against real data, not just synthetic test fixtures.
+- **16.3 (dependency audit)**: `mvn dependency:tree` confirmed no Spring, JPA/Hibernate, Lombok, or Micrometer anywhere in the tree. `org.slf4j:slf4j-api` *is* present, but only as an unused transitive dependency of the retained `HikariCP` (which logs through the SLF4J API internally regardless of the consuming app); no SLF4J binding/implementation is on the classpath, so those calls are no-ops. This doesn't contradict the "no SLF4J/Logback dependency" logging decision, which was about this codebase's own logging choice (`System.Logger`, confirmed still the only logging facade actually in use).
+
 **Library policy** (owner guidance): "no Spring, minimal libraries" means avoid framework weight and unnecessary dependencies — it does not mean hand-rolling everything the JDK doesn't ship. Add a small, well-established library when it's genuinely the pragmatic choice (JSON parsing, structured logging, etc.), same reasoning as retaining Flyway and HikariCP.

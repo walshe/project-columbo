@@ -20,13 +20,17 @@ import walshe.projectcolumbo.supertrend.ingestion.MarketDataProvider;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
 import walshe.projectcolumbo.supertrend.persistence.IngestionRunDao;
+import walshe.projectcolumbo.supertrend.persistence.MarketBreadthSnapshotDao;
 import walshe.projectcolumbo.supertrend.persistence.SchemaMigrator;
+import walshe.projectcolumbo.supertrend.persistence.SignalStateDao;
 import walshe.projectcolumbo.supertrend.persistence.SuperTrendIndicatorDao;
 import walshe.projectcolumbo.supertrend.pipeline.IngestionRunStatus;
 import walshe.projectcolumbo.supertrend.pipeline.PipelineOrchestrator;
+import walshe.projectcolumbo.supertrend.pulse.MarketBreadthPulseService;
 import walshe.projectcolumbo.supertrend.rollup.CandleRollupService;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
+import walshe.projectcolumbo.supertrend.signal.SignalStateDetectionService;
 
 import javax.sql.DataSource;
 import java.time.Clock;
@@ -82,8 +86,13 @@ class IngestionTriggerHandlerIntegrationTest {
         IndicatorComputationService indicatorComputationService =
                 new IndicatorComputationService(assetDao, candleDao, new SuperTrendIndicatorDao(dataSource));
         CandleRollupService candleRollupService = new CandleRollupService(assetDao, candleDao, clock);
+        SignalStateDetectionService signalStateDetectionService =
+                new SignalStateDetectionService(assetDao, candleDao, new SignalStateDao(dataSource));
+        MarketBreadthPulseService marketBreadthPulseService =
+                new MarketBreadthPulseService(assetDao, new SignalStateDao(dataSource), new MarketBreadthSnapshotDao(dataSource));
         PipelineOrchestrator orchestrator = new PipelineOrchestrator(
-                assetDao, ingestionRunDao, candleIngestionService, indicatorComputationService, candleRollupService, clock);
+                assetDao, ingestionRunDao, candleIngestionService, indicatorComputationService,
+                candleRollupService, signalStateDetectionService, marketBreadthPulseService, clock);
 
         Javalin app = ApiServer.create();
         new IngestionTriggerHandler(orchestrator).register(app);
