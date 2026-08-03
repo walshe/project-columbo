@@ -4,6 +4,8 @@ A from-scratch, standalone reimplementation of the SuperTrend indicator and its 
 
 The rewrite (`openspec/changes/supertrend-core-java25-rewrite/`) is functionally complete: the full pipeline (ingest → D1 indicators → D1 signals → D1 pulse → W1 rollup → W1 indicators → W1 signals → W1 pulse) and every read/trigger endpoint below are implemented and merged.
 
+**New to this codebase?** See [`developer-notes.md`](developer-notes.md) for an architecture/conventions overview — package responsibilities, the pipeline's phase model, domain gotchas (candle boundaries, flip timing, freshness vs. staleness), and testing/logging conventions.
+
 ## Package layout
 
 Ten packages under `walshe.projectcolumbo.supertrend`:
@@ -77,13 +79,19 @@ All under `/api/v1`, JSON by default unless noted.
 |---|---|---|
 | `GET` | `/signals` | `timeframe` required; `state`, `sort`, `requireFresh` optional |
 | `GET` | `/assets/by-state` | `timeframe`, `state` required; no freshness gating |
-| `GET` | `/summary` | `timeframe` required; `format` (`JSON`/`MARKDOWN`/`WATCHLIST`), `requireFresh` optional |
-| `GET` | `/summary/trend-alignment` | `format`, `maxRetestAgeDays` (default 7), `requireFresh` optional; freshness always checked against D1 |
+| `GET` | `/summary` | `timeframe` required; `format` (`JSON`/`MARKDOWN`/`WATCHLIST`), `requireFresh` optional; response echoes back `timeframe` in every format |
+| `GET` | `/summary/trend-alignment` | `format`, `maxRetestAgeDays` (default 7), `requireFresh` optional; freshness always checked against D1; response echoes back `maxRetestAgeDays` in every format |
 | `POST` | `/scan` | JSON body: `operator` (`AND`/`OR`), `conditions[]` (`timeframe`, `state`, optional `maxDaysSinceFlip`), optional `limit` |
 | `GET` | `/candles/coverage` | per-timeframe earliest/latest/expected-latest/up-to-date/asset-count |
 | `POST` | `/internal/ingestion/run` | optional JSON body: `provider`/`timeframe` (default `BINANCE`/`D1`); 202 + run id, 409 if already running for that provider+timeframe |
 
 Plus `GET /openapi` (OpenAPI spec) and `GET /swagger` (Swagger UI).
+
+Every signal/scan-match entry that has an asset+timeframe includes a `tradingviewUrl` deep link to the matching TradingView chart; Markdown/watchlist output renders these as real links/importable watchlist tokens instead of plain symbol text.
+
+## Logging
+
+SLF4J, bound to `slf4j-simple` (plain console output, configured via `src/main/resources/simplelogger.properties`) — this also backs Javalin/Jetty's own internal logging. See `developer-notes.md` for conventions if you're adding log statements.
 
 ## Testing
 
