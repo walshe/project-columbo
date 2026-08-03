@@ -76,6 +76,11 @@ class ScanServiceIntegrationTest {
         List<ScanResult> results = scanService.execute(request);
 
         assertThat(results).extracting(ScanResult::symbol).containsExactly("SC1USDT");
+        assertThat(results.get(0).matchedConditions())
+                .extracting(ScanConditionMatch::tradingviewUrl)
+                .containsExactly(
+                        "https://www.tradingview.com/chart/?symbol=BINANCE%3ASC1USDT&interval=1D",
+                        "https://www.tradingview.com/chart/?symbol=BINANCE%3ASC1USDT&interval=1W");
     }
 
     @Test

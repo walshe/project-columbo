@@ -66,7 +66,8 @@ public final class ScanService {
             if (condition.maxDaysSinceFlip() != null && (daysSinceFlip == null || daysSinceFlip > condition.maxDaysSinceFlip())) {
                 continue;
             }
-            matches.put(candidate.symbol(), new ScanConditionMatch(condition.timeframe(), candidate.trendState(), candidate.lastFlipTime(), daysSinceFlip));
+            matches.put(candidate.symbol(), new ScanConditionMatch(
+                    condition.timeframe(), candidate.trendState(), candidate.lastFlipTime(), daysSinceFlip, candidate.tradingviewUrl()));
         }
         return matches;
     }

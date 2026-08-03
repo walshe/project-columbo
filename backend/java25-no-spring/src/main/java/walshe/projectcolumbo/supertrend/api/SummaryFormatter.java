@@ -47,7 +47,7 @@ public final class SummaryFormatter {
             return;
         }
         for (SignalSummary signal : withFlip) {
-            markdown.append("- ").append(signal.symbol()).append(": Flipped ")
+            markdown.append("- ").append(SignalTextFormatting.symbolMarkdown(signal)).append(": Flipped ")
                     .append(signal.daysSinceFlip(now)).append(" day(s) ago");
             String pct = SignalTextFormatting.formatPctChange(signal.pctChangeSinceFlip());
             if (pct != null) {

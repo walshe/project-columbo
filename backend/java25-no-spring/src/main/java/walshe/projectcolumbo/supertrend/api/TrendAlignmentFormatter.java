@@ -30,7 +30,7 @@ public final class TrendAlignmentFormatter {
             return;
         }
         for (SignalSummary entry : entries) {
-            markdown.append("- ").append(entry.symbol()).append(": D1 ").append(verb).append(' ').append(recency(entry, now));
+            markdown.append("- ").append(SignalTextFormatting.symbolMarkdown(entry)).append(": D1 ").append(verb).append(' ').append(recency(entry, now));
             String pct = SignalTextFormatting.formatPctChange(entry.pctChangeSinceFlip());
             if (pct != null) {
                 markdown.append(" (").append(pct).append(" since flip)");

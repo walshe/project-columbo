@@ -1,9 +1,11 @@
 package walshe.projectcolumbo.supertrend.api;
 
+import walshe.projectcolumbo.supertrend.shared.TradingViewUrl;
 import walshe.projectcolumbo.supertrend.signal.SignalSummary;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 
 /** Small rendering helpers shared by the Markdown/Watchlist formatters ({@link TrendAlignmentFormatter}, {@link SummaryFormatter}). */
 final class SignalTextFormatting {
@@ -19,14 +21,28 @@ final class SignalTextFormatting {
         return sign + pctChangeSinceFlip + "%";
     }
 
-    /** Omits the section entirely (no header) when {@code entries} is empty, rather than emitting a stray header with no body. */
+    /** Markdown link target for an entry: its TradingView chart, falling back to plain (unlinked) symbol text if unavailable. */
+    static String symbolMarkdown(SignalSummary entry) {
+        return entry.tradingviewUrl() != null ? "[" + entry.symbol() + "](" + entry.tradingviewUrl() + ")" : entry.symbol();
+    }
+
+    /**
+     * Omits the section entirely (no header) when there's nothing to show - either because
+     * {@code entries} is empty, or because every entry lacks a TradingView watchlist token (each
+     * entry without one is dropped, not shown under a fallback plain symbol - a watchlist is
+     * specifically a list of tokens a charting tool can import).
+     */
     static void appendWatchlistSection(StringBuilder watchlist, String header, List<SignalSummary> entries) {
-        if (entries.isEmpty()) {
+        List<String> tokens = entries.stream()
+                .map(entry -> TradingViewUrl.watchlistSymbol(entry.tradingviewUrl()))
+                .filter(Objects::nonNull)
+                .toList();
+        if (tokens.isEmpty()) {
             return;
         }
         watchlist.append("### ").append(header).append('\n');
-        for (SignalSummary entry : entries) {
-            watchlist.append(entry.symbol()).append('\n');
+        for (String token : tokens) {
+            watchlist.append(token).append('\n');
         }
     }
 }

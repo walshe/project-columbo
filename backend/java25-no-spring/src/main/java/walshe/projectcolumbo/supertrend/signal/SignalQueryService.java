@@ -6,6 +6,7 @@ import walshe.projectcolumbo.supertrend.persistence.AssetLiquidityDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
 import walshe.projectcolumbo.supertrend.persistence.SignalStateDao;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
+import walshe.projectcolumbo.supertrend.shared.TradingViewUrl;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -91,7 +92,8 @@ public final class SignalQueryService {
             Asset asset, SignalState latest, SignalState flip, BigDecimal avgVolume7d, BigDecimal latestClose, BigDecimal flipClose) {
         OffsetDateTime lastFlipTime = flip != null ? flip.closeTime() : null;
         BigDecimal pctChangeSinceFlip = pctChangeSinceFlip(flipClose, latestClose);
-        return new SignalSummary(asset.symbol(), latest.trendState(), lastFlipTime, avgVolume7d, pctChangeSinceFlip);
+        String tradingviewUrl = TradingViewUrl.generateUrl(asset.provider(), asset.symbol(), latest.timeframe());
+        return new SignalSummary(asset.symbol(), latest.trendState(), lastFlipTime, avgVolume7d, pctChangeSinceFlip, tradingviewUrl);
     }
 
     private static BigDecimal pctChangeSinceFlip(BigDecimal flipClose, BigDecimal latestClose) {
