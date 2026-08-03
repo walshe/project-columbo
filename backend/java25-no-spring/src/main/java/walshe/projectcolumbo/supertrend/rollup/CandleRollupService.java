@@ -1,5 +1,7 @@
 package walshe.projectcolumbo.supertrend.rollup;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import walshe.projectcolumbo.supertrend.indicator.Candle;
 import walshe.projectcolumbo.supertrend.persistence.Asset;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
@@ -7,8 +9,6 @@ import walshe.projectcolumbo.supertrend.persistence.CandleDao;
 import walshe.projectcolumbo.supertrend.shared.FinalizedBoundary;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.DayOfWeek;
@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  */
 public final class CandleRollupService {
 
-    private static final Logger LOG = System.getLogger(CandleRollupService.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(CandleRollupService.class);
     private static final int CANDLES_PER_WEEK = 7;
 
     private final AssetDao assetDao;
@@ -44,12 +44,12 @@ public final class CandleRollupService {
 
     public void rollupForAllActiveAssets() {
         List<Asset> activeAssets = assetDao.findAllActive();
-        LOG.log(Level.INFO, "Starting D1->W1 rollup for {0} active assets", activeAssets.size());
+        LOG.info("Starting D1->W1 rollup for {} active assets", activeAssets.size());
         for (Asset asset : activeAssets) {
             try {
                 rollupForAsset(asset);
             } catch (Exception e) {
-                LOG.log(Level.ERROR, "Failed to roll up candles for asset " + asset.symbol(), e);
+                LOG.error("Failed to roll up candles for asset {}", asset.symbol(), e);
             }
         }
     }

@@ -1,5 +1,7 @@
 package walshe.projectcolumbo.supertrend.signal;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import walshe.projectcolumbo.supertrend.indicator.Candle;
 import walshe.projectcolumbo.supertrend.indicator.SuperTrendCalculator;
 import walshe.projectcolumbo.supertrend.indicator.SuperTrendDirection;
@@ -11,8 +13,6 @@ import walshe.projectcolumbo.supertrend.persistence.SignalStateDao;
 import walshe.projectcolumbo.supertrend.pipeline.ParallelAssetExecutor;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +29,7 @@ import java.util.Optional;
  */
 public final class SignalStateDetectionService {
 
-    private static final Logger LOG = System.getLogger(SignalStateDetectionService.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(SignalStateDetectionService.class);
 
     private final AssetDao assetDao;
     private final CandleDao candleDao;
@@ -44,7 +44,7 @@ public final class SignalStateDetectionService {
 
     public void computeForAllActiveAssets(Timeframe timeframe) {
         List<Asset> activeAssets = assetDao.findAllActive();
-        LOG.log(Level.INFO, "Detecting {0} signal state for {1} active assets", timeframe, activeAssets.size());
+        LOG.info("Detecting {} signal state for {} active assets", timeframe, activeAssets.size());
         ParallelAssetExecutor.runForEachItem(activeAssets, asset -> {
             computeForAssetSafely(asset, timeframe);
             return null;
@@ -55,7 +55,7 @@ public final class SignalStateDetectionService {
         try {
             computeForAsset(asset, timeframe);
         } catch (Exception e) {
-            LOG.log(Level.ERROR, "Failed to detect " + timeframe + " signal state for asset " + asset.symbol(), e);
+            LOG.error("Failed to detect {} signal state for asset {}", timeframe, asset.symbol(), e);
         }
     }
 

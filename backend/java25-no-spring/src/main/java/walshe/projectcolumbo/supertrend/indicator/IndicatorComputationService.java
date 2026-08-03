@@ -1,5 +1,7 @@
 package walshe.projectcolumbo.supertrend.indicator;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import walshe.projectcolumbo.supertrend.persistence.Asset;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
@@ -7,8 +9,6 @@ import walshe.projectcolumbo.supertrend.persistence.SuperTrendIndicatorDao;
 import walshe.projectcolumbo.supertrend.pipeline.ParallelAssetExecutor;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -20,7 +20,7 @@ import java.util.Optional;
  */
 public final class IndicatorComputationService {
 
-    private static final Logger LOG = System.getLogger(IndicatorComputationService.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(IndicatorComputationService.class);
 
     private final AssetDao assetDao;
     private final CandleDao candleDao;
@@ -35,7 +35,7 @@ public final class IndicatorComputationService {
 
     public void computeForAllActiveAssets(Timeframe timeframe) {
         List<Asset> activeAssets = assetDao.findAllActive();
-        LOG.log(Level.INFO, "Computing {0} SuperTrend for {1} active assets", timeframe, activeAssets.size());
+        LOG.info("Computing {} SuperTrend for {} active assets", timeframe, activeAssets.size());
         ParallelAssetExecutor.runForEachItem(activeAssets, asset -> {
             computeForAssetSafely(asset, timeframe);
             return null;
@@ -46,7 +46,7 @@ public final class IndicatorComputationService {
         try {
             computeForAsset(asset, timeframe);
         } catch (Exception e) {
-            LOG.log(Level.ERROR, "Failed to compute " + timeframe + " SuperTrend for asset " + asset.symbol(), e);
+            LOG.error("Failed to compute {} SuperTrend for asset {}", timeframe, asset.symbol(), e);
         }
     }
 

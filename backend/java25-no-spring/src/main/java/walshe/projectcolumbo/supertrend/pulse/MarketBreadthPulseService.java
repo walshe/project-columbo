@@ -1,5 +1,7 @@
 package walshe.projectcolumbo.supertrend.pulse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import walshe.projectcolumbo.supertrend.persistence.Asset;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.MarketBreadthSnapshotDao;
@@ -8,8 +10,6 @@ import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.SignalState;
 import walshe.projectcolumbo.supertrend.signal.TrendState;
 
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  */
 public final class MarketBreadthPulseService {
 
-    private static final Logger LOG = System.getLogger(MarketBreadthPulseService.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(MarketBreadthPulseService.class);
     private static final int BULLISH_RATIO_SCALE = 4;
 
     private final AssetDao assetDao;
@@ -53,7 +53,7 @@ public final class MarketBreadthPulseService {
                 .toList();
 
         if (activeLatestStates.isEmpty()) {
-            LOG.log(Level.INFO, "No signal state yet for active {0} assets; skipping market breadth snapshot", timeframe);
+            LOG.info("No signal state yet for active {} assets; skipping market breadth snapshot", timeframe);
             return;
         }
 
@@ -64,7 +64,7 @@ public final class MarketBreadthPulseService {
 
         MarketBreadthSnapshot snapshot = snapshot(timeframe, snapshotCloseTime, activeLatestStates, activeAssets.size());
         marketBreadthSnapshotDao.upsert(snapshot);
-        LOG.log(Level.INFO, "Market breadth snapshot for {0} at {1}: {2}", timeframe, snapshotCloseTime, snapshot);
+        LOG.info("Market breadth snapshot for {} at {}: {}", timeframe, snapshotCloseTime, snapshot);
     }
 
     /** Pure: tallies trend states into bullish/bearish/missing counts and the bullish ratio. */

@@ -1,5 +1,7 @@
 package walshe.projectcolumbo.supertrend.ingestion;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import walshe.projectcolumbo.supertrend.indicator.Candle;
 import walshe.projectcolumbo.supertrend.persistence.Asset;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
@@ -7,8 +9,6 @@ import walshe.projectcolumbo.supertrend.persistence.CandleDao;
 import walshe.projectcolumbo.supertrend.shared.FinalizedBoundary;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -21,7 +21,7 @@ import java.util.Optional;
  */
 public final class CandleIngestionService {
 
-    private static final Logger LOG = System.getLogger(CandleIngestionService.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(CandleIngestionService.class);
     private static final long POLITE_DELAY_MS = 200;
 
     private final AssetDao assetDao;
@@ -46,7 +46,7 @@ public final class CandleIngestionService {
 
     public IngestionStats ingestDaily() {
         List<Asset> activeAssets = assetDao.findAllActive();
-        LOG.log(Level.INFO, "Starting daily ingestion for {0} active assets", activeAssets.size());
+        LOG.info("Starting daily ingestion for {} active assets", activeAssets.size());
 
         IngestionStats total = IngestionStats.EMPTY;
         for (int i = 0; i < activeAssets.size(); i++) {
@@ -56,7 +56,7 @@ public final class CandleIngestionService {
             }
         }
 
-        LOG.log(Level.INFO, "Daily ingestion summary: {0} inserted, {1} updated, {2} unchanged, {3} errors across {4} assets",
+        LOG.info("Daily ingestion summary: {} inserted, {} updated, {} unchanged, {} errors across {} assets",
                 total.insertedCount(), total.updatedCount(), total.unchangedCount(), total.errorCount(), activeAssets.size());
         return total;
     }
@@ -65,11 +65,11 @@ public final class CandleIngestionService {
         try {
             return ingestForAsset(asset);
         } catch (InvalidSymbolException e) {
-            LOG.log(Level.ERROR, "Invalid symbol for asset {0}: deactivating.", asset.symbol());
+            LOG.error("Invalid symbol for asset {}: deactivating.", asset.symbol());
             assetDao.deactivate(asset.id());
             return IngestionStats.singleError("Invalid symbol: " + asset.symbol());
         } catch (Exception e) {
-            LOG.log(Level.ERROR, "Failed to ingest data for asset: " + asset.symbol(), e);
+            LOG.error("Failed to ingest data for asset: {}", asset.symbol(), e);
             return IngestionStats.singleError(e.getMessage());
         }
     }
@@ -92,7 +92,7 @@ public final class CandleIngestionService {
         long endTimeMs = finalizedBoundary.toInstant().toEpochMilli();
 
         if (startTimeMs >= endTimeMs) {
-            LOG.log(Level.DEBUG, "No new candles required for {0}. Skipping.", asset.symbol());
+            LOG.debug("No new candles required for {}. Skipping.", asset.symbol());
             return IngestionStats.EMPTY;
         }
 

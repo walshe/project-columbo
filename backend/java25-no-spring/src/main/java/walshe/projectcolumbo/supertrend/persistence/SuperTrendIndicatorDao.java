@@ -1,12 +1,12 @@
 package walshe.projectcolumbo.supertrend.persistence;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import walshe.projectcolumbo.supertrend.indicator.SuperTrendDirection;
 import walshe.projectcolumbo.supertrend.indicator.SuperTrendResult;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import javax.sql.DataSource;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -16,7 +16,7 @@ import java.util.Optional;
 
 public final class SuperTrendIndicatorDao {
 
-    private static final Logger LOG = System.getLogger(SuperTrendIndicatorDao.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(SuperTrendIndicatorDao.class);
 
     private final DataSource dataSource;
 
@@ -56,8 +56,7 @@ public final class SuperTrendIndicatorDao {
                 return UpsertOutcome.UNCHANGED;
             }
             update(connection, assetId, timeframe, result);
-            LOG.log(Level.WARNING,
-                    "SuperTrend revision for asset {0} {1} at {2}: stored={3} new={4}",
+            LOG.warn("SuperTrend revision for asset {} {} at {}: stored={} new={}",
                     assetId, timeframe, result.closeTime(), existing.get(), result);
             return UpsertOutcome.UPDATED;
         } catch (SQLException e) {

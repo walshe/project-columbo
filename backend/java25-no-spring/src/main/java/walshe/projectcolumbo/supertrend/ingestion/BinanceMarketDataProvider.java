@@ -2,12 +2,12 @@ package walshe.projectcolumbo.supertrend.ingestion;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import walshe.projectcolumbo.supertrend.indicator.Candle;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.io.IOException;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -21,7 +21,7 @@ import java.util.List;
 /** Binance's public klines API — the only market data provider actually active in production. */
 public final class BinanceMarketDataProvider implements MarketDataProvider {
 
-    private static final Logger LOG = System.getLogger(BinanceMarketDataProvider.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(BinanceMarketDataProvider.class);
     private static final String BASE_URL = "https://api.binance.com";
     private static final String KLINES_PATH = "/api/v3/klines";
     private static final int BINANCE_INVALID_SYMBOL_CODE = -1121;
@@ -46,7 +46,7 @@ public final class BinanceMarketDataProvider implements MarketDataProvider {
                 + "&startTime=" + startTimeMs
                 + "&endTime=" + endTimeMs);
 
-        LOG.log(Level.INFO, "Fetching daily candles from Binance: symbol={0} (normalized={1}), start={2}, end={3}",
+        LOG.info("Fetching daily candles from Binance: symbol={} (normalized={}), start={}, end={}",
                 symbol, normalizedSymbol, startTimeMs, endTimeMs);
 
         HttpRequest request = HttpRequest.newBuilder(uri).GET().build();
