@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: 'postgres:16-alpine'
+    environment:
+      - 'POSTGRES_DB=supertrend_core'
+      - 'POSTGRES_PASSWORD=postgres'
+      - 'POSTGRES_USER=postgres'
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d supertrend_core -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # The app service is intended for running on the target machine, not local dev.
+  # It is gated behind the "prod" profile so it never starts during normal dev workflows.
+  # In dev, run the app directly from your IDE or via `mvn compile exec:java` (or the
+  # packaged jar - see README.md), and let only the postgres service run via Docker as usual.
+  # To start locally and build: docker compose --profile prod up -d --build
+  # To start on the target machine: docker compose -f compose.yaml -f compose.prod.yaml --profile prod up -d
+  app:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '8080:8080'
+    environment:
+      - 'SUPERTREND_DB_URL=jdbc:postgresql://postgres:5432/supertrend_core'
+      - 'SUPERTREND_DB_USER=postgres'
+      - 'SUPERTREND_DB_PASSWORD=postgres'
+      # Required - BackfillStartValidator fails fast at startup if unset. ~215 days back, comfortably
+      # past the ~147 days W1 SuperTrend's ATR warm-up needs; move forward periodically.
+      - 'SUPERTREND_BACKFILL_START=2026-01-01T00:00:00Z'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

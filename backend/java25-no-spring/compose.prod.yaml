@@ -1,0 +1,4 @@
+services:
+  app:
+    image: ghcr.io/walshe/project-columbo-java25:latest
+    build: null
