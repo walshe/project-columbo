@@ -79,7 +79,10 @@ class SignalQueryServiceIntegrationTest {
         SignalSummary summary = results.get(0);
         assertThat(summary.symbol()).isEqualTo("SQ1USDT");
         assertThat(summary.trendState()).isEqualTo(TrendState.BULLISH);
-        assertThat(summary.lastFlipTime()).isEqualTo(FLIP_CLOSE);
+        // lastFlipTime is reported as the flip candle's open time, not its close time (see
+        // Timeframe#openTimeFor) - D1's span is 1 day, and Binance's close = open + span - 1ms
+        // convention means the exact open time is FLIP_CLOSE minus a day plus that 1ms back.
+        assertThat(summary.lastFlipTime()).isEqualTo(FLIP_CLOSE.minusDays(1).plusNanos(1_000_000));
         assertThat(summary.pctChangeSinceFlip()).isEqualByComparingTo(new BigDecimal("15.00"));
         assertThat(summary.tradingviewUrl()).isEqualTo("https://www.tradingview.com/chart/?symbol=BINANCE%3ASQ1USDT&interval=1D");
     }

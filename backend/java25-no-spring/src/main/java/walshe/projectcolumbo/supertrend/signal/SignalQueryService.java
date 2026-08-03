@@ -90,7 +90,10 @@ public final class SignalQueryService {
 
     private static SignalSummary toSummary(
             Asset asset, SignalState latest, SignalState flip, BigDecimal avgVolume7d, BigDecimal latestClose, BigDecimal flipClose) {
-        OffsetDateTime lastFlipTime = flip != null ? flip.closeTime() : null;
+        // Reported as the flip candle's open time, not its close time: charting tools like
+        // TradingView position/label a candle at its open, so this keeps "days since flip"
+        // consistent with where a human would see the flip marker land on a chart.
+        OffsetDateTime lastFlipTime = flip != null ? flip.timeframe().openTimeFor(flip.closeTime()) : null;
         BigDecimal pctChangeSinceFlip = pctChangeSinceFlip(flipClose, latestClose);
         String tradingviewUrl = TradingViewUrl.generateUrl(asset.provider(), asset.symbol(), latest.timeframe());
         return new SignalSummary(asset.symbol(), latest.trendState(), lastFlipTime, avgVolume7d, pctChangeSinceFlip, tradingviewUrl);

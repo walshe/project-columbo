@@ -5,8 +5,12 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 
 /**
- * @param lastFlipTime         close time of the most recent flip (event != NONE); null if the
- *                              asset has never flipped on this timeframe
+ * @param lastFlipTime         open time of the candle whose close triggered the most recent flip
+ *                              (event != NONE); null if the asset has never flipped on this
+ *                              timeframe. Reported by open time (via {@link
+ *                              walshe.projectcolumbo.supertrend.shared.Timeframe#openTimeFor})
+ *                              rather than close time so it lines up with how charting tools
+ *                              position/label the same candle
  * @param avgVolume7d           rolling 7-day average D1 volume; zero if unavailable
  * @param pctChangeSinceFlip    signed, 2dp; null if there's no flip or no matching candle close
  * @param tradingviewUrl        TradingView chart deep link for this asset+timeframe; null if the
