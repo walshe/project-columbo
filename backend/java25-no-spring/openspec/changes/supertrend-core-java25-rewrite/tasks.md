@@ -123,9 +123,11 @@
 
 ## 15. ingestion-trigger-api
 
-- [ ] 15.1 Implement `POST /api/v1/internal/ingestion/run` (optional provider/timeframe, defaults to Binance/D1)
-- [ ] 15.2 Wire 202-Accepted + run-ID response, and 409 on concurrent-run rejection
-- [ ] 15.3 Confirm manual-trigger run records are indistinguishable in shape from scheduled-trigger run records
+- [x] 15.1 Implement `POST /api/v1/internal/ingestion/run` (optional provider/timeframe, defaults to Binance/D1) — `IngestionTriggerHandler` + `IngestionTriggerRequest` (compact-constructor defaulting, matches the old app); missing/empty body treated the same as `{}`
+- [x] 15.2 Wire 202-Accepted + run-ID response, and 409 on concurrent-run rejection — required refactoring `PipelineOrchestrator`: it previously only exposed a fully-synchronous `runDaily` (blocks until the whole ingest→indicators→rollup→indicators chain finishes) which doesn't honor 202's "accepted, not yet complete" semantic. Split into `start()` (synchronous - so the concurrent-run check and the new run's id are both known immediately) and `executePhases()`; added `triggerAsync` which does `start()` synchronously then runs `executePhases()` on a virtual thread, returning the run id immediately. `runDaily` (used by `DailyScheduler`) is unchanged in behavior - still fully synchronous, just internally recomposed from the same two pieces
+- [x] 15.3 Confirm manual-trigger run records are indistinguishable in shape from scheduled-trigger run records — trivially true by construction: `runDaily` and `triggerAsync` both call the same `start()`/`executePhases()` internals and the same `IngestionRunDao` methods, so there is no "trigger source" column or shape difference to begin with
+
+(Not yet wired into `Main` - the full composition root (DB + all DAOs/services + HTTP server + scheduler) is deferred to group 16, matching the pattern established across groups 9-14.)
 
 ## 16. End-to-end validation
 
