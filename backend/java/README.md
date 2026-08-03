@@ -146,7 +146,7 @@ Project Columbo is a Spring Boot backend that ingests OHLCV data from Binance, c
 
 Changes are designed and tracked using [OpenSpec](https://github.com/open-gsd/openspec), a spec-driven delivery framework. Each feature goes through a proposal → design → spec → tasks pipeline before implementation. Artefacts live under `openspec/changes/` in the repository.
 
-Earlier milestones were developed with [gsd-core](https://github.com/open-gsd/gsd-core); those artefacts are in `.planning/`.
+Earlier milestones were developed with [gsd-core](https://github.com/open-gsd/gsd-core) and an earlier per-story workflow; those artefacts, along with this project's original design docs, are preserved in [`archive/`](../../archive/) at the repo root.
 
 ---
 

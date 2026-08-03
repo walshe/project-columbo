@@ -80,7 +80,7 @@ This repository contains **three parallel, independent backend implementations**
 
 Changes are designed and tracked using [OpenSpec](https://github.com/open-gsd/openspec), a spec-driven delivery framework. Each feature goes through a proposal → design → spec → tasks pipeline before implementation. Each backend keeps its own `openspec/changes/` directory.
 
-Earlier milestones (on `backend/java`) were developed with [gsd-core](https://github.com/open-gsd/gsd-core); those artefacts are in `.planning/`.
+Earlier milestones (on `backend/java`) were developed with [gsd-core](https://github.com/open-gsd/gsd-core) and an earlier per-story workflow; those artefacts, along with this project's original design docs, are preserved in [`archive/`](archive/).
 
 ---
 
