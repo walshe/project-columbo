@@ -93,7 +93,8 @@ class TrendAlignmentHandlerIntegrationTest {
             assertThat(response.code()).isEqualTo(200);
             assertThat(response.header("Content-Type")).contains("application/json");
             String body = response.body().string();
-            assertThat(body).contains("\"symbol\":\"TH1USDT\"").contains("\"bullishConfluence\"").contains("\"stale\":false");
+            assertThat(body).contains("\"symbol\":\"TH1USDT\"").contains("\"bullishConfluence\"").contains("\"stale\":false")
+                    .contains("\"maxRetestAgeDays\":7");
         });
     }
 
@@ -104,11 +105,12 @@ class TrendAlignmentHandlerIntegrationTest {
         signalStateDao.upsert(new SignalState(assetId, Timeframe.D1, CLOSE_TIME, TrendState.BULLISH, SignalEvent.NONE));
 
         JavalinTest.test(appWithFixedClock(Clock.fixed(NOW.toInstant(), ZoneOffset.UTC)), (server, client) -> {
-            Response response = client.get("/api/v1/summary/trend-alignment?format=markdown");
+            Response response = client.get("/api/v1/summary/trend-alignment?format=markdown&maxRetestAgeDays=10");
             assertThat(response.code()).isEqualTo(200);
             assertThat(response.header("Content-Type")).contains("text/markdown");
             String body = response.body().string();
-            assertThat(body).contains("# SuperTrend Trend Alignment").contains("TH2USDT").contains("Bearish Retest");
+            assertThat(body).contains("# SuperTrend Trend Alignment").contains("TH2USDT").contains("Bearish Retest")
+                    .contains("**Timeframes:** W1 + D1").contains("**Max Retest Age:** 10 day(s)");
         });
     }
 

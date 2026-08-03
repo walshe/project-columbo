@@ -20,6 +20,7 @@ public final class SummaryFormatter {
     public static String toMarkdown(SummaryResponse response, Clock clock) {
         OffsetDateTime now = OffsetDateTime.now(clock);
         StringBuilder markdown = new StringBuilder("# Market Summary Report\n\n");
+        markdown.append("**Timeframe:** ").append(response.timeframe()).append("\n\n");
         appendPulseSection(markdown, response.pulse());
         appendFlipsSection(markdown, "Recent Bullish Flips", response.bullishSignals(), now);
         appendFlipsSection(markdown, "Recent Bearish Flips", response.bearishSignals(), now);

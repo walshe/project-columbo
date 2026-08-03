@@ -70,15 +70,16 @@ public final class TrendAlignmentHandler {
         TrendAlignment alignment = trendAlignmentService.computeAlignment(maxRetestAgeDays);
 
         switch (format) {
-            case MARKDOWN -> ctx.contentType("text/markdown").result(TrendAlignmentFormatter.toMarkdown(alignment, clock));
+            case MARKDOWN -> ctx.contentType("text/markdown").result(TrendAlignmentFormatter.toMarkdown(alignment, maxRetestAgeDays, clock));
             case WATCHLIST -> ctx.contentType("text/plain").result(TrendAlignmentFormatter.toWatchlist(alignment));
-            case JSON -> ctx.json(buildResponse(alignment, status));
+            case JSON -> ctx.json(buildResponse(alignment, maxRetestAgeDays, status));
         }
     }
 
-    private TrendAlignmentResponse buildResponse(TrendAlignment alignment, FreshnessStatus status) {
+    private TrendAlignmentResponse buildResponse(TrendAlignment alignment, int maxRetestAgeDays, FreshnessStatus status) {
         FreshnessMetadata metadata = freshnessService.metadataFor(Provider.BINANCE, status);
         return new TrendAlignmentResponse(
+                maxRetestAgeDays,
                 alignment.bullishConfluence(), alignment.bullishRetest(), alignment.bearishConfluence(), alignment.bearishRetest(),
                 metadata.lastSuccessfulIngestionAt(), metadata.latestCandleDate(), !status.upToDate());
     }

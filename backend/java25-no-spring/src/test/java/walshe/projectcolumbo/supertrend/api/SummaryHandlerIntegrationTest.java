@@ -96,6 +96,7 @@ class SummaryHandlerIntegrationTest {
             assertThat(response.code()).isEqualTo(200);
             String body = response.body().string();
             assertThat(body).contains("\"symbol\":\"SM1USDT\"").contains("\"bullishCount\":1").contains("\"stale\":false")
+                    .contains("\"timeframe\":\"D1\"")
                     .doesNotContain("rsi").doesNotContain("Rsi").doesNotContain("RSI");
         });
     }
@@ -122,7 +123,7 @@ class SummaryHandlerIntegrationTest {
             assertThat(response.code()).isEqualTo(200);
             assertThat(response.header("Content-Type")).contains("text/markdown");
             String body = response.body().string();
-            assertThat(body).contains("# Market Summary Report").doesNotContain("## Market Pulse");
+            assertThat(body).contains("# Market Summary Report").contains("**Timeframe:** D1").doesNotContain("## Market Pulse");
         });
     }
 

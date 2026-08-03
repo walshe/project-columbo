@@ -13,9 +13,11 @@ public final class TrendAlignmentFormatter {
     private TrendAlignmentFormatter() {
     }
 
-    public static String toMarkdown(TrendAlignment alignment, Clock clock) {
+    public static String toMarkdown(TrendAlignment alignment, int maxRetestAgeDays, Clock clock) {
         OffsetDateTime now = OffsetDateTime.now(clock);
         StringBuilder markdown = new StringBuilder("# SuperTrend Trend Alignment\n\n");
+        markdown.append("**Timeframes:** W1 + D1 (D1 driving)\n\n");
+        markdown.append("**Max Retest Age:** ").append(maxRetestAgeDays).append(" day(s)\n\n");
         appendMarkdownSection(markdown, "Bullish Confluence (W1 + D1)", alignment.bullishConfluence(), "aligned", now);
         appendMarkdownSection(markdown, "Bullish Retest (W1 bullish, D1 recently bearish)", alignment.bullishRetest(), "flipped", now);
         appendMarkdownSection(markdown, "Bearish Confluence (W1 + D1)", alignment.bearishConfluence(), "aligned", now);

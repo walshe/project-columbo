@@ -95,6 +95,7 @@ public final class SummaryHandler {
         MarketBreadthSnapshot pulse = marketBreadthSnapshotDao.findLatest(timeframe).orElse(null);
         FreshnessMetadata metadata = freshnessService.metadataFor(Provider.BINANCE, status);
 
-        return new SummaryResponse(pulse, bullishSignals, bearishSignals, metadata.lastSuccessfulIngestionAt(), metadata.latestCandleDate(), !status.upToDate());
+        return new SummaryResponse(
+                timeframe, pulse, bullishSignals, bearishSignals, metadata.lastSuccessfulIngestionAt(), metadata.latestCandleDate(), !status.upToDate());
     }
 }
