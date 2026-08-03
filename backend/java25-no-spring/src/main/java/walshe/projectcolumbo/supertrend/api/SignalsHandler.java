@@ -2,6 +2,11 @@ package walshe.projectcolumbo.supertrend.api;
 
 import io.javalin.Javalin;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiResponse;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessMetadata;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessService;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessStatus;
@@ -31,6 +36,21 @@ public final class SignalsHandler {
         app.get("/api/v1/assets/by-state", this::getAssetsByState);
     }
 
+    @OpenApi(
+            path = "/api/v1/signals",
+            methods = HttpMethod.GET,
+            summary = "List the latest SuperTrend signal state for every active asset on a timeframe",
+            queryParams = {
+                    @OpenApiParam(name = "timeframe", type = Timeframe.class, required = true),
+                    @OpenApiParam(name = "state", type = TrendState.class, description = "Filter to this trend state only"),
+                    @OpenApiParam(name = "sort", type = SignalSort.class, description = "Defaults to ASSET_ASC"),
+                    @OpenApiParam(name = "requireFresh", type = Boolean.class, description = "Reject with 503 if the timeframe's data is stale beyond the grace window")
+            },
+            responses = {
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = SignalListResponse.class)),
+                    @OpenApiResponse(status = "503", description = "Data is stale and requireFresh=true")
+            }
+    )
     private void getSignals(Context ctx) {
         Timeframe timeframe = ctx.queryParamAsClass("timeframe", Timeframe.class).get();
         TrendState state = ctx.queryParamAsClass("state", TrendState.class).allowNullable().get();
@@ -48,6 +68,18 @@ public final class SignalsHandler {
         ctx.json(buildResponse(signals, status));
     }
 
+    @OpenApi(
+            path = "/api/v1/assets/by-state",
+            methods = HttpMethod.GET,
+            summary = "List every active asset currently in a given trend state on a timeframe - no freshness gating",
+            queryParams = {
+                    @OpenApiParam(name = "timeframe", type = Timeframe.class, required = true),
+                    @OpenApiParam(name = "state", type = TrendState.class, required = true)
+            },
+            responses = {
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = SignalListResponse.class))
+            }
+    )
     private void getAssetsByState(Context ctx) {
         Timeframe timeframe = ctx.queryParamAsClass("timeframe", Timeframe.class).get();
         TrendState state = ctx.queryParamAsClass("state", TrendState.class).get();
