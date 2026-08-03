@@ -81,6 +81,7 @@ class SignalQueryServiceIntegrationTest {
         assertThat(summary.trendState()).isEqualTo(TrendState.BULLISH);
         assertThat(summary.lastFlipTime()).isEqualTo(FLIP_CLOSE);
         assertThat(summary.pctChangeSinceFlip()).isEqualByComparingTo(new BigDecimal("15.00"));
+        assertThat(summary.tradingviewUrl()).isEqualTo("https://www.tradingview.com/chart/?symbol=BINANCE%3ASQ1USDT&interval=1D");
     }
 
     @Test

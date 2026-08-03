@@ -136,6 +136,6 @@ class ScanServiceTest {
     }
 
     private static SignalSummary summary(String symbol, OffsetDateTime lastFlipTime) {
-        return new SignalSummary(symbol, TrendState.BULLISH, lastFlipTime, BigDecimal.ZERO, null);
+        return new SignalSummary(symbol, TrendState.BULLISH, lastFlipTime, BigDecimal.ZERO, null, null);
     }
 }
