@@ -1,5 +1,7 @@
 package walshe.projectcolumbo.supertrend.pipeline;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import walshe.projectcolumbo.supertrend.indicator.IndicatorComputationService;
 import walshe.projectcolumbo.supertrend.ingestion.CandleIngestionService;
 import walshe.projectcolumbo.supertrend.ingestion.IngestionStats;
@@ -11,8 +13,6 @@ import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.SignalStateDetectionService;
 
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -26,7 +26,7 @@ import java.time.OffsetDateTime;
  */
 public final class PipelineOrchestrator {
 
-    private static final Logger LOG = System.getLogger(PipelineOrchestrator.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(PipelineOrchestrator.class);
 
     private final AssetDao assetDao;
     private final IngestionRunDao ingestionRunDao;
@@ -92,7 +92,7 @@ public final class PipelineOrchestrator {
         int assetCount = assetDao.findAllActive().size();
         OffsetDateTime startedAt = OffsetDateTime.now(clock);
         long runId = ingestionRunDao.start(provider, timeframe, assetCount, startedAt);
-        LOG.log(Level.INFO, "Pipeline run {0} started for {1} {2} ({3} active assets)", runId, provider, timeframe, assetCount);
+        LOG.info("Pipeline run {} started for {} {} ({} active assets)", runId, provider, timeframe, assetCount);
         return new RunHandle(runId, assetCount, startedAt);
     }
 
@@ -111,14 +111,14 @@ public final class PipelineOrchestrator {
         } catch (Exception e) {
             // Catches Exception, not just RuntimeException: a run left RUNNING forever because an
             // unexpected checked/wrapped failure slipped past this catch is worse than a broad net.
-            LOG.log(Level.ERROR, "Pipeline run " + runId + " failed unexpectedly", e);
+            LOG.error("Pipeline run {} failed unexpectedly", runId, e);
             complete(handle, IngestionRunStatus.FAILED, new IngestionStats(0, 0, 0, 1, e.getMessage()));
             throw e;
         }
 
         IngestionRunStatus status = determineStatus(ingestionStats, handle.assetCount());
         complete(handle, status, ingestionStats);
-        LOG.log(Level.INFO, "Pipeline run {0} finished with status {1}", runId, status);
+        LOG.info("Pipeline run {} finished with status {}", runId, status);
         return new PipelineRunResult(runId, status);
     }
 

@@ -1,10 +1,10 @@
 package walshe.projectcolumbo.supertrend.pipeline;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalTime;
@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
  */
 public final class DailyScheduler {
 
-    private static final Logger LOG = System.getLogger(DailyScheduler.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(DailyScheduler.class);
     private static final LocalTime SCHEDULED_TIME_UTC = LocalTime.of(0, 5);
 
     private final PipelineOrchestrator orchestrator;
@@ -53,12 +53,12 @@ public final class DailyScheduler {
 
     private void runAndRescheduleNext() {
         try {
-            LOG.log(Level.INFO, "Scheduled daily trigger firing for {0} {1}", provider, timeframe);
+            LOG.info("Scheduled daily trigger firing for {} {}", provider, timeframe);
             orchestrator.runDaily(provider, timeframe);
         } catch (IngestionAlreadyRunningException e) {
-            LOG.log(Level.INFO, "Scheduled daily trigger skipped - already running: {0}", e.getMessage());
+            LOG.info("Scheduled daily trigger skipped - already running: {}", e.getMessage());
         } catch (Exception e) {
-            LOG.log(Level.ERROR, "Scheduled daily trigger failed", e);
+            LOG.error("Scheduled daily trigger failed", e);
         } finally {
             scheduleNext();
         }

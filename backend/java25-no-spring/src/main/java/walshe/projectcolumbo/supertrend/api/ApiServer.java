@@ -5,6 +5,8 @@ import io.javalin.http.Context;
 import io.javalin.json.JavalinJackson;
 import io.javalin.openapi.plugin.OpenApiPlugin;
 import io.javalin.openapi.plugin.swagger.SwaggerPlugin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessStatus;
 import walshe.projectcolumbo.supertrend.freshness.StaleDataException;
 import walshe.projectcolumbo.supertrend.pipeline.IngestionAlreadyRunningException;
@@ -12,8 +14,6 @@ import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.SignalSort;
 import walshe.projectcolumbo.supertrend.signal.TrendState;
 
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.util.Locale;
 import java.util.Map;
 
@@ -29,7 +29,7 @@ import java.util.Map;
  */
 public final class ApiServer {
 
-    private static final Logger LOG = System.getLogger(ApiServer.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(ApiServer.class);
     private static final String OPENAPI_DOCS_PATH = "/openapi";
     // Matches the "type" Javalin's own HttpResponseExceptionMapper falls back to for exception
     // types it has no dedicated docs page for - keeps our hand-mapped responses (409/503/500)
@@ -75,7 +75,7 @@ public final class ApiServer {
         });
 
         app.exception(Exception.class, (e, ctx) -> {
-            LOG.log(Level.ERROR, "Unhandled error for " + ctx.method() + " " + ctx.path(), e);
+            LOG.error("Unhandled error for {} {}", ctx.method(), ctx.path(), e);
             writeError(ctx, 500, "Internal server error", Map.of());
         });
     }

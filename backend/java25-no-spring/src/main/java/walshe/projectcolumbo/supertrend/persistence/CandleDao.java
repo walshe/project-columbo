@@ -1,11 +1,11 @@
 package walshe.projectcolumbo.supertrend.persistence;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import walshe.projectcolumbo.supertrend.indicator.Candle;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import javax.sql.DataSource;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -20,7 +20,7 @@ import java.util.Optional;
 
 public final class CandleDao {
 
-    private static final Logger LOG = System.getLogger(CandleDao.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(CandleDao.class);
 
     private final DataSource dataSource;
 
@@ -195,8 +195,7 @@ public final class CandleDao {
                 return UpsertOutcome.UNCHANGED;
             }
             update(connection, assetId, candle);
-            LOG.log(Level.WARNING,
-                    "Candle revision for asset {0} {1} at {2}: stored={3} new={4}",
+            LOG.warn("Candle revision for asset {} {} at {}: stored={} new={}",
                     assetId, candle.timeframe(), candle.closeTime(), existing.get(), candle);
             return UpsertOutcome.UPDATED;
         } catch (SQLException e) {

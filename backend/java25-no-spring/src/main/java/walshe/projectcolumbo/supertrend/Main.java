@@ -1,6 +1,8 @@
 package walshe.projectcolumbo.supertrend;
 
 import io.javalin.Javalin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import walshe.projectcolumbo.supertrend.api.ApiServer;
 import walshe.projectcolumbo.supertrend.api.CandleCoverageHandler;
 import walshe.projectcolumbo.supertrend.api.IngestionTriggerHandler;
@@ -35,22 +37,16 @@ import walshe.projectcolumbo.supertrend.signal.SignalStateDetectionService;
 import walshe.projectcolumbo.supertrend.signal.TrendAlignmentService;
 
 import javax.sql.DataSource;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.time.Clock;
-import java.util.logging.LogManager;
 
 /** Composition root: wires every DAO/service/handler by hand (no DI container) and starts the HTTP server + daily scheduler. */
 public final class Main {
 
-    private static final Logger LOG = System.getLogger(Main.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(Main.class);
     private static final int DEFAULT_HTTP_PORT = 8080;
 
-    public static void main(String[] args) throws IOException {
-        configureLogging();
-        LOG.log(Level.INFO, "SuperTrend Core starting (Java {0})", Runtime.version());
+    public static void main(String[] args) {
+        LOG.info("SuperTrend Core starting (Java {})", Runtime.version());
 
         Clock clock = Clock.systemUTC();
         DataSource dataSource = DataSourceFactory.create();
@@ -99,18 +95,18 @@ public final class Main {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> shutdown(dailyScheduler, app, dataSource), "shutdown-hook"));
 
-        LOG.log(Level.INFO, "SuperTrend Core ready.");
+        LOG.info("SuperTrend Core ready.");
     }
 
     private static void shutdown(DailyScheduler dailyScheduler, Javalin app, DataSource dataSource) {
-        LOG.log(Level.INFO, "SuperTrend Core shutting down...");
+        LOG.info("SuperTrend Core shutting down...");
         dailyScheduler.stop();
         app.stop();
         if (dataSource instanceof AutoCloseable closeable) {
             try {
                 closeable.close();
             } catch (Exception e) {
-                LOG.log(Level.WARNING, "Failed to close data source cleanly", e);
+                LOG.warn("Failed to close data source cleanly", e);
             }
         }
     }
@@ -118,13 +114,5 @@ public final class Main {
     private static int httpPort() {
         String value = System.getenv("SUPERTREND_HTTP_PORT");
         return (value == null || value.isBlank()) ? DEFAULT_HTTP_PORT : Integer.parseInt(value);
-    }
-
-    private static void configureLogging() throws IOException {
-        try (InputStream config = Main.class.getResourceAsStream("/logging.properties")) {
-            if (config != null) {
-                LogManager.getLogManager().readConfiguration(config);
-            }
-        }
     }
 }

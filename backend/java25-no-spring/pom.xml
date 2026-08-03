@@ -29,6 +29,7 @@
         <jackson.version>2.22.1</jackson.version>
         <javalin.version>6.7.0</javalin.version>
         <javalin-openapi.version>6.7.0-1</javalin-openapi.version>
+        <slf4j.version>2.0.16</slf4j.version>
 
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.5.6</maven-surefire-plugin.version>
@@ -91,6 +92,23 @@
             <groupId>io.javalin.community.openapi</groupId>
             <artifactId>javalin-swagger-plugin</artifactId>
             <version>${javalin-openapi.version}</version>
+        </dependency>
+
+        <!-- Logging: Javalin/Jetty log their own internals via the SLF4J API - without a binding
+             those logs are silently dropped. slf4j-simple is the plain console binding Javalin's
+             own startup warning points at; it also replaces our System.Logger/java.util.logging
+             call sites, avoiding java.util.logging's MessageFormat-based log(Level, String, Object...)
+             (a literal apostrophe in a message gets mangled unless escaped as ''). -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- Test only -->
