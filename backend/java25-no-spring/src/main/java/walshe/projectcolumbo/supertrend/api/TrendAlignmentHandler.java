@@ -2,6 +2,11 @@ package walshe.projectcolumbo.supertrend.api;
 
 import io.javalin.Javalin;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiResponse;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessMetadata;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessService;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessStatus;
@@ -32,6 +37,24 @@ public final class TrendAlignmentHandler {
         app.get("/api/v1/summary/trend-alignment", this::getTrendAlignment);
     }
 
+    @OpenApi(
+            path = "/api/v1/summary/trend-alignment",
+            methods = HttpMethod.GET,
+            summary = "Cross-timeframe (W1+D1) SuperTrend confluence and retest, driven by D1 freshness",
+            queryParams = {
+                    @OpenApiParam(name = "format", type = SummaryFormat.class, description = "Defaults to JSON"),
+                    @OpenApiParam(name = "maxRetestAgeDays", type = Integer.class, description = "Defaults to 7"),
+                    @OpenApiParam(name = "requireFresh", type = Boolean.class, description = "Reject with 503 if D1 is stale beyond the grace window")
+            },
+            responses = {
+                    @OpenApiResponse(status = "200", content = {
+                            @OpenApiContent(from = TrendAlignmentResponse.class),
+                            @OpenApiContent(mimeType = "text/markdown", type = "string"),
+                            @OpenApiContent(mimeType = "text/plain", type = "string")
+                    }),
+                    @OpenApiResponse(status = "503", description = "D1 data is stale and requireFresh=true")
+            }
+    )
     private void getTrendAlignment(Context ctx) {
         SummaryFormat format = ctx.queryParamAsClass("format", SummaryFormat.class).getOrDefault(SummaryFormat.JSON);
         int maxRetestAgeDays = ctx.queryParamAsClass("maxRetestAgeDays", Integer.class).getOrDefault(DEFAULT_MAX_RETEST_AGE_DAYS);

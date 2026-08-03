@@ -3,6 +3,11 @@ package walshe.projectcolumbo.supertrend.api;
 import io.javalin.Javalin;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import walshe.projectcolumbo.supertrend.pipeline.PipelineOrchestrator;
 
 /**
@@ -25,6 +30,16 @@ public final class IngestionTriggerHandler {
         app.post("/api/v1/internal/ingestion/run", this::triggerRun);
     }
 
+    @OpenApi(
+            path = "/api/v1/internal/ingestion/run",
+            methods = HttpMethod.POST,
+            summary = "Trigger a manual ingestion pipeline run - defaults to BINANCE/D1 when the body is omitted or fields are absent",
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = IngestionTriggerRequest.class), required = false),
+            responses = {
+                    @OpenApiResponse(status = "202", content = @OpenApiContent(from = IngestionTriggerResponse.class)),
+                    @OpenApiResponse(status = "409", description = "A run is already RUNNING for this provider+timeframe")
+            }
+    )
     private void triggerRun(Context ctx) {
         IngestionTriggerRequest request = parseRequest(ctx);
         long runId = pipelineOrchestrator.triggerAsync(request.provider(), request.timeframe());

@@ -2,6 +2,10 @@ package walshe.projectcolumbo.supertrend.api;
 
 import io.javalin.Javalin;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiResponse;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessService;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessStatus;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
@@ -31,6 +35,15 @@ public final class CandleCoverageHandler {
         app.get("/api/v1/candles/coverage", this::getCoverage);
     }
 
+    @OpenApi(
+            path = "/api/v1/candles/coverage",
+            methods = HttpMethod.GET,
+            summary = "Per-timeframe candle history extent and freshness, keyed by timeframe name (e.g. \"D1\", \"W1\")",
+            responses = {
+                    @OpenApiResponse(status = "200", description = "Object keyed by timeframe name, each value shaped like the schema below",
+                            content = @OpenApiContent(from = CandleCoverage.class))
+            }
+    )
     private void getCoverage(Context ctx) {
         Map<Timeframe, CandleCoverage> coverage = new LinkedHashMap<>();
         for (Timeframe timeframe : Timeframe.values()) {

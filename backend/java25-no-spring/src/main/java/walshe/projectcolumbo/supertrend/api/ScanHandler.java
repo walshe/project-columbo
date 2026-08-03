@@ -3,6 +3,11 @@ package walshe.projectcolumbo.supertrend.api;
 import io.javalin.Javalin;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import walshe.projectcolumbo.supertrend.signal.ScanCondition;
 import walshe.projectcolumbo.supertrend.signal.ScanRequest;
 import walshe.projectcolumbo.supertrend.signal.ScanResult;
@@ -28,6 +33,16 @@ public final class ScanHandler {
         app.post("/api/v1/scan", this::scan);
     }
 
+    @OpenApi(
+            path = "/api/v1/scan",
+            methods = HttpMethod.POST,
+            summary = "Match assets against one or more SuperTrend conditions combined by AND/OR, optionally spanning different timeframes",
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ScanRequest.class), required = true),
+            responses = {
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = ScanResponse.class)),
+                    @OpenApiResponse(status = "400", description = "Missing/invalid operator, conditions, or limit")
+            }
+    )
     private void scan(Context ctx) {
         ScanRequest request;
         try {

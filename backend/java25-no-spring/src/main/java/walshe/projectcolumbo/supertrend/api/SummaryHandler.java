@@ -2,6 +2,11 @@ package walshe.projectcolumbo.supertrend.api;
 
 import io.javalin.Javalin;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiResponse;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessMetadata;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessService;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessStatus;
@@ -42,6 +47,24 @@ public final class SummaryHandler {
         app.get("/api/v1/summary", this::getSummary);
     }
 
+    @OpenApi(
+            path = "/api/v1/summary",
+            methods = HttpMethod.GET,
+            summary = "SuperTrend-only bullish/bearish signal lists plus the latest market-breadth pulse for a timeframe",
+            queryParams = {
+                    @OpenApiParam(name = "timeframe", type = Timeframe.class, required = true),
+                    @OpenApiParam(name = "format", type = SummaryFormat.class, description = "Defaults to JSON"),
+                    @OpenApiParam(name = "requireFresh", type = Boolean.class, description = "Reject with 503 if the timeframe's data is stale beyond the grace window")
+            },
+            responses = {
+                    @OpenApiResponse(status = "200", content = {
+                            @OpenApiContent(from = SummaryResponse.class),
+                            @OpenApiContent(mimeType = "text/markdown", type = "string"),
+                            @OpenApiContent(mimeType = "text/plain", type = "string")
+                    }),
+                    @OpenApiResponse(status = "503", description = "Data is stale and requireFresh=true")
+            }
+    )
     private void getSummary(Context ctx) {
         Timeframe timeframe = ctx.queryParamAsClass("timeframe", Timeframe.class).get();
         SummaryFormat format = ctx.queryParamAsClass("format", SummaryFormat.class).getOrDefault(SummaryFormat.JSON);
