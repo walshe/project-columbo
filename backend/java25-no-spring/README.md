@@ -99,4 +99,4 @@ SLF4J, bound to `slf4j-simple` (plain console output, configured via `src/main/r
 mvn test
 ```
 
-Uses Testcontainers to spin up a real, throwaway Postgres per integration test class — no manual container setup needed.
+Uses Testcontainers to spin up a real, throwaway Postgres per integration test class — no manual container setup needed. JUnit Pioneer is also in the mix, narrowly for testing env-var-driven config classes — see `developer-notes.md`'s Testing conventions section for why and how.
