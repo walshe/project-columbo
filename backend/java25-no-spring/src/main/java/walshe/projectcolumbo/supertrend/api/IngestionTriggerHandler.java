@@ -10,6 +10,8 @@ import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import walshe.projectcolumbo.supertrend.pipeline.PipelineOrchestrator;
 
+import java.util.Objects;
+
 /**
  * Registers {@code POST /api/v1/internal/ingestion/run}. Returns 202 as soon as the run is
  * recorded RUNNING (the actual pipeline runs in the background - see
@@ -23,7 +25,7 @@ public final class IngestionTriggerHandler {
     private final PipelineOrchestrator pipelineOrchestrator;
 
     public IngestionTriggerHandler(PipelineOrchestrator pipelineOrchestrator) {
-        this.pipelineOrchestrator = pipelineOrchestrator;
+        this.pipelineOrchestrator = Objects.requireNonNull(pipelineOrchestrator, "pipelineOrchestrator must not be null");
     }
 
     public void register(Javalin app) {

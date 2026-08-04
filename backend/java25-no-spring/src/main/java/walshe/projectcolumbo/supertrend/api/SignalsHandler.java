@@ -19,6 +19,7 @@ import walshe.projectcolumbo.supertrend.signal.SignalSummary;
 import walshe.projectcolumbo.supertrend.signal.TrendState;
 
 import java.util.List;
+import java.util.Objects;
 
 /** Registers {@code GET /api/v1/signals} and {@code GET /api/v1/assets/by-state}. */
 public final class SignalsHandler {
@@ -27,8 +28,8 @@ public final class SignalsHandler {
     private final FreshnessService freshnessService;
 
     public SignalsHandler(SignalQueryService signalQueryService, FreshnessService freshnessService) {
-        this.signalQueryService = signalQueryService;
-        this.freshnessService = freshnessService;
+        this.signalQueryService = Objects.requireNonNull(signalQueryService, "signalQueryService must not be null");
+        this.freshnessService = Objects.requireNonNull(freshnessService, "freshnessService must not be null");
     }
 
     public void register(Javalin app) {

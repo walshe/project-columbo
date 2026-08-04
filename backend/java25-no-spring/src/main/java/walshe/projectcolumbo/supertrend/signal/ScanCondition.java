@@ -2,6 +2,8 @@ package walshe.projectcolumbo.supertrend.signal;
 
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
+import java.util.Objects;
+
 /**
  * One condition in a {@link ScanRequest}. Implicitly targets SuperTrend - there is no
  * indicator-type field, since SuperTrend is the only indicator in this system (a behavior change
@@ -15,4 +17,11 @@ public record ScanCondition(
         TrendState state,
         Integer maxDaysSinceFlip
 ) {
+    public ScanCondition {
+        Objects.requireNonNull(timeframe, "timeframe must not be null");
+        Objects.requireNonNull(state, "state must not be null");
+        if (maxDaysSinceFlip != null && maxDaysSinceFlip < 0) {
+            throw new IllegalArgumentException("maxDaysSinceFlip must not be negative, was: " + maxDaysSinceFlip);
+        }
+    }
 }

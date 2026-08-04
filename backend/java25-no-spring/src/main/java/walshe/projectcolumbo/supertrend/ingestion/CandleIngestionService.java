@@ -12,6 +12,7 @@ import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -37,11 +38,11 @@ public final class CandleIngestionService {
             IngestionConfig ingestionConfig,
             Clock clock
     ) {
-        this.assetDao = assetDao;
-        this.candleDao = candleDao;
-        this.provider = provider;
-        this.ingestionConfig = ingestionConfig;
-        this.clock = clock;
+        this.assetDao = Objects.requireNonNull(assetDao, "assetDao must not be null");
+        this.candleDao = Objects.requireNonNull(candleDao, "candleDao must not be null");
+        this.provider = Objects.requireNonNull(provider, "provider must not be null");
+        this.ingestionConfig = Objects.requireNonNull(ingestionConfig, "ingestionConfig must not be null");
+        this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
     public IngestionStats ingestDaily() {

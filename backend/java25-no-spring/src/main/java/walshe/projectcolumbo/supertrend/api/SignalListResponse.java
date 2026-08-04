@@ -4,6 +4,7 @@ import walshe.projectcolumbo.supertrend.signal.SignalSummary;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @param lastIngestionAt finished-at of the last successful BINANCE ingestion run for the
@@ -18,4 +19,7 @@ public record SignalListResponse(
         OffsetDateTime candlesThrough,
         boolean stale
 ) {
+    public SignalListResponse {
+        Objects.requireNonNull(signals, "signals must not be null");
+    }
 }

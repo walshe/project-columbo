@@ -4,6 +4,7 @@ import walshe.projectcolumbo.supertrend.signal.SignalSummary;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @param maxRetestAgeDays the requested retest-age cutoff this report was computed with - included
@@ -11,7 +12,8 @@ import java.util.List;
  *                         than requiring the reader to already know what request produced it
  * @param lastIngestionAt finished-at of the last successful BINANCE D1 ingestion run - D1 is the
  *                         driving timeframe for this cross-timeframe report (W1 is rolled up from
- *                         D1), so freshness is evaluated against D1 only, never W1
+ *                         D1), so freshness is evaluated against D1 only, never W1. Null before any
+ *                         SUCCESS/PARTIAL ingestion run has ever completed
  * @param candlesThrough   close time of the most recent stored D1 candle; null if none
  * @param stale            true if D1 hasn't reached its expected latest close time
  */
@@ -25,4 +27,13 @@ public record TrendAlignmentResponse(
         OffsetDateTime candlesThrough,
         boolean stale
 ) {
+    public TrendAlignmentResponse {
+        if (maxRetestAgeDays < 0) {
+            throw new IllegalArgumentException("maxRetestAgeDays must not be negative, was: " + maxRetestAgeDays);
+        }
+        Objects.requireNonNull(bullishConfluence, "bullishConfluence must not be null");
+        Objects.requireNonNull(bullishRetest, "bullishRetest must not be null");
+        Objects.requireNonNull(bearishConfluence, "bearishConfluence must not be null");
+        Objects.requireNonNull(bearishRetest, "bearishRetest must not be null");
+    }
 }

@@ -3,6 +3,7 @@ package walshe.projectcolumbo.supertrend.ingestion;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 
 /**
  * Fails fast at startup if the configured backfill-start date doesn't provide enough daily
@@ -21,7 +22,7 @@ public final class BackfillStartValidator {
     private final Clock clock;
 
     public BackfillStartValidator(Clock clock) {
-        this.clock = clock;
+        this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
     public void validate(OffsetDateTime backfillStart) {

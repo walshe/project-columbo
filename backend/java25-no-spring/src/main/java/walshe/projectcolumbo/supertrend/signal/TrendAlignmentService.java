@@ -5,6 +5,7 @@ import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -21,8 +22,8 @@ public final class TrendAlignmentService {
     private final Clock clock;
 
     public TrendAlignmentService(SignalQueryService signalQueryService, Clock clock) {
-        this.signalQueryService = signalQueryService;
-        this.clock = clock;
+        this.signalQueryService = Objects.requireNonNull(signalQueryService, "signalQueryService must not be null");
+        this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
     public TrendAlignment computeAlignment(int maxRetestAgeDays) {

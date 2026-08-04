@@ -1,6 +1,7 @@
 package walshe.projectcolumbo.supertrend.freshness;
 
 import java.time.Duration;
+import java.util.Objects;
 
 /**
  * Thrown by {@link FreshnessService#requireFresh} when a timeframe's data is stale beyond the
@@ -16,9 +17,14 @@ public class StaleDataException extends RuntimeException {
     private final FreshnessStatus status;
 
     public StaleDataException(FreshnessStatus status) {
-        super(status.timeframe() + " data is stale: expected latest close time " + status.expectedLatestCloseTime()
-                + ", actual " + status.actualLatestCloseTime());
+        super(messageFor(status));
         this.status = status;
+    }
+
+    private static String messageFor(FreshnessStatus status) {
+        Objects.requireNonNull(status, "status must not be null");
+        return status.timeframe() + " data is stale: expected latest close time " + status.expectedLatestCloseTime()
+                + ", actual " + status.actualLatestCloseTime();
     }
 
     public FreshnessStatus status() {

@@ -6,6 +6,7 @@ import walshe.projectcolumbo.supertrend.signal.SignalSummary;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * SuperTrend-only market summary for one timeframe: no RSI or any other indicator anywhere in
@@ -18,7 +19,8 @@ import java.util.List;
  * @param pulse            latest market-breadth snapshot for the requested timeframe; null if none yet
  * @param bullishSignals   bullish assets, ordered by last-flip descending
  * @param bearishSignals   bearish assets, ordered by last-flip descending
- * @param lastIngestionAt  finished-at of the last successful BINANCE ingestion run for this timeframe
+ * @param lastIngestionAt  finished-at of the last successful BINANCE ingestion run for this
+ *                         timeframe; null before any SUCCESS/PARTIAL run has ever completed
  * @param candlesThrough   close time of the most recent stored candle for this timeframe; null if none
  * @param stale            true if this timeframe hasn't reached its expected latest close time
  */
@@ -31,4 +33,9 @@ public record SummaryResponse(
         OffsetDateTime candlesThrough,
         boolean stale
 ) {
+    public SummaryResponse {
+        Objects.requireNonNull(timeframe, "timeframe must not be null");
+        Objects.requireNonNull(bullishSignals, "bullishSignals must not be null");
+        Objects.requireNonNull(bearishSignals, "bearishSignals must not be null");
+    }
 }

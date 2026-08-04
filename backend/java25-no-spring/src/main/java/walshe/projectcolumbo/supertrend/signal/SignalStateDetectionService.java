@@ -16,6 +16,7 @@ import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -37,9 +38,9 @@ public final class SignalStateDetectionService {
     private final SuperTrendCalculator calculator = new SuperTrendCalculator();
 
     public SignalStateDetectionService(AssetDao assetDao, CandleDao candleDao, SignalStateDao signalStateDao) {
-        this.assetDao = assetDao;
-        this.candleDao = candleDao;
-        this.signalStateDao = signalStateDao;
+        this.assetDao = Objects.requireNonNull(assetDao, "assetDao must not be null");
+        this.candleDao = Objects.requireNonNull(candleDao, "candleDao must not be null");
+        this.signalStateDao = Objects.requireNonNull(signalStateDao, "signalStateDao must not be null");
     }
 
     public void computeForAllActiveAssets(Timeframe timeframe) {

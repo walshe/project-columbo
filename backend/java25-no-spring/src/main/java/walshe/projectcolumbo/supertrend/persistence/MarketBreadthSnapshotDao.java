@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 public final class MarketBreadthSnapshotDao {
@@ -18,7 +19,7 @@ public final class MarketBreadthSnapshotDao {
     private final DataSource dataSource;
 
     public MarketBreadthSnapshotDao(DataSource dataSource) {
-        this.dataSource = dataSource;
+        this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
     }
 
     public void upsert(MarketBreadthSnapshot snapshot) {

@@ -14,6 +14,7 @@ import walshe.projectcolumbo.supertrend.signal.ScanResult;
 import walshe.projectcolumbo.supertrend.signal.ScanService;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Registers {@code POST /api/v1/scan}. A standalone capability - not JSON/Markdown/Watchlist
@@ -26,7 +27,7 @@ public final class ScanHandler {
     private final ScanService scanService;
 
     public ScanHandler(ScanService scanService) {
-        this.scanService = scanService;
+        this.scanService = Objects.requireNonNull(scanService, "scanService must not be null");
     }
 
     public void register(Javalin app) {

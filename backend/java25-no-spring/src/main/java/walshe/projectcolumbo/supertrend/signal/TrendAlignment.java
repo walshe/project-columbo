@@ -1,6 +1,7 @@
 package walshe.projectcolumbo.supertrend.signal;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @param bullishConfluence bullish on both W1 and D1, ordered by D1 flip date descending
@@ -14,4 +15,10 @@ public record TrendAlignment(
         List<SignalSummary> bearishConfluence,
         List<SignalSummary> bearishRetest
 ) {
+    public TrendAlignment {
+        Objects.requireNonNull(bullishConfluence, "bullishConfluence must not be null");
+        Objects.requireNonNull(bullishRetest, "bullishRetest must not be null");
+        Objects.requireNonNull(bearishConfluence, "bearishConfluence must not be null");
+        Objects.requireNonNull(bearishRetest, "bearishRetest must not be null");
+    }
 }

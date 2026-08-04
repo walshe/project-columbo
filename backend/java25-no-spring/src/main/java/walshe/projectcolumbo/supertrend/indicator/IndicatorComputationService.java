@@ -11,6 +11,7 @@ import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -28,9 +29,9 @@ public final class IndicatorComputationService {
     private final SuperTrendCalculator calculator = new SuperTrendCalculator();
 
     public IndicatorComputationService(AssetDao assetDao, CandleDao candleDao, SuperTrendIndicatorDao superTrendIndicatorDao) {
-        this.assetDao = assetDao;
-        this.candleDao = candleDao;
-        this.superTrendIndicatorDao = superTrendIndicatorDao;
+        this.assetDao = Objects.requireNonNull(assetDao, "assetDao must not be null");
+        this.candleDao = Objects.requireNonNull(candleDao, "candleDao must not be null");
+        this.superTrendIndicatorDao = Objects.requireNonNull(superTrendIndicatorDao, "superTrendIndicatorDao must not be null");
     }
 
     public void computeForAllActiveAssets(Timeframe timeframe) {

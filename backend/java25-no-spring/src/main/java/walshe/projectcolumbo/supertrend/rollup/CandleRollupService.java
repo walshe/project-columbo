@@ -18,6 +18,7 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -37,9 +38,9 @@ public final class CandleRollupService {
     private final Clock clock;
 
     public CandleRollupService(AssetDao assetDao, CandleDao candleDao, Clock clock) {
-        this.assetDao = assetDao;
-        this.candleDao = candleDao;
-        this.clock = clock;
+        this.assetDao = Objects.requireNonNull(assetDao, "assetDao must not be null");
+        this.candleDao = Objects.requireNonNull(candleDao, "candleDao must not be null");
+        this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
     public void rollupForAllActiveAssets() {
