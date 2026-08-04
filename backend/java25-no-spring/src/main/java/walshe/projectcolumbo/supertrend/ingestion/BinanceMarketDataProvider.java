@@ -23,25 +23,32 @@ import java.util.Objects;
 public final class BinanceMarketDataProvider implements MarketDataProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(BinanceMarketDataProvider.class);
-    private static final String BASE_URL = "https://api.binance.com";
+    private static final String DEFAULT_BASE_URL = "https://api.binance.com";
     private static final String KLINES_PATH = "/api/v3/klines";
     private static final int BINANCE_INVALID_SYMBOL_CODE = -1121;
 
     private final HttpClient httpClient;
+    private final String baseUrl;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public BinanceMarketDataProvider() {
-        this(HttpClient.newHttpClient());
+        this(HttpClient.newHttpClient(), DEFAULT_BASE_URL);
     }
 
     public BinanceMarketDataProvider(HttpClient httpClient) {
+        this(httpClient, DEFAULT_BASE_URL);
+    }
+
+    /** @param baseUrl overridable so tests can point this at a stub server instead of the real Binance API. */
+    public BinanceMarketDataProvider(HttpClient httpClient, String baseUrl) {
         this.httpClient = Objects.requireNonNull(httpClient, "httpClient must not be null");
+        this.baseUrl = Objects.requireNonNull(baseUrl, "baseUrl must not be null");
     }
 
     @Override
     public List<Candle> fetchDailyCandles(String symbol, long startTimeMs, long endTimeMs) {
         String normalizedSymbol = normalizeSymbol(symbol);
-        URI uri = URI.create(BASE_URL + KLINES_PATH
+        URI uri = URI.create(baseUrl + KLINES_PATH
                 + "?symbol=" + normalizedSymbol
                 + "&interval=1d"
                 + "&startTime=" + startTimeMs

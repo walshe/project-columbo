@@ -34,6 +34,7 @@
 
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.5.6</maven-surefire-plugin.version>
+        <maven-failsafe-plugin.version>3.5.6</maven-failsafe-plugin.version>
         <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
         <maven-dependency-plugin.version>3.11.0</maven-dependency-plugin.version>
     </properties>
@@ -234,4 +235,32 @@
             </plugin>
         </plugins>
     </build>
+
+    <!-- Opt-in only: `mvn verify -Pe2e` builds this module's actual Docker image via Testcontainers'
+         ImageFromDockerfile and runs it against a real Postgres + a stubbed Binance (WireMock)
+         container, asserting the full pipeline through real HTTP - not run by plain `mvn test`/`mvn
+         verify`, since building the image + running three containers is much slower than every other
+         test here. See src/test/java/.../e2e/PipelineEndToEndIT.java. -->
+    <profiles>
+        <profile>
+            <id>e2e</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>${maven-failsafe-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

@@ -70,6 +70,7 @@ docker compose -f compose.yaml -f compose.prod.yaml --profile prod up -d
 | `SUPERTREND_DB_PASSWORD` | no | `postgres` | Postgres password |
 | `SUPERTREND_BACKFILL_START` | **yes** | — | ISO-8601 timestamp; how far back to backfill candles. Must be far enough in the past to give W1 SuperTrend's ATR at least ~147 days (~20 weekly candles) to warm up — startup fails fast (`BackfillStartValidator`) if it isn't. |
 | `SUPERTREND_HTTP_PORT` | no | `8080` | HTTP port the API listens on |
+| `SUPERTREND_BINANCE_BASE_URL` | no | `https://api.binance.com` | Base URL for the market data provider. Overridable so tests can point the app at a stub server instead of the real Binance API - see the end-to-end test below |
 
 ## HTTP endpoints
 
@@ -100,3 +101,11 @@ mvn test
 ```
 
 Uses Testcontainers to spin up a real, throwaway Postgres per integration test class — no manual container setup needed. JUnit Pioneer is also in the mix, narrowly for testing env-var-driven config classes — see `developer-notes.md`'s Testing conventions section for why and how.
+
+### End-to-end test
+
+```sh
+mvn verify -Pe2e
+```
+
+Opt-in only (not part of `mvn test`/plain `mvn verify`) - builds this module's actual Docker image and runs it against a real Postgres container plus a WireMock container stubbing Binance, driving the full pipeline through real HTTP. Takes a few minutes (Docker image build + three containers), which is why it's separate from the fast default suite. See `developer-notes.md` for how it works.
