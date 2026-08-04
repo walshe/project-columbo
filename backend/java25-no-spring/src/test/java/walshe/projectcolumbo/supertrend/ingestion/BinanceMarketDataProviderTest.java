@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Test;
 import walshe.projectcolumbo.supertrend.indicator.Candle;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
+import java.net.URI;
+import java.net.http.HttpClient;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -84,5 +86,31 @@ class BinanceMarketDataProviderTest {
     void normalizeSymbolStripsSlashesAndDashes() {
         assertThat(BinanceMarketDataProvider.normalizeSymbol("btc/usdt")).isEqualTo("BTCUSDT");
         assertThat(BinanceMarketDataProvider.normalizeSymbol("btc-usdt")).isEqualTo("BTCUSDT");
+    }
+
+    @Test
+    void klinesUriStripsTrailingSlashFromConfiguredBaseUrlToAvoidADoubleSlash() {
+        BinanceMarketDataProvider withTrailingSlash =
+                new BinanceMarketDataProvider(HttpClient.newHttpClient(), "http://binance-stub:8080/");
+
+        URI uri = withTrailingSlash.klinesUri("BTCUSDT", 1000L, 2000L);
+
+        assertThat(uri).isEqualTo(URI.create("http://binance-stub:8080/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1000&endTime=2000"));
+    }
+
+    @Test
+    void klinesUriStripsMultipleTrailingSlashes() {
+        BinanceMarketDataProvider withTrailingSlashes =
+                new BinanceMarketDataProvider(HttpClient.newHttpClient(), "http://binance-stub:8080///");
+
+        URI uri = withTrailingSlashes.klinesUri("BTCUSDT", 1000L, 2000L);
+
+        assertThat(uri).isEqualTo(URI.create("http://binance-stub:8080/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1000&endTime=2000"));
+    }
+
+    @Test
+    void klinesUriIsUnaffectedWhenBaseUrlHasNoTrailingSlash() {
+        assertThat(provider.klinesUri("BTCUSDT", 1000L, 2000L))
+                .isEqualTo(URI.create("https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1000&endTime=2000"));
     }
 }
