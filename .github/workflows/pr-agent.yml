@@ -22,6 +22,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          # auto_describe off: redundant with the tailored PR description already written for
+          # every PR opened in this repo - it was appending its own auto-generated file-walkthrough
+          # table on top of that rather than replacing it.
           github_action_config.auto_review: "true"
-          github_action_config.auto_describe: "true"
+          github_action_config.auto_describe: "false"
           github_action_config.auto_improve: "false"

@@ -42,17 +42,22 @@ public final class BinanceMarketDataProvider implements MarketDataProvider {
     /** @param baseUrl overridable so tests can point this at a stub server instead of the real Binance API. */
     public BinanceMarketDataProvider(HttpClient httpClient, String baseUrl) {
         this.httpClient = Objects.requireNonNull(httpClient, "httpClient must not be null");
-        this.baseUrl = Objects.requireNonNull(baseUrl, "baseUrl must not be null");
+        this.baseUrl = stripTrailingSlashes(Objects.requireNonNull(baseUrl, "baseUrl must not be null"));
+    }
+
+    /** A trailing slash on the configured base URL would otherwise double up with {@link #KLINES_PATH}'s leading one. */
+    private static String stripTrailingSlashes(String url) {
+        int end = url.length();
+        while (end > 0 && url.charAt(end - 1) == '/') {
+            end--;
+        }
+        return url.substring(0, end);
     }
 
     @Override
     public List<Candle> fetchDailyCandles(String symbol, long startTimeMs, long endTimeMs) {
         String normalizedSymbol = normalizeSymbol(symbol);
-        URI uri = URI.create(baseUrl + KLINES_PATH
-                + "?symbol=" + normalizedSymbol
-                + "&interval=1d"
-                + "&startTime=" + startTimeMs
-                + "&endTime=" + endTimeMs);
+        URI uri = klinesUri(normalizedSymbol, startTimeMs, endTimeMs);
 
         LOG.info("Fetching daily candles from Binance: symbol={} (normalized={}), start={}, end={}",
                 symbol, normalizedSymbol, startTimeMs, endTimeMs);
@@ -73,6 +78,14 @@ public final class BinanceMarketDataProvider implements MarketDataProvider {
         }
 
         return parseKlines(response.body());
+    }
+
+    URI klinesUri(String normalizedSymbol, long startTimeMs, long endTimeMs) {
+        return URI.create(baseUrl + KLINES_PATH
+                + "?symbol=" + normalizedSymbol
+                + "&interval=1d"
+                + "&startTime=" + startTimeMs
+                + "&endTime=" + endTimeMs);
     }
 
     void handleErrorResponse(String normalizedSymbol, HttpResponse<String> response) {
