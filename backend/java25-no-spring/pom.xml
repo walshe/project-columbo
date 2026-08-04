@@ -30,6 +30,7 @@
         <javalin.version>6.7.0</javalin.version>
         <javalin-openapi.version>6.7.0-1</javalin-openapi.version>
         <slf4j.version>2.0.16</slf4j.version>
+        <junit-pioneer.version>2.3.0</junit-pioneer.version>
 
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.5.6</maven-surefire-plugin.version>
@@ -124,10 +125,32 @@
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
+        <!-- junit-pioneer 2.3.0 transitively pulls junit-platform-launcher:1.11.2 (pre-rebrand
+             Platform versioning) rather than the 6.x line the rest of this project is on -
+             declaring it directly pins it to the same version as everything else, which Maven's
+             dependency mediation prefers over the transitive one. Without this, test discovery
+             fails outright ("OutputDirectoryCreator not available; probably due to unaligned
+             versions of the junit-platform-engine and junit-platform-launcher jars"). -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
             <version>${assertj.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- @SetEnvironmentVariable/@ClearEnvironmentVariable for env-var-driven config classes
+             (IngestionConfig, DataSourceFactory) that are otherwise awkward to unit test -
+             System.getenv() has no supported mutation API, so the alternative is refactoring
+             every call site to accept an injected env-lookup function just for testability. -->
+        <dependency>
+            <groupId>org.junit-pioneer</groupId>
+            <artifactId>junit-pioneer</artifactId>
+            <version>${junit-pioneer.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -167,6 +190,11 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven-surefire-plugin.version}</version>
+                <configuration>
+                    <!-- Required by JUnit Pioneer's @SetEnvironmentVariable/@ClearEnvironmentVariable,
+                         which mutate the JDK's internal env-var maps via reflection. -->
+                    <argLine>--add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
