@@ -16,6 +16,7 @@ import walshe.projectcolumbo.supertrend.signal.SignalStateDetectionService;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 
 /**
  * Runs the daily pipeline in a strict phase order: ingest -&gt; D1 indicators -&gt; D1 signals -&gt;
@@ -47,14 +48,14 @@ public final class PipelineOrchestrator {
             MarketBreadthPulseService marketBreadthPulseService,
             Clock clock
     ) {
-        this.assetDao = assetDao;
-        this.ingestionRunDao = ingestionRunDao;
-        this.candleIngestionService = candleIngestionService;
-        this.indicatorComputationService = indicatorComputationService;
-        this.candleRollupService = candleRollupService;
-        this.signalStateDetectionService = signalStateDetectionService;
-        this.marketBreadthPulseService = marketBreadthPulseService;
-        this.clock = clock;
+        this.assetDao = Objects.requireNonNull(assetDao, "assetDao must not be null");
+        this.ingestionRunDao = Objects.requireNonNull(ingestionRunDao, "ingestionRunDao must not be null");
+        this.candleIngestionService = Objects.requireNonNull(candleIngestionService, "candleIngestionService must not be null");
+        this.indicatorComputationService = Objects.requireNonNull(indicatorComputationService, "indicatorComputationService must not be null");
+        this.candleRollupService = Objects.requireNonNull(candleRollupService, "candleRollupService must not be null");
+        this.signalStateDetectionService = Objects.requireNonNull(signalStateDetectionService, "signalStateDetectionService must not be null");
+        this.marketBreadthPulseService = Objects.requireNonNull(marketBreadthPulseService, "marketBreadthPulseService must not be null");
+        this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
     public PipelineRunResult runDaily(Provider provider, Timeframe timeframe) {

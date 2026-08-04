@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /** Reads the {@code v_asset_liquidity} view (rolling 7-day average D1 volume per asset). */
 public final class AssetLiquidityDao {
@@ -15,7 +16,7 @@ public final class AssetLiquidityDao {
     private final DataSource dataSource;
 
     public AssetLiquidityDao(DataSource dataSource) {
-        this.dataSource = dataSource;
+        this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
     }
 
     public Map<Long, BigDecimal> findAvgVolume7d() {

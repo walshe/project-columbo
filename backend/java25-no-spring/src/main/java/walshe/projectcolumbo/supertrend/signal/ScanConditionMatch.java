@@ -3,6 +3,7 @@ package walshe.projectcolumbo.supertrend.signal;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.time.OffsetDateTime;
+import java.util.Objects;
 
 /**
  * Why a matched asset satisfied one particular {@link ScanCondition} - including a
@@ -18,4 +19,8 @@ public record ScanConditionMatch(
         Long daysSinceFlip,
         String tradingviewUrl
 ) {
+    public ScanConditionMatch {
+        Objects.requireNonNull(timeframe, "timeframe must not be null");
+        Objects.requireNonNull(state, "state must not be null");
+    }
 }

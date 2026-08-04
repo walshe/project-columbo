@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /** Binance's public klines API — the only market data provider actually active in production. */
 public final class BinanceMarketDataProvider implements MarketDataProvider {
@@ -34,7 +35,7 @@ public final class BinanceMarketDataProvider implements MarketDataProvider {
     }
 
     public BinanceMarketDataProvider(HttpClient httpClient) {
-        this.httpClient = httpClient;
+        this.httpClient = Objects.requireNonNull(httpClient, "httpClient must not be null");
     }
 
     @Override

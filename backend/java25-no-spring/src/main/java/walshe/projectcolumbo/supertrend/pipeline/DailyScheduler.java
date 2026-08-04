@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -33,10 +34,10 @@ public final class DailyScheduler {
             Executors.newSingleThreadScheduledExecutor(Thread.ofVirtual().name("daily-scheduler").factory());
 
     public DailyScheduler(PipelineOrchestrator orchestrator, Provider provider, Timeframe timeframe, Clock clock) {
-        this.orchestrator = orchestrator;
-        this.provider = provider;
-        this.timeframe = timeframe;
-        this.clock = clock;
+        this.orchestrator = Objects.requireNonNull(orchestrator, "orchestrator must not be null");
+        this.provider = Objects.requireNonNull(provider, "provider must not be null");
+        this.timeframe = Objects.requireNonNull(timeframe, "timeframe must not be null");
+        this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
     public void start() {

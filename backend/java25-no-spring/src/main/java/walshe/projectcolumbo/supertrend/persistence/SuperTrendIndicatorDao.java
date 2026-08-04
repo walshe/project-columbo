@@ -12,6 +12,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import java.util.Optional;
 
 public final class SuperTrendIndicatorDao {
@@ -21,7 +22,7 @@ public final class SuperTrendIndicatorDao {
     private final DataSource dataSource;
 
     public SuperTrendIndicatorDao(DataSource dataSource) {
-        this.dataSource = dataSource;
+        this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
     }
 
     public Optional<OffsetDateTime> findLatestCloseTime(long assetId, Timeframe timeframe) {

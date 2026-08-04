@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -31,10 +32,10 @@ public final class SignalQueryService {
     private final AssetLiquidityDao assetLiquidityDao;
 
     public SignalQueryService(AssetDao assetDao, SignalStateDao signalStateDao, CandleDao candleDao, AssetLiquidityDao assetLiquidityDao) {
-        this.assetDao = assetDao;
-        this.signalStateDao = signalStateDao;
-        this.candleDao = candleDao;
-        this.assetLiquidityDao = assetLiquidityDao;
+        this.assetDao = Objects.requireNonNull(assetDao, "assetDao must not be null");
+        this.signalStateDao = Objects.requireNonNull(signalStateDao, "signalStateDao must not be null");
+        this.candleDao = Objects.requireNonNull(candleDao, "candleDao must not be null");
+        this.assetLiquidityDao = Objects.requireNonNull(assetLiquidityDao, "assetLiquidityDao must not be null");
     }
 
     /** {@code sort} defaults to {@link SignalSort#ASSET_ASC} when null. {@code stateFilter} is skipped when null. */

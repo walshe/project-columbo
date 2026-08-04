@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 public final class SignalStateDao {
@@ -20,7 +21,7 @@ public final class SignalStateDao {
     private final DataSource dataSource;
 
     public SignalStateDao(DataSource dataSource) {
-        this.dataSource = dataSource;
+        this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
     }
 
     /**

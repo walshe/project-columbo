@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 public final class CandleDao {
@@ -25,7 +26,7 @@ public final class CandleDao {
     private final DataSource dataSource;
 
     public CandleDao(DataSource dataSource) {
-        this.dataSource = dataSource;
+        this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
     }
 
     public List<Candle> findByAssetAndTimeframe(long assetId, Timeframe timeframe) {

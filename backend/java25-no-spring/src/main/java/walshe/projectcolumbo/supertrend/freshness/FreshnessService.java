@@ -8,6 +8,7 @@ import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 
 /**
  * Evaluates whether a timeframe's candle data is up to date, and exposes the freshness metadata
@@ -24,9 +25,9 @@ public final class FreshnessService {
     private final Clock clock;
 
     public FreshnessService(CandleDao candleDao, IngestionRunDao ingestionRunDao, Clock clock) {
-        this.candleDao = candleDao;
-        this.ingestionRunDao = ingestionRunDao;
-        this.clock = clock;
+        this.candleDao = Objects.requireNonNull(candleDao, "candleDao must not be null");
+        this.ingestionRunDao = Objects.requireNonNull(ingestionRunDao, "ingestionRunDao must not be null");
+        this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
     public FreshnessStatus evaluate(Timeframe timeframe) {

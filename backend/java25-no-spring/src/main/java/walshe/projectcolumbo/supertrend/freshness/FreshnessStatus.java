@@ -3,6 +3,7 @@ package walshe.projectcolumbo.supertrend.freshness;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.time.OffsetDateTime;
+import java.util.Objects;
 
 /**
  * @param actualLatestCloseTime  null if no candle has ever been stored for this timeframe
@@ -17,4 +18,8 @@ public record FreshnessStatus(
         boolean upToDate,
         boolean staleBeyondGraceWindow
 ) {
+    public FreshnessStatus {
+        Objects.requireNonNull(timeframe, "timeframe must not be null");
+        Objects.requireNonNull(expectedLatestCloseTime, "expectedLatestCloseTime must not be null");
+    }
 }

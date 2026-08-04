@@ -11,6 +11,10 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessService;
+import walshe.projectcolumbo.supertrend.indicator.IndicatorComputationService;
+import walshe.projectcolumbo.supertrend.ingestion.BinanceMarketDataProvider;
+import walshe.projectcolumbo.supertrend.ingestion.CandleIngestionService;
+import walshe.projectcolumbo.supertrend.ingestion.IngestionConfig;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.AssetLiquidityDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
@@ -18,6 +22,7 @@ import walshe.projectcolumbo.supertrend.persistence.IngestionRunDao;
 import walshe.projectcolumbo.supertrend.persistence.MarketBreadthSnapshotDao;
 import walshe.projectcolumbo.supertrend.persistence.SchemaMigrator;
 import walshe.projectcolumbo.supertrend.persistence.SignalStateDao;
+import walshe.projectcolumbo.supertrend.persistence.SuperTrendIndicatorDao;
 import walshe.projectcolumbo.supertrend.pipeline.PipelineOrchestrator;
 import walshe.projectcolumbo.supertrend.pulse.MarketBreadthPulseService;
 import walshe.projectcolumbo.supertrend.rollup.CandleRollupService;
@@ -73,11 +78,16 @@ class OpenApiDocumentationIntegrationTest {
         ScanService scanService = new ScanService(signalQueryService, clock);
         SignalStateDetectionService signalStateDetectionService = new SignalStateDetectionService(assetDao, candleDao, signalStateDao);
         MarketBreadthPulseService marketBreadthPulseService = new MarketBreadthPulseService(assetDao, signalStateDao, marketBreadthSnapshotDao);
-        // null candleIngestionService/indicatorComputationService: safe here because this test only
-        // exercises route registration and spec generation, never IngestionTriggerHandler's actual
-        // triggerAsync() call path, and the constructor itself only stores fields (no eager use).
+        // Real (but never-exercised) candleIngestionService/indicatorComputationService: this test
+        // only exercises route registration and spec generation, never IngestionTriggerHandler's
+        // actual triggerAsync() call path - but the constructor now requires non-null dependencies,
+        // so these need to be real instances rather than null, even though nothing here calls them.
+        CandleIngestionService candleIngestionService = new CandleIngestionService(
+                assetDao, candleDao, new BinanceMarketDataProvider(), new IngestionConfig(null), clock);
+        IndicatorComputationService indicatorComputationService =
+                new IndicatorComputationService(assetDao, candleDao, new SuperTrendIndicatorDao(dataSource));
         PipelineOrchestrator pipelineOrchestrator = new PipelineOrchestrator(
-                assetDao, ingestionRunDao, null, null,
+                assetDao, ingestionRunDao, candleIngestionService, indicatorComputationService,
                 new CandleRollupService(assetDao, candleDao, clock), signalStateDetectionService, marketBreadthPulseService, clock);
 
         Javalin app = ApiServer.create();

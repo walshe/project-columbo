@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * SuperTrend-only condition matching: each {@link ScanCondition} is evaluated independently
@@ -21,8 +22,8 @@ public final class ScanService {
     private final Clock clock;
 
     public ScanService(SignalQueryService signalQueryService, Clock clock) {
-        this.signalQueryService = signalQueryService;
-        this.clock = clock;
+        this.signalQueryService = Objects.requireNonNull(signalQueryService, "signalQueryService must not be null");
+        this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
     public List<ScanResult> execute(ScanRequest request) {

@@ -3,6 +3,7 @@ package walshe.projectcolumbo.supertrend.signal;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 
 /**
  * @param lastFlipTime         open time of the candle whose close triggered the most recent flip
@@ -24,6 +25,12 @@ public record SignalSummary(
         BigDecimal pctChangeSinceFlip,
         String tradingviewUrl
 ) {
+    public SignalSummary {
+        Objects.requireNonNull(symbol, "symbol must not be null");
+        Objects.requireNonNull(trendState, "trendState must not be null");
+        Objects.requireNonNull(avgVolume7d, "avgVolume7d must not be null");
+    }
+
     /** Whole UTC calendar days between {@link #lastFlipTime} and {@code now}; null if there's no recorded flip. */
     public Long daysSinceFlip(OffsetDateTime now) {
         return lastFlipTime != null ? ChronoUnit.DAYS.between(lastFlipTime.toLocalDate(), now.toLocalDate()) : null;

@@ -1,6 +1,7 @@
 package walshe.projectcolumbo.supertrend.api;
 
 import java.time.OffsetDateTime;
+import java.util.Objects;
 
 /**
  * @param earliest       close time of the oldest stored candle for this timeframe; null if none
@@ -17,4 +18,10 @@ public record CandleCoverage(
         boolean upToDate,
         long assetCount
 ) {
+    public CandleCoverage {
+        Objects.requireNonNull(expectedLatest, "expectedLatest must not be null");
+        if (assetCount < 0) {
+            throw new IllegalArgumentException("assetCount must not be negative, was: " + assetCount);
+        }
+    }
 }

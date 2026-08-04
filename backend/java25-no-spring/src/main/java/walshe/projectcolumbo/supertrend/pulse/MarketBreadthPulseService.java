@@ -16,6 +16,7 @@ import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -36,9 +37,9 @@ public final class MarketBreadthPulseService {
     private final MarketBreadthSnapshotDao marketBreadthSnapshotDao;
 
     public MarketBreadthPulseService(AssetDao assetDao, SignalStateDao signalStateDao, MarketBreadthSnapshotDao marketBreadthSnapshotDao) {
-        this.assetDao = assetDao;
-        this.signalStateDao = signalStateDao;
-        this.marketBreadthSnapshotDao = marketBreadthSnapshotDao;
+        this.assetDao = Objects.requireNonNull(assetDao, "assetDao must not be null");
+        this.signalStateDao = Objects.requireNonNull(signalStateDao, "signalStateDao must not be null");
+        this.marketBreadthSnapshotDao = Objects.requireNonNull(marketBreadthSnapshotDao, "marketBreadthSnapshotDao must not be null");
     }
 
     public void computeForAllActiveAssets(Timeframe timeframe) {

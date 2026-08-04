@@ -14,6 +14,7 @@ import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Registers {@code GET /api/v1/candles/coverage}: per-timeframe candle history extent and
@@ -27,8 +28,8 @@ public final class CandleCoverageHandler {
     private final FreshnessService freshnessService;
 
     public CandleCoverageHandler(CandleDao candleDao, FreshnessService freshnessService) {
-        this.candleDao = candleDao;
-        this.freshnessService = freshnessService;
+        this.candleDao = Objects.requireNonNull(candleDao, "candleDao must not be null");
+        this.freshnessService = Objects.requireNonNull(freshnessService, "freshnessService must not be null");
     }
 
     public void register(Javalin app) {

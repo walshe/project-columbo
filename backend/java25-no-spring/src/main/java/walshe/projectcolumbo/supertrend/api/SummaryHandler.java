@@ -22,6 +22,7 @@ import walshe.projectcolumbo.supertrend.signal.TrendState;
 
 import java.time.Clock;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Registers {@code GET /api/v1/summary}: SuperTrend-only bullish/bearish signal lists (a direct
@@ -37,10 +38,10 @@ public final class SummaryHandler {
 
     public SummaryHandler(SignalQueryService signalQueryService, MarketBreadthSnapshotDao marketBreadthSnapshotDao,
                            FreshnessService freshnessService, Clock clock) {
-        this.signalQueryService = signalQueryService;
-        this.marketBreadthSnapshotDao = marketBreadthSnapshotDao;
-        this.freshnessService = freshnessService;
-        this.clock = clock;
+        this.signalQueryService = Objects.requireNonNull(signalQueryService, "signalQueryService must not be null");
+        this.marketBreadthSnapshotDao = Objects.requireNonNull(marketBreadthSnapshotDao, "marketBreadthSnapshotDao must not be null");
+        this.freshnessService = Objects.requireNonNull(freshnessService, "freshnessService must not be null");
+        this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
     public void register(Javalin app) {

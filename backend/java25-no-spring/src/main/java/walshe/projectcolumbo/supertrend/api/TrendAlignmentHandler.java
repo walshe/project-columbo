@@ -17,6 +17,7 @@ import walshe.projectcolumbo.supertrend.signal.TrendAlignment;
 import walshe.projectcolumbo.supertrend.signal.TrendAlignmentService;
 
 import java.time.Clock;
+import java.util.Objects;
 
 /** Registers {@code GET /api/v1/summary/trend-alignment}. */
 public final class TrendAlignmentHandler {
@@ -28,9 +29,9 @@ public final class TrendAlignmentHandler {
     private final Clock clock;
 
     public TrendAlignmentHandler(TrendAlignmentService trendAlignmentService, FreshnessService freshnessService, Clock clock) {
-        this.trendAlignmentService = trendAlignmentService;
-        this.freshnessService = freshnessService;
-        this.clock = clock;
+        this.trendAlignmentService = Objects.requireNonNull(trendAlignmentService, "trendAlignmentService must not be null");
+        this.freshnessService = Objects.requireNonNull(freshnessService, "freshnessService must not be null");
+        this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
     public void register(Javalin app) {

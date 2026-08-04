@@ -14,6 +14,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import java.util.Optional;
 
 public final class IngestionRunDao {
@@ -21,7 +22,7 @@ public final class IngestionRunDao {
     private final DataSource dataSource;
 
     public IngestionRunDao(DataSource dataSource) {
-        this.dataSource = dataSource;
+        this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
     }
 
     /** Returns true if a run for this provider+timeframe is currently RUNNING (concurrency guard). */
