@@ -37,6 +37,7 @@ import walshe.projectcolumbo.supertrend.signal.SignalStateDetectionService;
 import walshe.projectcolumbo.supertrend.signal.TrendAlignmentService;
 
 import javax.sql.DataSource;
+import java.net.http.HttpClient;
 import java.time.Clock;
 
 /** Composition root: wires every DAO/service/handler by hand (no DI container) and starts the HTTP server + daily scheduler. */
@@ -44,6 +45,7 @@ public final class Main {
 
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
     private static final int DEFAULT_HTTP_PORT = 8080;
+    private static final String DEFAULT_BINANCE_BASE_URL = "https://api.binance.com";
 
     public static void main(String[] args) {
         LOG.info("SuperTrend Core starting (Java {})", Runtime.version());
@@ -63,8 +65,9 @@ public final class Main {
         IngestionRunDao ingestionRunDao = new IngestionRunDao(dataSource);
         AssetLiquidityDao assetLiquidityDao = new AssetLiquidityDao(dataSource);
 
+        BinanceMarketDataProvider marketDataProvider = new BinanceMarketDataProvider(HttpClient.newHttpClient(), binanceBaseUrl());
         CandleIngestionService candleIngestionService =
-                new CandleIngestionService(assetDao, candleDao, new BinanceMarketDataProvider(), ingestionConfig, clock);
+                new CandleIngestionService(assetDao, candleDao, marketDataProvider, ingestionConfig, clock);
         IndicatorComputationService indicatorComputationService =
                 new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao);
         CandleRollupService candleRollupService = new CandleRollupService(assetDao, candleDao, clock);
@@ -114,5 +117,11 @@ public final class Main {
     private static int httpPort() {
         String value = System.getenv("SUPERTREND_HTTP_PORT");
         return (value == null || value.isBlank()) ? DEFAULT_HTTP_PORT : Integer.parseInt(value);
+    }
+
+    /** Overridable so an end-to-end test can point this at a stub server instead of the real Binance API. */
+    private static String binanceBaseUrl() {
+        String value = System.getenv("SUPERTREND_BINANCE_BASE_URL");
+        return (value == null || value.isBlank()) ? DEFAULT_BINANCE_BASE_URL : value;
     }
 }

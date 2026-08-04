@@ -33,3 +33,25 @@ jobs:
 
       - name: Run tests
         run: mvn test
+
+  e2e:
+    runs-on: ubuntu-latest
+    # Only worth the extra ~3-5 minutes (Docker image build + three containers) if the fast suite
+    # already passed - no point paying for it against an already-broken build.
+    needs: test
+    defaults:
+      run:
+        working-directory: backend/java25-no-spring
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      # ubuntu-latest runners ship Docker preinstalled and running - Testcontainers (used to build
+      # this module's own image and run it against Postgres + a stubbed Binance) needs nothing else.
+      - name: Run end-to-end test
+        run: mvn verify -Pe2e
