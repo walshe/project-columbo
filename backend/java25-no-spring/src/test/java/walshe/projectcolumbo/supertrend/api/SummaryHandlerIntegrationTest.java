@@ -90,7 +90,7 @@ class SummaryHandlerIntegrationTest {
         long assetId = seedAsset("SM1USDT");
         signalStateDao.upsert(new SignalState(assetId, Timeframe.D1, CLOSE_TIME, TrendState.BULLISH, SignalEvent.NONE));
         seedCandle(assetId, CLOSE_TIME);
-        marketBreadthSnapshotDao.upsert(new MarketBreadthSnapshot(Timeframe.D1, CLOSE_TIME, 1, 0, 0, 1, new BigDecimal("1.0000")));
+        marketBreadthSnapshotDao.upsert(new MarketBreadthSnapshot(Timeframe.D1, CLOSE_TIME, null, 1, 0, 0, 1, new BigDecimal("1.0000")));
 
         JavalinTest.test(appWithFixedClock(Clock.fixed(NOW.toInstant(), ZoneOffset.UTC)), (server, client) -> {
             Response response = client.get("/api/v1/summary?timeframe=D1");
@@ -132,7 +132,7 @@ class SummaryHandlerIntegrationTest {
     void markdownFormatIncludesPulseSectionWhenSnapshotExists() {
         long assetId = seedAsset("SM4USDT");
         signalStateDao.upsert(new SignalState(assetId, Timeframe.D1, CLOSE_TIME, TrendState.BULLISH, SignalEvent.NONE));
-        marketBreadthSnapshotDao.upsert(new MarketBreadthSnapshot(Timeframe.D1, CLOSE_TIME, 3, 1, 0, 4, new BigDecimal("0.7500")));
+        marketBreadthSnapshotDao.upsert(new MarketBreadthSnapshot(Timeframe.D1, CLOSE_TIME, null, 3, 1, 0, 4, new BigDecimal("0.7500")));
 
         JavalinTest.test(appWithFixedClock(Clock.fixed(NOW.toInstant(), ZoneOffset.UTC)), (server, client) -> {
             String body = client.get("/api/v1/summary?timeframe=D1&format=markdown").body().string();
@@ -196,6 +196,20 @@ class SummaryHandlerIntegrationTest {
 
             String markdownBody = client.get("/api/v1/summary?timeframe=D1&assetClass=STOCK&format=markdown").body().string();
             assertThat(markdownBody).contains("**Asset Class:** STOCK");
+        });
+    }
+
+    @Test
+    void pulseRespectsTheAssetClassFilterInsteadOfAlwaysReflectingEveryClassCombined() {
+        marketBreadthSnapshotDao.upsert(new MarketBreadthSnapshot(Timeframe.D1, CLOSE_TIME, null, 10, 5, 0, 15, new BigDecimal("0.6667")));
+        marketBreadthSnapshotDao.upsert(new MarketBreadthSnapshot(Timeframe.D1, CLOSE_TIME, AssetClass.STOCK, 2, 8, 0, 10, new BigDecimal("0.2000")));
+
+        JavalinTest.test(appWithFixedClock(Clock.fixed(NOW.toInstant(), ZoneOffset.UTC)), (server, client) -> {
+            String combinedBody = client.get("/api/v1/summary?timeframe=D1").body().string();
+            assertThat(combinedBody).contains("\"bullishCount\":10");
+
+            String stockBody = client.get("/api/v1/summary?timeframe=D1&assetClass=STOCK").body().string();
+            assertThat(stockBody).contains("\"bullishCount\":2").doesNotContain("\"bullishCount\":10");
         });
     }
 

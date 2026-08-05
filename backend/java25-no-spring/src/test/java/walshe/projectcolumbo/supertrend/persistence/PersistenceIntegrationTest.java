@@ -145,7 +145,7 @@ class PersistenceIntegrationTest {
     @Order(7)
     void marketBreadthSnapshotDaoUpsertAndQueries() {
         MarketBreadthSnapshotDao dao = new MarketBreadthSnapshotDao(dataSource);
-        MarketBreadthSnapshot snapshot = new MarketBreadthSnapshot(Timeframe.D1, closeTime(1), 30, 25, 5, 60, new BigDecimal("0.5455"));
+        MarketBreadthSnapshot snapshot = new MarketBreadthSnapshot(Timeframe.D1, closeTime(1), null, 30, 25, 5, 60, new BigDecimal("0.5455"));
 
         dao.upsert(snapshot);
 

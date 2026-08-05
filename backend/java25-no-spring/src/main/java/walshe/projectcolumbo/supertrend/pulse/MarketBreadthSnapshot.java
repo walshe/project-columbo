@@ -1,14 +1,17 @@
 package walshe.projectcolumbo.supertrend.pulse;
 
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 
+/** @param assetClass the class this snapshot is scoped to; null means combined across every class */
 public record MarketBreadthSnapshot(
         Timeframe timeframe,
         OffsetDateTime snapshotCloseTime,
+        AssetClass assetClass,
         int bullishCount,
         int bearishCount,
         int missingCount,

@@ -96,7 +96,7 @@ public final class SummaryHandler {
         List<SignalSummary> allByFlipDesc = signalQueryService.listSignals(timeframe, null, SignalSort.LAST_FLIP_DESC, assetClass);
         List<SignalSummary> bullishSignals = allByFlipDesc.stream().filter(s -> s.trendState() == TrendState.BULLISH).toList();
         List<SignalSummary> bearishSignals = allByFlipDesc.stream().filter(s -> s.trendState() == TrendState.BEARISH).toList();
-        MarketBreadthSnapshot pulse = marketBreadthSnapshotDao.findLatest(timeframe).orElse(null);
+        MarketBreadthSnapshot pulse = marketBreadthSnapshotDao.findLatest(timeframe, assetClass).orElse(null);
         FreshnessMetadata metadata = freshnessService.metadataFor(Provider.BINANCE, status);
 
         return new SummaryResponse(
