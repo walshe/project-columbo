@@ -1,6 +1,7 @@
 package walshe.projectcolumbo.supertrend.signal;
 
 import org.junit.jupiter.api.Test;
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -97,6 +98,6 @@ class TrendAlignmentServiceTest {
     }
 
     private static SignalSummary summary(String symbol, OffsetDateTime lastFlipTime) {
-        return new SignalSummary(symbol, TrendState.BULLISH, lastFlipTime, BigDecimal.ZERO, null, null);
+        return new SignalSummary(symbol, TrendState.BULLISH, lastFlipTime, BigDecimal.ZERO, null, null, AssetClass.CRYPTO);
     }
 }

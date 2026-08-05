@@ -73,7 +73,7 @@ class SignalQueryServiceIntegrationTest {
         signalStateDao.upsert(new SignalState(assetId, Timeframe.D1, FLIP_CLOSE, TrendState.BULLISH, SignalEvent.BULLISH_REVERSAL));
         signalStateDao.upsert(new SignalState(assetId, Timeframe.D1, LATEST_CLOSE, TrendState.BULLISH, SignalEvent.NONE));
 
-        var results = signalQueryService.listSignals(Timeframe.D1, null, null);
+        var results = signalQueryService.listSignals(Timeframe.D1, null, null, null);
 
         assertThat(results).hasSize(1);
         SignalSummary summary = results.get(0);
@@ -94,7 +94,7 @@ class SignalQueryServiceIntegrationTest {
         seedCandle(assetId, recentClose, new BigDecimal("50.00"), new BigDecimal("777"));
         signalStateDao.upsert(new SignalState(assetId, Timeframe.D1, recentClose, TrendState.BULLISH, SignalEvent.NONE));
 
-        var results = signalQueryService.listSignals(Timeframe.D1, null, null);
+        var results = signalQueryService.listSignals(Timeframe.D1, null, null, null);
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).avgVolume7d()).isEqualByComparingTo(new BigDecimal("777"));
@@ -106,7 +106,7 @@ class SignalQueryServiceIntegrationTest {
         seedCandle(assetId, LATEST_CLOSE, new BigDecimal("50.00"));
         signalStateDao.upsert(new SignalState(assetId, Timeframe.D1, LATEST_CLOSE, TrendState.BEARISH, SignalEvent.NONE));
 
-        var results = signalQueryService.listSignals(Timeframe.D1, null, null);
+        var results = signalQueryService.listSignals(Timeframe.D1, null, null, null);
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).lastFlipTime()).isNull();
@@ -120,7 +120,7 @@ class SignalQueryServiceIntegrationTest {
         signalStateDao.upsert(new SignalState(bullish, Timeframe.D1, LATEST_CLOSE, TrendState.BULLISH, SignalEvent.NONE));
         signalStateDao.upsert(new SignalState(bearish, Timeframe.D1, LATEST_CLOSE, TrendState.BEARISH, SignalEvent.NONE));
 
-        var results = signalQueryService.listSignals(Timeframe.D1, TrendState.BEARISH, null);
+        var results = signalQueryService.listSignals(Timeframe.D1, TrendState.BEARISH, null, null);
 
         assertThat(results).extracting(SignalSummary::symbol).containsExactly("SQ3BUSDT");
     }
@@ -131,7 +131,7 @@ class SignalQueryServiceIntegrationTest {
         signalStateDao.upsert(new SignalState(deactivated, Timeframe.D1, LATEST_CLOSE, TrendState.BULLISH, SignalEvent.NONE));
         assetDao.deactivate(deactivated);
 
-        var results = signalQueryService.listSignals(Timeframe.D1, null, null);
+        var results = signalQueryService.listSignals(Timeframe.D1, null, null, null);
 
         assertThat(results).isEmpty();
     }

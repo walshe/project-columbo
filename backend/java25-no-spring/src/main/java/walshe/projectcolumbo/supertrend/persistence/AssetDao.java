@@ -1,5 +1,6 @@
 package walshe.projectcolumbo.supertrend.persistence;
 
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 
 import javax.sql.DataSource;
@@ -20,13 +21,24 @@ public final class AssetDao {
     }
 
     public List<Asset> findAllActive() {
-        String sql = "SELECT id, symbol, provider, active FROM asset WHERE active = true ORDER BY id";
+        return findAllActive(null);
+    }
+
+    /** @param assetClassFilter restricts results to this class only; every active asset is returned when null. */
+    public List<Asset> findAllActive(AssetClass assetClassFilter) {
+        String sql = assetClassFilter == null
+                ? "SELECT id, symbol, provider, active, asset_class FROM asset WHERE active = true ORDER BY id"
+                : "SELECT id, symbol, provider, active, asset_class FROM asset WHERE active = true AND asset_class = ?::asset_class ORDER BY id";
         List<Asset> assets = new ArrayList<>();
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
-            while (resultSet.next()) {
-                assets.add(mapRow(resultSet));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            if (assetClassFilter != null) {
+                statement.setString(1, assetClassFilter.name());
+            }
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    assets.add(mapRow(resultSet));
+                }
             }
         } catch (SQLException e) {
             throw new PersistenceException("Failed to load active assets", e);
@@ -51,7 +63,8 @@ public final class AssetDao {
                 resultSet.getLong("id"),
                 resultSet.getString("symbol"),
                 Provider.valueOf(resultSet.getString("provider")),
-                resultSet.getBoolean("active")
+                resultSet.getBoolean("active"),
+                AssetClass.valueOf(resultSet.getString("asset_class"))
         );
     }
 }

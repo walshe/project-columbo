@@ -1,6 +1,7 @@
 package walshe.projectcolumbo.supertrend.api;
 
 import walshe.projectcolumbo.supertrend.pulse.MarketBreadthSnapshot;
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.SignalSummary;
 
@@ -16,6 +17,8 @@ import java.util.Objects;
  * @param timeframe        the requested timeframe this summary was computed for - included so the
  *                         response (and its Markdown rendering) is self-describing rather than
  *                         requiring the reader to already know what request produced it
+ * @param assetClass       the requested asset-class filter, if any; null means every class was
+ *                         included, same self-describing rationale as {@code timeframe}
  * @param pulse            latest market-breadth snapshot for the requested timeframe; null if none yet
  * @param bullishSignals   bullish assets, ordered by last-flip descending
  * @param bearishSignals   bearish assets, ordered by last-flip descending
@@ -26,6 +29,7 @@ import java.util.Objects;
  */
 public record SummaryResponse(
         Timeframe timeframe,
+        AssetClass assetClass,
         MarketBreadthSnapshot pulse,
         List<SignalSummary> bullishSignals,
         List<SignalSummary> bearishSignals,

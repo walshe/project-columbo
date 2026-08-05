@@ -1,5 +1,7 @@
 package walshe.projectcolumbo.supertrend.signal;
 
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
+
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -28,7 +30,7 @@ public final class ScanService {
 
     public List<ScanResult> execute(ScanRequest request) {
         List<List<SignalSummary>> perConditionCandidates = request.conditions().stream()
-                .map(condition -> signalQueryService.listSignals(condition.timeframe(), condition.state(), null))
+                .map(condition -> signalQueryService.listSignals(condition.timeframe(), condition.state(), null, request.assetClass()))
                 .toList();
         return combine(request, perConditionCandidates, OffsetDateTime.now(clock));
     }
@@ -37,9 +39,11 @@ public final class ScanService {
     static List<ScanResult> combine(ScanRequest request, List<List<SignalSummary>> perConditionCandidates, OffsetDateTime now) {
         List<ScanCondition> conditions = request.conditions();
         Map<String, List<ScanConditionMatch>> matchesBySymbol = new LinkedHashMap<>();
+        Map<String, AssetClass> assetClassBySymbol = new LinkedHashMap<>();
 
         for (int i = 0; i < conditions.size(); i++) {
-            Map<String, ScanConditionMatch> conditionMatches = matchesForCondition(conditions.get(i), perConditionCandidates.get(i), now);
+            Map<String, ScanConditionMatch> conditionMatches =
+                    matchesForCondition(conditions.get(i), perConditionCandidates.get(i), now, assetClassBySymbol);
 
             if (i == 0) {
                 conditionMatches.forEach((symbol, match) -> matchesBySymbol.put(symbol, newMatchList(match)));
@@ -53,14 +57,15 @@ public final class ScanService {
         }
 
         List<ScanResult> results = matchesBySymbol.entrySet().stream()
-                .map(entry -> new ScanResult(entry.getKey(), List.copyOf(entry.getValue())))
+                .map(entry -> new ScanResult(entry.getKey(), assetClassBySymbol.get(entry.getKey()), List.copyOf(entry.getValue())))
                 .sorted(Comparator.comparing(ScanResult::symbol))
                 .toList();
 
         return request.limit() != null ? results.stream().limit(request.limit()).toList() : results;
     }
 
-    private static Map<String, ScanConditionMatch> matchesForCondition(ScanCondition condition, List<SignalSummary> candidates, OffsetDateTime now) {
+    private static Map<String, ScanConditionMatch> matchesForCondition(
+            ScanCondition condition, List<SignalSummary> candidates, OffsetDateTime now, Map<String, AssetClass> assetClassBySymbol) {
         Map<String, ScanConditionMatch> matches = new LinkedHashMap<>();
         for (SignalSummary candidate : candidates) {
             Long daysSinceFlip = candidate.daysSinceFlip(now);
@@ -69,6 +74,7 @@ public final class ScanService {
             }
             matches.put(candidate.symbol(), new ScanConditionMatch(
                     condition.timeframe(), candidate.trendState(), candidate.lastFlipTime(), daysSinceFlip, candidate.tradingviewUrl()));
+            assetClassBySymbol.put(candidate.symbol(), candidate.assetClass());
         }
         return matches;
     }

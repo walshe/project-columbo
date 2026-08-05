@@ -11,6 +11,7 @@ import walshe.projectcolumbo.supertrend.freshness.FreshnessMetadata;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessService;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessStatus;
 import walshe.projectcolumbo.supertrend.freshness.StaleDataException;
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.TrendAlignment;
@@ -45,6 +46,7 @@ public final class TrendAlignmentHandler {
             queryParams = {
                     @OpenApiParam(name = "format", type = SummaryFormat.class, description = "Defaults to JSON"),
                     @OpenApiParam(name = "maxRetestAgeDays", type = Integer.class, description = "Defaults to 7"),
+                    @OpenApiParam(name = "assetClass", type = AssetClass.class, description = "Filter to this asset class only"),
                     @OpenApiParam(name = "requireFresh", type = Boolean.class, description = "Reject with 503 if D1 is stale beyond the grace window")
             },
             responses = {
@@ -59,6 +61,7 @@ public final class TrendAlignmentHandler {
     private void getTrendAlignment(Context ctx) {
         SummaryFormat format = ctx.queryParamAsClass("format", SummaryFormat.class).getOrDefault(SummaryFormat.JSON);
         int maxRetestAgeDays = ctx.queryParamAsClass("maxRetestAgeDays", Integer.class).getOrDefault(DEFAULT_MAX_RETEST_AGE_DAYS);
+        AssetClass assetClass = ctx.queryParamAsClass("assetClass", AssetClass.class).allowNullable().get();
         boolean requireFresh = ctx.queryParamAsClass("requireFresh", Boolean.class).getOrDefault(false);
 
         // D1 is the driving timeframe for this cross-timeframe report (W1 is rolled up from D1),
@@ -68,19 +71,19 @@ public final class TrendAlignmentHandler {
             throw new StaleDataException(status);
         }
 
-        TrendAlignment alignment = trendAlignmentService.computeAlignment(maxRetestAgeDays);
+        TrendAlignment alignment = trendAlignmentService.computeAlignment(maxRetestAgeDays, assetClass);
 
         switch (format) {
-            case MARKDOWN -> ctx.contentType("text/markdown").result(TrendAlignmentFormatter.toMarkdown(alignment, maxRetestAgeDays, clock));
+            case MARKDOWN -> ctx.contentType("text/markdown").result(TrendAlignmentFormatter.toMarkdown(alignment, maxRetestAgeDays, assetClass, clock));
             case WATCHLIST -> ctx.contentType("text/plain").result(TrendAlignmentFormatter.toWatchlist(alignment));
-            case JSON -> ctx.json(buildResponse(alignment, maxRetestAgeDays, status));
+            case JSON -> ctx.json(buildResponse(alignment, maxRetestAgeDays, assetClass, status));
         }
     }
 
-    private TrendAlignmentResponse buildResponse(TrendAlignment alignment, int maxRetestAgeDays, FreshnessStatus status) {
+    private TrendAlignmentResponse buildResponse(TrendAlignment alignment, int maxRetestAgeDays, AssetClass assetClass, FreshnessStatus status) {
         FreshnessMetadata metadata = freshnessService.metadataFor(Provider.BINANCE, status);
         return new TrendAlignmentResponse(
-                maxRetestAgeDays,
+                maxRetestAgeDays, assetClass,
                 alignment.bullishConfluence(), alignment.bullishRetest(), alignment.bearishConfluence(), alignment.bearishRetest(),
                 metadata.lastSuccessfulIngestionAt(), metadata.latestCandleDate(), !status.upToDate());
     }

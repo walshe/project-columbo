@@ -1,5 +1,6 @@
 package walshe.projectcolumbo.supertrend.api;
 
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.signal.SignalSummary;
 import walshe.projectcolumbo.supertrend.signal.TrendAlignment;
 
@@ -13,11 +14,14 @@ public final class TrendAlignmentFormatter {
     private TrendAlignmentFormatter() {
     }
 
-    public static String toMarkdown(TrendAlignment alignment, int maxRetestAgeDays, Clock clock) {
+    public static String toMarkdown(TrendAlignment alignment, int maxRetestAgeDays, AssetClass assetClass, Clock clock) {
         OffsetDateTime now = OffsetDateTime.now(clock);
         StringBuilder markdown = new StringBuilder("# SuperTrend Trend Alignment\n\n");
         markdown.append("**Timeframes:** W1 + D1 (D1 driving)\n\n");
         markdown.append("**Max Retest Age:** ").append(maxRetestAgeDays).append(" day(s)\n\n");
+        if (assetClass != null) {
+            markdown.append("**Asset Class:** ").append(assetClass).append("\n\n");
+        }
         appendMarkdownSection(markdown, "Bullish Confluence (W1 + D1)", alignment.bullishConfluence(), "aligned", now);
         appendMarkdownSection(markdown, "Bullish Retest (W1 bullish, D1 recently bearish)", alignment.bullishRetest(), "flipped", now);
         appendMarkdownSection(markdown, "Bearish Confluence (W1 + D1)", alignment.bearishConfluence(), "aligned", now);

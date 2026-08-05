@@ -20,6 +20,7 @@ import walshe.projectcolumbo.supertrend.persistence.MarketBreadthSnapshotDao;
 import walshe.projectcolumbo.supertrend.persistence.SchemaMigrator;
 import walshe.projectcolumbo.supertrend.persistence.SignalStateDao;
 import walshe.projectcolumbo.supertrend.pulse.MarketBreadthSnapshot;
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.SignalEvent;
@@ -181,12 +182,34 @@ class SummaryHandlerIntegrationTest {
         }
     }
 
+    @Test
+    void assetClassFilterRestrictsSignalsAndIsEchoedInMarkdown() {
+        long crypto = seedAsset("SM6AUSDT", AssetClass.CRYPTO);
+        long stock = seedAsset("SM6BSTOCK", AssetClass.STOCK);
+        signalStateDao.upsert(new SignalState(crypto, Timeframe.D1, CLOSE_TIME, TrendState.BULLISH, SignalEvent.BULLISH_REVERSAL));
+        signalStateDao.upsert(new SignalState(stock, Timeframe.D1, CLOSE_TIME, TrendState.BULLISH, SignalEvent.BULLISH_REVERSAL));
+
+        JavalinTest.test(appWithFixedClock(Clock.fixed(NOW.toInstant(), ZoneOffset.UTC)), (server, client) -> {
+            Response jsonResponse = client.get("/api/v1/summary?timeframe=D1&assetClass=STOCK");
+            String jsonBody = jsonResponse.body().string();
+            assertThat(jsonBody).contains("SM6BSTOCK").doesNotContain("SM6AUSDT").contains("\"assetClass\":\"STOCK\"");
+
+            String markdownBody = client.get("/api/v1/summary?timeframe=D1&assetClass=STOCK&format=markdown").body().string();
+            assertThat(markdownBody).contains("**Asset Class:** STOCK");
+        });
+    }
+
     private static long seedAsset(String symbol) {
+        return seedAsset(symbol, AssetClass.CRYPTO);
+    }
+
+    private static long seedAsset(String symbol, AssetClass assetClass) {
         try (var connection = dataSource.getConnection();
              var statement = connection.prepareStatement(
-                     "INSERT INTO asset (symbol, provider, active) VALUES (?, ?::provider, true)")) {
+                     "INSERT INTO asset (symbol, provider, active, asset_class) VALUES (?, ?::provider, true, ?::asset_class)")) {
             statement.setString(1, symbol);
             statement.setString(2, Provider.BINANCE.name());
+            statement.setString(3, assetClass.name());
             statement.executeUpdate();
         } catch (Exception e) {
             throw new RuntimeException(e);

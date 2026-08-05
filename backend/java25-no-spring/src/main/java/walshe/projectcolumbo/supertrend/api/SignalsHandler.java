@@ -11,6 +11,7 @@ import walshe.projectcolumbo.supertrend.freshness.FreshnessMetadata;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessService;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessStatus;
 import walshe.projectcolumbo.supertrend.freshness.StaleDataException;
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.SignalQueryService;
@@ -45,6 +46,7 @@ public final class SignalsHandler {
                     @OpenApiParam(name = "timeframe", type = Timeframe.class, required = true),
                     @OpenApiParam(name = "state", type = TrendState.class, description = "Filter to this trend state only"),
                     @OpenApiParam(name = "sort", type = SignalSort.class, description = "Defaults to ASSET_ASC"),
+                    @OpenApiParam(name = "assetClass", type = AssetClass.class, description = "Filter to this asset class only"),
                     @OpenApiParam(name = "requireFresh", type = Boolean.class, description = "Reject with 503 if the timeframe's data is stale beyond the grace window")
             },
             responses = {
@@ -56,6 +58,7 @@ public final class SignalsHandler {
         Timeframe timeframe = ctx.queryParamAsClass("timeframe", Timeframe.class).get();
         TrendState state = ctx.queryParamAsClass("state", TrendState.class).allowNullable().get();
         SignalSort sort = ctx.queryParamAsClass("sort", SignalSort.class).allowNullable().get();
+        AssetClass assetClass = ctx.queryParamAsClass("assetClass", AssetClass.class).allowNullable().get();
         boolean requireFresh = ctx.queryParamAsClass("requireFresh", Boolean.class).getOrDefault(false);
 
         // Computed once and reused below (buildResponse) rather than calling FreshnessService.evaluate
@@ -65,7 +68,7 @@ public final class SignalsHandler {
             throw new StaleDataException(status);
         }
 
-        List<SignalSummary> signals = signalQueryService.listSignals(timeframe, state, sort);
+        List<SignalSummary> signals = signalQueryService.listSignals(timeframe, state, sort, assetClass);
         ctx.json(buildResponse(signals, status));
     }
 
@@ -75,7 +78,8 @@ public final class SignalsHandler {
             summary = "List every active asset currently in a given trend state on a timeframe - no freshness gating",
             queryParams = {
                     @OpenApiParam(name = "timeframe", type = Timeframe.class, required = true),
-                    @OpenApiParam(name = "state", type = TrendState.class, required = true)
+                    @OpenApiParam(name = "state", type = TrendState.class, required = true),
+                    @OpenApiParam(name = "assetClass", type = AssetClass.class, description = "Filter to this asset class only")
             },
             responses = {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = SignalListResponse.class))
@@ -84,9 +88,10 @@ public final class SignalsHandler {
     private void getAssetsByState(Context ctx) {
         Timeframe timeframe = ctx.queryParamAsClass("timeframe", Timeframe.class).get();
         TrendState state = ctx.queryParamAsClass("state", TrendState.class).get();
+        AssetClass assetClass = ctx.queryParamAsClass("assetClass", AssetClass.class).allowNullable().get();
 
         FreshnessStatus status = freshnessService.evaluate(timeframe);
-        List<SignalSummary> signals = signalQueryService.listSignals(timeframe, state, null);
+        List<SignalSummary> signals = signalQueryService.listSignals(timeframe, state, null, assetClass);
         ctx.json(buildResponse(signals, status));
     }
 
