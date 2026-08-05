@@ -26,6 +26,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -202,10 +204,73 @@ class CandleIngestionServiceTest {
         assertThat(captured.toString()).containsIgnoringCase("zero candles for ING7USDT");
     }
 
+    @Test
+    @Order(8)
+    void paginatesWithinOneRunUntilCaughtUpToNow() {
+        long assetId = seedAsset("ING8USDT");
+        FakeMarketDataProvider provider = new FakeMarketDataProvider();
+        provider.onFetchSequence("ING8USDT",
+                List.of(candle(1), candle(2)),
+                List.of(candle(3), candle(4)));
+        // "Now" lands exactly on candle(4)'s close - once that page is upserted, windowStart moves
+        // past endTimeMs and the loop stops on its own, without needing a third (empty) call to
+        // find out there's nothing left. Built directly (not via the shared ingestionService()
+        // helper) so this test controls "now" independently of the other tests in this class.
+        Clock caughtUpClock = Clock.fixed(BACKFILL_START.plusDays(4).toInstant(), ZoneOffset.UTC);
+        CandleIngestionService service = new CandleIngestionService(
+                assetDao, candleDao,
+                Map.of(AssetVenue.SPOT, provider, AssetVenue.FUTURES, provider, AssetVenue.EXCHANGE, provider),
+                ingestionConfig, caughtUpClock);
+
+        IngestionStats stats = service.ingestDaily();
+
+        assertThat(stats.insertedCount()).isEqualTo(4);
+        assertThat(provider.callCount("ING8USDT")).isEqualTo(2);
+        assertThat(candleDao.findByAssetAndTimeframe(assetId, Timeframe.D1)).hasSize(4);
+    }
+
+    @Test
+    @Order(9)
+    void stopsPaginatingWhenAPageComesBackEmptyRatherThanErroring() {
+        long assetId = seedAsset("ING9USDT");
+        FakeMarketDataProvider provider = new FakeMarketDataProvider();
+        provider.onFetchSequence("ING9USDT", List.of(candle(1)), List.of());
+
+        IngestionStats stats = ingestionService(provider).ingestDaily();
+
+        assertThat(stats.errorCount()).isZero();
+        assertThat(stats.insertedCount()).isEqualTo(1);
+        assertThat(provider.callCount("ING9USDT")).isEqualTo(2);
+        assertThat(candleDao.findByAssetAndTimeframe(assetId, Timeframe.D1)).hasSize(1);
+    }
+
+    @Test
+    @Order(10)
+    void perAssetCatchUpIsBoundedByTheMaxIterationCapEvenIfTheProviderNeverCatchesUp() {
+        seedAsset("ING10USDT");
+        FakeMarketDataProvider provider = new FakeMarketDataProvider();
+        // Always advances by exactly one day (BACKFILL_START to NOW spans ~150 days), so without a
+        // cap this would keep paginating for the rest of the range - the cap must stop it early.
+        provider.onFetch("ING10USDT", sequentialOneDayAtATimeSupplier());
+
+        IngestionStats stats = ingestionService(provider).ingestDaily();
+
+        assertThat(stats.insertedCount()).isEqualTo(CandleIngestionService.MAX_FETCH_ITERATIONS_PER_ASSET);
+        assertThat(provider.callCount("ING10USDT")).isEqualTo(CandleIngestionService.MAX_FETCH_ITERATIONS_PER_ASSET);
+    }
+
+    private static Supplier<List<Candle>> sequentialOneDayAtATimeSupplier() {
+        int[] dayOffset = {0};
+        return () -> {
+            dayOffset[0]++;
+            return List.of(candle(dayOffset[0]));
+        };
+    }
+
     private static CandleIngestionService ingestionService(FakeMarketDataProvider provider) {
         return new CandleIngestionService(
                 assetDao, candleDao,
-                Map.of(AssetVenue.SPOT, provider, AssetVenue.FUTURES, provider),
+                Map.of(AssetVenue.SPOT, provider, AssetVenue.FUTURES, provider, AssetVenue.EXCHANGE, provider),
                 ingestionConfig, clock);
     }
 
@@ -247,13 +312,26 @@ class CandleIngestionServiceTest {
 
     private static final class FakeMarketDataProvider implements MarketDataProvider {
         private final Map<String, Supplier<List<Candle>>> behaviors = new HashMap<>();
+        private final Map<String, Integer> callCounts = new HashMap<>();
 
         void onFetch(String symbol, Supplier<List<Candle>> behavior) {
             behaviors.put(symbol, behavior);
         }
 
+        /** Each call for {@code symbol} pops the next page in order; once exhausted, returns empty. */
+        @SafeVarargs
+        final void onFetchSequence(String symbol, List<Candle>... pages) {
+            Deque<List<Candle>> queue = new ArrayDeque<>(List.of(pages));
+            behaviors.put(symbol, () -> queue.isEmpty() ? List.of() : queue.removeFirst());
+        }
+
+        int callCount(String symbol) {
+            return callCounts.getOrDefault(symbol, 0);
+        }
+
         @Override
         public List<Candle> fetchDailyCandles(String symbol, long startTimeMs, long endTimeMs) {
+            callCounts.merge(symbol, 1, Integer::sum);
             Supplier<List<Candle>> behavior = behaviors.get(symbol);
             return behavior == null ? List.of() : behavior.get();
         }
