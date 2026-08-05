@@ -6,6 +6,7 @@ import walshe.projectcolumbo.supertrend.persistence.Asset;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.MarketBreadthSnapshotDao;
 import walshe.projectcolumbo.supertrend.persistence.SignalStateDao;
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.SignalState;
 import walshe.projectcolumbo.supertrend.signal.TrendState;
@@ -21,11 +22,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Computes and persists a per-run market-breadth snapshot from the latest signal state of every
- * active asset, intended to run immediately after signal-state detection for a timeframe (see
- * the market-breadth-pulse spec). The snapshot's close time is the most recent close time among
- * those latest signal states — "as of the freshest data available" — rather than a wall-clock
- * boundary.
+ * Computes and persists a per-run market-breadth snapshot from the latest signal state of active
+ * assets - scoped to one asset class, or combined across every class when no class is given -
+ * intended to run immediately after signal-state detection for a timeframe (see the
+ * market-breadth-pulse spec). The snapshot's close time is the most recent close time among those
+ * latest signal states — "as of the freshest data available" — rather than a wall-clock boundary.
  */
 public final class MarketBreadthPulseService {
 
@@ -42,19 +43,39 @@ public final class MarketBreadthPulseService {
         this.marketBreadthSnapshotDao = Objects.requireNonNull(marketBreadthSnapshotDao, "marketBreadthSnapshotDao must not be null");
     }
 
-    public void computeForAllActiveAssets(Timeframe timeframe) {
-        List<Asset> activeAssets = assetDao.findAllActive();
+    /** @param assetClassFilter null combines every class; a specific class scopes the snapshot to it. */
+    public void computeForAllActiveAssets(Timeframe timeframe, AssetClass assetClassFilter) {
+        computeAndPersist(timeframe, assetClassFilter, signalStateDao.findLatestForAllAssets(timeframe));
+    }
+
+    /**
+     * One combined snapshot (every class) plus one per {@link AssetClass}, from a single fetch of
+     * the current signal state - avoids re-querying signal state once per class the way calling
+     * {@link #computeForAllActiveAssets(Timeframe, AssetClass)} in a loop would.
+     */
+    public void computeForAllActiveAssetsAndClasses(Timeframe timeframe) {
+        List<SignalState> latestStates = signalStateDao.findLatestForAllAssets(timeframe);
+        computeAndPersist(timeframe, null, latestStates);
+        for (AssetClass assetClass : AssetClass.values()) {
+            computeAndPersist(timeframe, assetClass, latestStates);
+        }
+    }
+
+    private void computeAndPersist(Timeframe timeframe, AssetClass assetClassFilter, List<SignalState> latestStates) {
+        List<Asset> activeAssets = assetDao.findAllActive(assetClassFilter);
         Set<Long> activeAssetIds = activeAssets.stream().map(Asset::id).collect(Collectors.toSet());
 
-        // findLatestForAllAssets isn't scoped to active assets (no join to asset table) - a
-        // deactivated asset's last-known state would otherwise leak into the counts and break
-        // the bullish+bearish+missing == totalAssets invariant.
-        List<SignalState> activeLatestStates = signalStateDao.findLatestForAllAssets(timeframe).stream()
+        // latestStates isn't scoped to active assets (no join to asset table) - a deactivated
+        // asset's last-known state would otherwise leak into the counts and break the
+        // bullish+bearish+missing == totalAssets invariant. Filtering against activeAssetIds
+        // (already scoped to assetClassFilter) keeps the same fetched list reusable for every class.
+        List<SignalState> activeLatestStates = latestStates.stream()
                 .filter(state -> activeAssetIds.contains(state.assetId()))
                 .toList();
 
         if (activeLatestStates.isEmpty()) {
-            LOG.info("No signal state yet for active {} assets; skipping market breadth snapshot", timeframe);
+            LOG.info("No signal state yet for active {} {} assets; skipping market breadth snapshot",
+                    timeframe, assetClassFilter != null ? assetClassFilter : "combined");
             return;
         }
 
@@ -63,13 +84,14 @@ public final class MarketBreadthPulseService {
                 .max(Comparator.naturalOrder())
                 .orElseThrow();
 
-        MarketBreadthSnapshot snapshot = snapshot(timeframe, snapshotCloseTime, activeLatestStates, activeAssets.size());
+        MarketBreadthSnapshot snapshot = snapshot(timeframe, assetClassFilter, snapshotCloseTime, activeLatestStates, activeAssets.size());
         marketBreadthSnapshotDao.upsert(snapshot);
-        LOG.info("Market breadth snapshot for {} at {}: {}", timeframe, snapshotCloseTime, snapshot);
+        LOG.info("Market breadth snapshot for {} {} at {}: {}", timeframe, assetClassFilter != null ? assetClassFilter : "combined", snapshotCloseTime, snapshot);
     }
 
     /** Pure: tallies trend states into bullish/bearish/missing counts and the bullish ratio. */
-    static MarketBreadthSnapshot snapshot(Timeframe timeframe, OffsetDateTime snapshotCloseTime, List<SignalState> latestStates, int totalAssets) {
+    static MarketBreadthSnapshot snapshot(
+            Timeframe timeframe, AssetClass assetClass, OffsetDateTime snapshotCloseTime, List<SignalState> latestStates, int totalAssets) {
         Map<TrendState, Long> countsByTrendState = latestStates.stream()
                 .collect(Collectors.groupingBy(SignalState::trendState, Collectors.counting()));
         int bullishCount = countsByTrendState.getOrDefault(TrendState.BULLISH, 0L).intValue();
@@ -77,7 +99,7 @@ public final class MarketBreadthPulseService {
         int missingCount = totalAssets - bullishCount - bearishCount;
 
         return new MarketBreadthSnapshot(
-                timeframe, snapshotCloseTime, bullishCount, bearishCount, missingCount, totalAssets, bullishRatio(bullishCount, bearishCount));
+                timeframe, snapshotCloseTime, assetClass, bullishCount, bearishCount, missingCount, totalAssets, bullishRatio(bullishCount, bearishCount));
     }
 
     private static BigDecimal bullishRatio(int bullishCount, int bearishCount) {

@@ -104,11 +104,11 @@ public final class PipelineOrchestrator {
             ingestionStats = candleIngestionService.ingestDaily();
             indicatorComputationService.computeForAllActiveAssets(Timeframe.D1);
             signalStateDetectionService.computeForAllActiveAssets(Timeframe.D1);
-            marketBreadthPulseService.computeForAllActiveAssets(Timeframe.D1);
+            marketBreadthPulseService.computeForAllActiveAssetsAndClasses(Timeframe.D1);
             candleRollupService.rollupForAllActiveAssets();
             indicatorComputationService.computeForAllActiveAssets(Timeframe.W1);
             signalStateDetectionService.computeForAllActiveAssets(Timeframe.W1);
-            marketBreadthPulseService.computeForAllActiveAssets(Timeframe.W1);
+            marketBreadthPulseService.computeForAllActiveAssetsAndClasses(Timeframe.W1);
         } catch (Exception e) {
             // Catches Exception, not just RuntimeException: a run left RUNNING forever because an
             // unexpected checked/wrapped failure slipped past this catch is worse than a broad net.

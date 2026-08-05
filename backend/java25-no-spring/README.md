@@ -80,7 +80,7 @@ All under `/api/v1`, JSON by default unless noted.
 |---|---|---|
 | `GET` | `/signals` | `timeframe` required; `state`, `sort`, `assetClass`, `requireFresh` optional |
 | `GET` | `/assets/by-state` | `timeframe`, `state` required; `assetClass` optional; no freshness gating |
-| `GET` | `/summary` | `timeframe` required; `format` (`JSON`/`MARKDOWN`/`WATCHLIST`), `assetClass`, `requireFresh` optional; response echoes back `timeframe`/`assetClass` in every format |
+| `GET` | `/summary` | `timeframe` required; `format` (`JSON`/`MARKDOWN`/`WATCHLIST`), `assetClass`, `requireFresh` optional; response echoes back `timeframe`/`assetClass` in every format; `pulse` (market-breadth) is scoped to `assetClass` too, combined across every class when omitted |
 | `GET` | `/summary/trend-alignment` | `format`, `maxRetestAgeDays` (default 7), `assetClass`, `requireFresh` optional; freshness always checked against D1; response echoes back `maxRetestAgeDays`/`assetClass` in every format |
 | `POST` | `/scan` | JSON body: `operator` (`AND`/`OR`), `conditions[]` (`timeframe`, `state`, optional `maxDaysSinceFlip`), optional `limit`, optional `assetClass` |
 | `GET` | `/candles/coverage` | per-timeframe earliest/latest/expected-latest/up-to-date/asset-count; optional `assetClass` restricts `earliest`/`assetCount` only - freshness fields stay global |
