@@ -157,8 +157,8 @@ class PipelineEndToEndIT {
         assertThat(summary.get("pulse").get("bullishCount").asInt()).isGreaterThan(0);
 
         JsonNode coverage = getJson("/api/v1/candles/coverage");
-        assertThat(coverage.get("D1").get("assetCount").asLong()).isEqualTo(59); // 60 seeded - 1 deactivated invalid symbol
-        assertThat(coverage.get("W1").get("assetCount").asLong()).isEqualTo(59);
+        assertThat(coverage.get("D1").get("assetCount").asLong()).isEqualTo(199); // 200 seeded - 1 deactivated invalid symbol
+        assertThat(coverage.get("W1").get("assetCount").asLong()).isEqualTo(199);
 
         // Idempotency: a second trigger either starts cleanly or is rejected because the first
         // hasn't finished yet - both are correct, a 5xx would not be.
@@ -168,7 +168,7 @@ class PipelineEndToEndIT {
             awaitPipelineCompletion();
         }
         JsonNode coverageAfterRepeat = getJson("/api/v1/candles/coverage");
-        assertThat(coverageAfterRepeat.get("D1").get("assetCount").asLong()).isEqualTo(59);
+        assertThat(coverageAfterRepeat.get("D1").get("assetCount").asLong()).isEqualTo(199);
     }
 
     private static void awaitPipelineCompletion() throws InterruptedException {
