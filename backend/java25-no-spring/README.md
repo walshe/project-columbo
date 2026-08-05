@@ -78,17 +78,19 @@ All under `/api/v1`, JSON by default unless noted.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/signals` | `timeframe` required; `state`, `sort`, `requireFresh` optional |
-| `GET` | `/assets/by-state` | `timeframe`, `state` required; no freshness gating |
-| `GET` | `/summary` | `timeframe` required; `format` (`JSON`/`MARKDOWN`/`WATCHLIST`), `requireFresh` optional; response echoes back `timeframe` in every format |
-| `GET` | `/summary/trend-alignment` | `format`, `maxRetestAgeDays` (default 7), `requireFresh` optional; freshness always checked against D1; response echoes back `maxRetestAgeDays` in every format |
-| `POST` | `/scan` | JSON body: `operator` (`AND`/`OR`), `conditions[]` (`timeframe`, `state`, optional `maxDaysSinceFlip`), optional `limit` |
-| `GET` | `/candles/coverage` | per-timeframe earliest/latest/expected-latest/up-to-date/asset-count |
+| `GET` | `/signals` | `timeframe` required; `state`, `sort`, `assetClass`, `requireFresh` optional |
+| `GET` | `/assets/by-state` | `timeframe`, `state` required; `assetClass` optional; no freshness gating |
+| `GET` | `/summary` | `timeframe` required; `format` (`JSON`/`MARKDOWN`/`WATCHLIST`), `assetClass`, `requireFresh` optional; response echoes back `timeframe`/`assetClass` in every format |
+| `GET` | `/summary/trend-alignment` | `format`, `maxRetestAgeDays` (default 7), `assetClass`, `requireFresh` optional; freshness always checked against D1; response echoes back `maxRetestAgeDays`/`assetClass` in every format |
+| `POST` | `/scan` | JSON body: `operator` (`AND`/`OR`), `conditions[]` (`timeframe`, `state`, optional `maxDaysSinceFlip`), optional `limit`, optional `assetClass` |
+| `GET` | `/candles/coverage` | per-timeframe earliest/latest/expected-latest/up-to-date/asset-count; optional `assetClass` restricts `earliest`/`assetCount` only - freshness fields stay global |
 | `POST` | `/internal/ingestion/run` | optional JSON body: `provider`/`timeframe` (default `BINANCE`/`D1`); 202 + run id, 409 if already running for that provider+timeframe |
 
 Plus `GET /openapi` (OpenAPI spec) and `GET /swagger` (Swagger UI).
 
 Every signal/scan-match entry that has an asset+timeframe includes a `tradingviewUrl` deep link to the matching TradingView chart; Markdown/watchlist output renders these as real links/importable watchlist tokens instead of plain symbol text.
+
+Every asset has an `assetClass` (`CRYPTO`/`STOCK`/`ETF`/`COMMODITY`) - every asset onboarded so far is `CRYPTO` (Binance-traded). The `assetClass` query param above filters results to one class; each signal/scan-match entry also includes its own `assetClass` in the response.
 
 ## Logging
 

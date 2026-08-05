@@ -19,6 +19,7 @@ import walshe.projectcolumbo.supertrend.persistence.AssetLiquidityDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
 import walshe.projectcolumbo.supertrend.persistence.SchemaMigrator;
 import walshe.projectcolumbo.supertrend.persistence.SignalStateDao;
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.SignalEvent;
@@ -176,12 +177,47 @@ class ScanHandlerIntegrationTest {
         });
     }
 
+    @Test
+    void assetClassFilterRestrictsMatchesToThatClass() {
+        long crypto = seedAsset("SCH4AUSDT", AssetClass.CRYPTO);
+        long stock = seedAsset("SCH4BSTOCK", AssetClass.STOCK);
+        signalStateDao.upsert(new SignalState(crypto, Timeframe.D1, CLOSE_TIME, TrendState.BULLISH, SignalEvent.NONE));
+        signalStateDao.upsert(new SignalState(stock, Timeframe.D1, CLOSE_TIME, TrendState.BULLISH, SignalEvent.NONE));
+
+        JavalinTest.test(newApp(), (server, client) -> {
+            Response response = postJson(client, "/api/v1/scan", """
+                    {"operator":"AND","conditions":[{"timeframe":"D1","state":"BULLISH"}],"assetClass":"STOCK"}
+                    """);
+            String body = response.body().string();
+            assertThat(body).contains("SCH4BSTOCK").doesNotContain("SCH4AUSDT");
+        });
+    }
+
+    @Test
+    void assetClassFilterWithNoMatchesReturnsEmptyResultsNotError() {
+        long crypto = seedAsset("SCH5USDT", AssetClass.CRYPTO);
+        signalStateDao.upsert(new SignalState(crypto, Timeframe.D1, CLOSE_TIME, TrendState.BULLISH, SignalEvent.NONE));
+
+        JavalinTest.test(newApp(), (server, client) -> {
+            Response response = postJson(client, "/api/v1/scan", """
+                    {"operator":"AND","conditions":[{"timeframe":"D1","state":"BULLISH"}],"assetClass":"ETF"}
+                    """);
+            assertThat(response.code()).isEqualTo(200);
+            assertThat(response.body().string()).contains("\"results\":[]");
+        });
+    }
+
     private static long seedAsset(String symbol) {
+        return seedAsset(symbol, AssetClass.CRYPTO);
+    }
+
+    private static long seedAsset(String symbol, AssetClass assetClass) {
         try (var connection = dataSource.getConnection();
              var statement = connection.prepareStatement(
-                     "INSERT INTO asset (symbol, provider, active) VALUES (?, ?::provider, true)")) {
+                     "INSERT INTO asset (symbol, provider, active, asset_class) VALUES (?, ?::provider, true, ?::asset_class)")) {
             statement.setString(1, symbol);
             statement.setString(2, Provider.BINANCE.name());
+            statement.setString(3, assetClass.name());
             statement.executeUpdate();
         } catch (Exception e) {
             throw new RuntimeException(e);

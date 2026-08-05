@@ -68,7 +68,7 @@ class TrendAlignmentServiceIntegrationTest {
         signalStateDao.upsert(new SignalState(assetId, Timeframe.W1, W1_CLOSE, TrendState.BULLISH, SignalEvent.NONE));
         signalStateDao.upsert(new SignalState(assetId, Timeframe.D1, D1_CLOSE, TrendState.BULLISH, SignalEvent.BULLISH_REVERSAL));
 
-        TrendAlignment alignment = trendAlignmentService.computeAlignment(7);
+        TrendAlignment alignment = trendAlignmentService.computeAlignment(7, null);
 
         assertThat(alignment.bullishConfluence()).extracting(SignalSummary::symbol).containsExactly("TA1USDT");
         assertThat(alignment.bullishRetest()).isEmpty();
@@ -81,7 +81,7 @@ class TrendAlignmentServiceIntegrationTest {
         signalStateDao.upsert(new SignalState(assetId, Timeframe.W1, W1_CLOSE, TrendState.BEARISH, SignalEvent.NONE));
         signalStateDao.upsert(new SignalState(assetId, Timeframe.D1, NOW.minusDays(2), TrendState.BULLISH, SignalEvent.BULLISH_REVERSAL));
 
-        TrendAlignment alignment = trendAlignmentService.computeAlignment(7);
+        TrendAlignment alignment = trendAlignmentService.computeAlignment(7, null);
 
         assertThat(alignment.bearishRetest()).extracting(SignalSummary::symbol).containsExactly("TA2USDT");
         assertThat(alignment.bearishConfluence()).isEmpty();
@@ -94,7 +94,7 @@ class TrendAlignmentServiceIntegrationTest {
         signalStateDao.upsert(new SignalState(assetId, Timeframe.D1, D1_CLOSE, TrendState.BULLISH, SignalEvent.NONE));
         assetDao.deactivate(assetId);
 
-        TrendAlignment alignment = trendAlignmentService.computeAlignment(7);
+        TrendAlignment alignment = trendAlignmentService.computeAlignment(7, null);
 
         assertThat(alignment.bullishConfluence()).isEmpty();
     }

@@ -16,7 +16,7 @@ Reading `Main.java` top to bottom **is** the dependency graph of the whole appli
 
 ## Package tour
 
-- **`shared`** — cross-cutting value types with no dependencies on anything else in the app: `Timeframe` (D1/W1, plus `openTimeFor(closeTime)` — see below), `Provider` (currently only `BINANCE`), `FinalizedBoundary` (UTC-midnight-today, the cutoff for "is this candle finalized yet"), `TradingViewUrl` (chart deep-link construction).
+- **`shared`** — cross-cutting value types with no dependencies on anything else in the app: `Timeframe` (D1/W1, plus `openTimeFor(closeTime)` — see below), `Provider` (currently only `BINANCE`), `AssetClass` (`CRYPTO`/`STOCK`/`ETF`/`COMMODITY` — every asset onboarded so far is `CRYPTO`), `FinalizedBoundary` (UTC-midnight-today, the cutoff for "is this candle finalized yet"), `TradingViewUrl` (chart deep-link construction).
 - **`indicator`** — `Candle` (the OHLCV record everything else is built from), `SuperTrendCalculator` (pure, stateless, `BigDecimal`-based SuperTrend math), `IndicatorComputationService` (persists SuperTrend results per active asset, incrementally).
 - **`ingestion`** — `BinanceMarketDataProvider` (the only `MarketDataProvider` actually wired up), `CandleIngestionService` (per-asset incremental D1 fetch + upsert, isolates one asset's failure from the rest), `BackfillStartValidator` (fails fast at startup if `SUPERTREND_BACKFILL_START` doesn't leave enough history for W1's ATR to warm up).
 - **`rollup`** — `CandleRollupService`: derives W1 candles from finalized D1 candles, Monday-start weeks, only once a full 7-day week exists.
@@ -65,7 +65,7 @@ A run is recorded `RUNNING` synchronously (so a concurrent-run 409 and the new r
 - **Every real route handler method needs an `@OpenApi` annotation**, even if you think it's obvious. The Swagger UI plugin only discovers "versions" to serve if at least one `@OpenApi`-annotated method exists anywhere — skip it on a new handler and the whole Swagger UI silently breaks with "No API definition provided," not just that one endpoint's docs.
 - Domain exceptions (`IngestionAlreadyRunningException` → 409, `StaleDataException` → 503 + `Retry-After` header) are mapped once in `ApiServer.registerErrorMapping`. Javalin's own `HttpResponseException` subclasses (`BadRequestResponse`, etc.) are handled automatically — no registration needed for those.
 - Markdown/watchlist rendering lives in separate `*Formatter` classes (`SummaryFormatter`, `TrendAlignmentFormatter`, `SignalTextFormatting`), not inline in handlers — keeps the three response formats (JSON/Markdown/watchlist) each independently testable and independently changeable.
-- Report-shaped endpoints (`/summary`, `/summary/trend-alignment`) echo back the filters that produced them (`timeframe`, `maxRetestAgeDays`) in every format, JSON included — a Markdown report meant to be read standalone (pasted into chat, a notebook) needs to say what it was generated with. List endpoints (`/signals`, `/assets/by-state`, `/scan`) don't do this — same info is implicit in the request the caller just made.
+- Report-shaped endpoints (`/summary`, `/summary/trend-alignment`) echo back the filters that produced them (`timeframe`/`maxRetestAgeDays`, plus `assetClass` when set) in every format, JSON included — a Markdown report meant to be read standalone (pasted into chat, a notebook) needs to say what it was generated with. List endpoints (`/signals`, `/assets/by-state`, `/scan`) don't do this — same info is implicit in the request the caller just made.
 
 ## Persistence conventions
 
@@ -103,6 +103,7 @@ Use `{}` placeholders (SLF4J), not string concatenation or `String.format` in th
 - **Shell `cwd` can silently reset between tool calls** in some agent/CI environments when re-sourcing SDKMAN — always `cd` explicitly to the project root before build/test commands rather than assuming the previous `cd` stuck.
 - **`docker compose down -v` doesn't stop profile-gated services** (like the `app` service, gated behind `--profile prod`). If you see "Network ... Resource is still in use" after a `down -v`, check for a leftover profile-gated container first (`docker ps -a`) before assuming something's stuck.
 - **A weekly candle's flip "8 days ago" vs. TradingView showing it 14 days ago** was a real, since-fixed confusion — see the `Timeframe.openTimeFor` note above. If you ever see a report's day-count not matching where a chart shows the same flip, this is the first thing to check.
+- **Every enum used as a Javalin query param needs an explicit `config.validation.register(...)` in `ApiServer.create()`** — Javalin does not auto-convert arbitrary enum types. Forgetting one doesn't fail at startup or return a clean 400; the handler throws `MissingConverterException` at request time, which the catch-all exception mapper turns into a generic 500 ("Internal server error"), with the real cause (`Can't convert to <Type>. Register a converter...`) only visible in the server log. Surfaced when `AssetClass` was added as a query param but not registered — every handler using it returned 500 until the registration was added.
 
 ## Where to go for more
 

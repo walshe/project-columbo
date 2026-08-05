@@ -17,6 +17,7 @@ import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
 import walshe.projectcolumbo.supertrend.persistence.IngestionRunDao;
 import walshe.projectcolumbo.supertrend.persistence.SchemaMigrator;
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
@@ -100,6 +101,22 @@ class CandleCoverageHandlerIntegrationTest {
         });
     }
 
+    @Test
+    void assetClassFilterRestrictsEarliestAndAssetCountButNotFreshness() throws Exception {
+        deleteAllCandles();
+        long crypto = seedAsset("CC2AUSDT", AssetClass.CRYPTO);
+        long stock = seedAsset("CC2BSTOCK", AssetClass.STOCK);
+        seedCandle(crypto, EARLIEST);
+        seedCandle(stock, CLOSE_TIME);
+
+        JavalinTest.test(appWithFixedClock(Clock.fixed(NOW.toInstant(), ZoneOffset.UTC)), (server, client) -> {
+            Response response = client.get("/api/v1/candles/coverage?assetClass=STOCK");
+            assertThat(response.code()).isEqualTo(200);
+            String body = response.body().string();
+            assertThat(body).contains("\"assetCount\":1").contains("\"upToDate\":true");
+        });
+    }
+
     private static void deleteAllCandles() throws Exception {
         try (var connection = dataSource.getConnection();
              var statement = connection.createStatement()) {
@@ -108,11 +125,16 @@ class CandleCoverageHandlerIntegrationTest {
     }
 
     private static long seedAsset(String symbol) {
+        return seedAsset(symbol, AssetClass.CRYPTO);
+    }
+
+    private static long seedAsset(String symbol, AssetClass assetClass) {
         try (var connection = dataSource.getConnection();
              var statement = connection.prepareStatement(
-                     "INSERT INTO asset (symbol, provider, active) VALUES (?, ?::provider, true)")) {
+                     "INSERT INTO asset (symbol, provider, active, asset_class) VALUES (?, ?::provider, true, ?::asset_class)")) {
             statement.setString(1, symbol);
             statement.setString(2, Provider.BINANCE.name());
+            statement.setString(3, assetClass.name());
             statement.executeUpdate();
         } catch (Exception e) {
             throw new RuntimeException(e);

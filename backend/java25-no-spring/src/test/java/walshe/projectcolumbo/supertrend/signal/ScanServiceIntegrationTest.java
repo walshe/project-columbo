@@ -71,7 +71,7 @@ class ScanServiceIntegrationTest {
         ScanRequest request = new ScanRequest(ScanOperator.AND, List.of(
                 new ScanCondition(Timeframe.D1, TrendState.BULLISH, null),
                 new ScanCondition(Timeframe.W1, TrendState.BULLISH, null)
-        ), null);
+        ), null, null);
 
         List<ScanResult> results = scanService.execute(request);
 
@@ -91,7 +91,7 @@ class ScanServiceIntegrationTest {
 
         ScanRequest request = new ScanRequest(ScanOperator.AND, List.of(
                 new ScanCondition(Timeframe.D1, TrendState.BULLISH, null)
-        ), null);
+        ), null, null);
 
         assertThat(scanService.execute(request)).isEmpty();
     }

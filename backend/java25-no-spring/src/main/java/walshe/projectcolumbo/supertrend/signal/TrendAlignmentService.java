@@ -1,5 +1,6 @@
 package walshe.projectcolumbo.supertrend.signal;
 
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.time.Clock;
@@ -26,14 +27,14 @@ public final class TrendAlignmentService {
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
-    public TrendAlignment computeAlignment(int maxRetestAgeDays) {
+    public TrendAlignment computeAlignment(int maxRetestAgeDays, AssetClass assetClassFilter) {
         // One unfiltered fetch per timeframe rather than one per (timeframe, state) pair - listSignals'
         // state filter is applied in-memory downstream of its DAO calls anyway, so fetching once per
         // timeframe and splitting by trend state here avoids re-running the same ~6 queries twice per
         // timeframe. Filtering a list preserves relative order, so splitting the D1 list (already
         // fetched sorted last-flip-descending) still leaves each half correctly ordered.
-        List<SignalSummary> w1All = signalQueryService.listSignals(Timeframe.W1, null, null);
-        List<SignalSummary> d1AllByFlipDesc = signalQueryService.listSignals(Timeframe.D1, null, SignalSort.LAST_FLIP_DESC);
+        List<SignalSummary> w1All = signalQueryService.listSignals(Timeframe.W1, null, null, assetClassFilter);
+        List<SignalSummary> d1AllByFlipDesc = signalQueryService.listSignals(Timeframe.D1, null, SignalSort.LAST_FLIP_DESC, assetClassFilter);
 
         List<SignalSummary> w1Bullish = byTrendState(w1All, TrendState.BULLISH);
         List<SignalSummary> w1Bearish = byTrendState(w1All, TrendState.BEARISH);

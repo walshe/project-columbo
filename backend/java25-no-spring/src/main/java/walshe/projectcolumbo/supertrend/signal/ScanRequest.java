@@ -1,13 +1,19 @@
 package walshe.projectcolumbo.supertrend.signal;
 
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
+
 import java.util.List;
 import java.util.Objects;
 
-/** @param limit optional; caps the number of returned matches when set */
+/**
+ * @param limit      optional; caps the number of returned matches when set
+ * @param assetClass optional; restricts every condition's candidates to this asset class when set
+ */
 public record ScanRequest(
         ScanOperator operator,
         List<ScanCondition> conditions,
-        Integer limit
+        Integer limit,
+        AssetClass assetClass
 ) {
     public ScanRequest {
         Objects.requireNonNull(operator, "operator must not be null");

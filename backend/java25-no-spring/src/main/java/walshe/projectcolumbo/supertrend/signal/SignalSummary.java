@@ -1,5 +1,7 @@
 package walshe.projectcolumbo.supertrend.signal;
 
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
+
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
@@ -16,6 +18,7 @@ import java.util.Objects;
  * @param pctChangeSinceFlip    signed, 2dp; null if there's no flip or no matching candle close
  * @param tradingviewUrl        TradingView chart deep link for this asset+timeframe; null if the
  *                              asset's provider/symbol is unavailable
+ * @param assetClass            the asset's category (crypto/stock/etf/commodity)
  */
 public record SignalSummary(
         String symbol,
@@ -23,12 +26,14 @@ public record SignalSummary(
         OffsetDateTime lastFlipTime,
         BigDecimal avgVolume7d,
         BigDecimal pctChangeSinceFlip,
-        String tradingviewUrl
+        String tradingviewUrl,
+        AssetClass assetClass
 ) {
     public SignalSummary {
         Objects.requireNonNull(symbol, "symbol must not be null");
         Objects.requireNonNull(trendState, "trendState must not be null");
         Objects.requireNonNull(avgVolume7d, "avgVolume7d must not be null");
+        Objects.requireNonNull(assetClass, "assetClass must not be null");
     }
 
     /** Whole UTC calendar days between {@link #lastFlipTime} and {@code now}; null if there's no recorded flip. */

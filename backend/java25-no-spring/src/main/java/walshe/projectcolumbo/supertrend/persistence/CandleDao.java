@@ -3,6 +3,7 @@ package walshe.projectcolumbo.supertrend.persistence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import walshe.projectcolumbo.supertrend.indicator.Candle;
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import javax.sql.DataSource;
@@ -88,10 +89,20 @@ public final class CandleDao {
 
     /** System-wide earliest close time across every asset for a timeframe - used for candle coverage reporting. */
     public Optional<OffsetDateTime> findEarliestCloseTimeAcrossAllAssets(Timeframe timeframe) {
-        String sql = "SELECT MIN(close_time) AS earliest FROM candle WHERE timeframe = ?::timeframe";
+        return findEarliestCloseTimeAcrossAllAssets(timeframe, null);
+    }
+
+    /** @param assetClassFilter restricts the scan to this class only; every class is included when null. */
+    public Optional<OffsetDateTime> findEarliestCloseTimeAcrossAllAssets(Timeframe timeframe, AssetClass assetClassFilter) {
+        String sql = assetClassFilter == null
+                ? "SELECT MIN(close_time) AS earliest FROM candle WHERE timeframe = ?::timeframe"
+                : "SELECT MIN(c.close_time) AS earliest FROM candle c JOIN asset a ON a.id = c.asset_id WHERE c.timeframe = ?::timeframe AND a.asset_class = ?::asset_class";
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, timeframe.name());
+            if (assetClassFilter != null) {
+                statement.setString(2, assetClassFilter.name());
+            }
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
                     return Optional.ofNullable(resultSet.getObject("earliest", OffsetDateTime.class));
@@ -105,10 +116,20 @@ public final class CandleDao {
 
     /** Number of distinct assets with at least one stored candle for a timeframe - used for candle coverage reporting. */
     public long countDistinctAssetsForTimeframe(Timeframe timeframe) {
-        String sql = "SELECT COUNT(DISTINCT asset_id) AS asset_count FROM candle WHERE timeframe = ?::timeframe";
+        return countDistinctAssetsForTimeframe(timeframe, null);
+    }
+
+    /** @param assetClassFilter restricts the count to this class only; every class is included when null. */
+    public long countDistinctAssetsForTimeframe(Timeframe timeframe, AssetClass assetClassFilter) {
+        String sql = assetClassFilter == null
+                ? "SELECT COUNT(DISTINCT asset_id) AS asset_count FROM candle WHERE timeframe = ?::timeframe"
+                : "SELECT COUNT(DISTINCT c.asset_id) AS asset_count FROM candle c JOIN asset a ON a.id = c.asset_id WHERE c.timeframe = ?::timeframe AND a.asset_class = ?::asset_class";
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, timeframe.name());
+            if (assetClassFilter != null) {
+                statement.setString(2, assetClassFilter.name());
+            }
             try (ResultSet resultSet = statement.executeQuery()) {
                 resultSet.next();
                 return resultSet.getLong("asset_count");

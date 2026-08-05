@@ -1,6 +1,7 @@
 package walshe.projectcolumbo.supertrend.signal;
 
 import org.junit.jupiter.api.Test;
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.math.BigDecimal;
@@ -18,7 +19,7 @@ class ScanServiceTest {
     void singleConditionReturnsAllCandidates() {
         ScanRequest request = new ScanRequest(ScanOperator.AND, List.of(
                 new ScanCondition(Timeframe.D1, TrendState.BULLISH, null)
-        ), null);
+        ), null, null);
         List<List<SignalSummary>> candidates = List.of(List.of(summary("AAAUSDT", null), summary("BBBUSDT", null)));
 
         List<ScanResult> results = ScanService.combine(request, candidates, NOW);
@@ -31,7 +32,7 @@ class ScanServiceTest {
         ScanRequest request = new ScanRequest(ScanOperator.AND, List.of(
                 new ScanCondition(Timeframe.D1, TrendState.BULLISH, null),
                 new ScanCondition(Timeframe.W1, TrendState.BULLISH, null)
-        ), null);
+        ), null, null);
         List<List<SignalSummary>> candidates = List.of(
                 List.of(summary("AAAUSDT", null), summary("BBBUSDT", null)), // D1 bullish
                 List.of(summary("AAAUSDT", null))                             // W1 bullish - only AAA
@@ -50,7 +51,7 @@ class ScanServiceTest {
         ScanRequest request = new ScanRequest(ScanOperator.OR, List.of(
                 new ScanCondition(Timeframe.D1, TrendState.BULLISH, null),
                 new ScanCondition(Timeframe.D1, TrendState.BEARISH, null)
-        ), null);
+        ), null, null);
         List<List<SignalSummary>> candidates = List.of(
                 List.of(summary("AAAUSDT", null)),
                 List.of(summary("BBBUSDT", null))
@@ -67,7 +68,7 @@ class ScanServiceTest {
     void maxDaysSinceFlipExcludesFlipsOlderThanTheLimit() {
         ScanRequest request = new ScanRequest(ScanOperator.AND, List.of(
                 new ScanCondition(Timeframe.D1, TrendState.BULLISH, 10)
-        ), null);
+        ), null, null);
         List<List<SignalSummary>> candidates = List.of(List.of(
                 summary("WITHIN", NOW.minusDays(10)),
                 summary("BEYOND", NOW.minusDays(11)),
@@ -84,7 +85,7 @@ class ScanServiceTest {
         ScanRequest request = new ScanRequest(ScanOperator.AND, List.of(
                 new ScanCondition(Timeframe.D1, TrendState.BULLISH, null),
                 new ScanCondition(Timeframe.W1, TrendState.BULLISH, null)
-        ), null);
+        ), null, null);
         List<List<SignalSummary>> candidates = List.of(
                 List.of(summary("AAAUSDT", null)),
                 List.of(summary("BBBUSDT", null)) // disjoint from D1's match
@@ -99,7 +100,7 @@ class ScanServiceTest {
     void limitTruncatesResultsAfterCombination() {
         ScanRequest request = new ScanRequest(ScanOperator.AND, List.of(
                 new ScanCondition(Timeframe.D1, TrendState.BULLISH, null)
-        ), 2);
+        ), 2, null);
         List<List<SignalSummary>> candidates = List.of(List.of(
                 summary("AAAUSDT", null), summary("BBBUSDT", null), summary("CCCUSDT", null)
         ));
@@ -113,7 +114,7 @@ class ScanServiceTest {
     void noLimitReturnsEveryMatch() {
         ScanRequest request = new ScanRequest(ScanOperator.AND, List.of(
                 new ScanCondition(Timeframe.D1, TrendState.BULLISH, null)
-        ), null);
+        ), null, null);
         List<List<SignalSummary>> candidates = List.of(List.of(
                 summary("AAAUSDT", null), summary("BBBUSDT", null), summary("CCCUSDT", null)
         ));
@@ -127,7 +128,7 @@ class ScanServiceTest {
     void resultsAreSortedBySymbol() {
         ScanRequest request = new ScanRequest(ScanOperator.AND, List.of(
                 new ScanCondition(Timeframe.D1, TrendState.BULLISH, null)
-        ), null);
+        ), null, null);
         List<List<SignalSummary>> candidates = List.of(List.of(summary("ZZZUSDT", null), summary("AAAUSDT", null)));
 
         List<ScanResult> results = ScanService.combine(request, candidates, NOW);
@@ -135,7 +136,21 @@ class ScanServiceTest {
         assertThat(results).extracting(ScanResult::symbol).containsExactly("AAAUSDT", "ZZZUSDT");
     }
 
+    @Test
+    void assetClassIsCarriedFromTheCandidateOntoTheScanResult() {
+        ScanRequest request = new ScanRequest(ScanOperator.AND, List.of(
+                new ScanCondition(Timeframe.D1, TrendState.BULLISH, null)
+        ), null, AssetClass.STOCK);
+        List<List<SignalSummary>> candidates = List.of(List.of(
+                new SignalSummary("AAAUSDT", TrendState.BULLISH, null, BigDecimal.ZERO, null, null, AssetClass.STOCK)
+        ));
+
+        List<ScanResult> results = ScanService.combine(request, candidates, NOW);
+
+        assertThat(results).extracting(ScanResult::assetClass).containsExactly(AssetClass.STOCK);
+    }
+
     private static SignalSummary summary(String symbol, OffsetDateTime lastFlipTime) {
-        return new SignalSummary(symbol, TrendState.BULLISH, lastFlipTime, BigDecimal.ZERO, null, null);
+        return new SignalSummary(symbol, TrendState.BULLISH, lastFlipTime, BigDecimal.ZERO, null, null, AssetClass.CRYPTO);
     }
 }

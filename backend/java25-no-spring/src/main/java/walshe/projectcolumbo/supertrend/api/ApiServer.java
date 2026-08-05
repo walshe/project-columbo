@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessStatus;
 import walshe.projectcolumbo.supertrend.freshness.StaleDataException;
 import walshe.projectcolumbo.supertrend.pipeline.IngestionAlreadyRunningException;
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.SignalSort;
 import walshe.projectcolumbo.supertrend.signal.TrendState;
@@ -19,8 +20,9 @@ import java.util.Map;
 
 /**
  * Builds a configured, not-yet-started Javalin app: JSON mapping (shared Jackson
- * {@link JsonSupport#OBJECT_MAPPER}), an OpenAPI spec + Swagger UI, a case-insensitive
- * {@link Timeframe} query-param converter, and exception-to-status-code mapping for the domain
+ * {@link JsonSupport#OBJECT_MAPPER}), an OpenAPI spec + Swagger UI, case-insensitive enum
+ * query-param converters (registered per enum type - Javalin doesn't auto-convert arbitrary
+ * enums), and exception-to-status-code mapping for the domain
  * exceptions Javalin doesn't already know about. Javalin's own {@code HttpResponseException}
  * subclasses ({@code BadRequestResponse}, {@code NotFoundResponse}, {@code ConflictResponse}, ...)
  * are mapped to the right status automatically - no registration needed for those.
@@ -46,6 +48,7 @@ public final class ApiServer {
             config.validation.register(TrendState.class, value -> TrendState.valueOf(value.toUpperCase(Locale.ROOT)));
             config.validation.register(SignalSort.class, value -> SignalSort.valueOf(value.toUpperCase(Locale.ROOT)));
             config.validation.register(SummaryFormat.class, value -> SummaryFormat.valueOf(value.toUpperCase(Locale.ROOT)));
+            config.validation.register(AssetClass.class, value -> AssetClass.valueOf(value.toUpperCase(Locale.ROOT)));
 
             config.registerPlugin(new OpenApiPlugin(openApiConfig -> openApiConfig
                     .withDocumentationPath(OPENAPI_DOCS_PATH)

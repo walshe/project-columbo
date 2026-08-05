@@ -13,6 +13,7 @@ import walshe.projectcolumbo.supertrend.freshness.FreshnessStatus;
 import walshe.projectcolumbo.supertrend.freshness.StaleDataException;
 import walshe.projectcolumbo.supertrend.persistence.MarketBreadthSnapshotDao;
 import walshe.projectcolumbo.supertrend.pulse.MarketBreadthSnapshot;
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.SignalQueryService;
@@ -55,6 +56,7 @@ public final class SummaryHandler {
             queryParams = {
                     @OpenApiParam(name = "timeframe", type = Timeframe.class, required = true),
                     @OpenApiParam(name = "format", type = SummaryFormat.class, description = "Defaults to JSON"),
+                    @OpenApiParam(name = "assetClass", type = AssetClass.class, description = "Filter to this asset class only"),
                     @OpenApiParam(name = "requireFresh", type = Boolean.class, description = "Reject with 503 if the timeframe's data is stale beyond the grace window")
             },
             responses = {
@@ -69,6 +71,7 @@ public final class SummaryHandler {
     private void getSummary(Context ctx) {
         Timeframe timeframe = ctx.queryParamAsClass("timeframe", Timeframe.class).get();
         SummaryFormat format = ctx.queryParamAsClass("format", SummaryFormat.class).getOrDefault(SummaryFormat.JSON);
+        AssetClass assetClass = ctx.queryParamAsClass("assetClass", AssetClass.class).allowNullable().get();
         boolean requireFresh = ctx.queryParamAsClass("requireFresh", Boolean.class).getOrDefault(false);
 
         FreshnessStatus status = freshnessService.evaluate(timeframe);
@@ -76,7 +79,7 @@ public final class SummaryHandler {
             throw new StaleDataException(status);
         }
 
-        SummaryResponse response = buildResponse(timeframe, status);
+        SummaryResponse response = buildResponse(timeframe, assetClass, status);
 
         switch (format) {
             case MARKDOWN -> ctx.contentType("text/markdown").result(SummaryFormatter.toMarkdown(response, clock));
@@ -85,18 +88,18 @@ public final class SummaryHandler {
         }
     }
 
-    private SummaryResponse buildResponse(Timeframe timeframe, FreshnessStatus status) {
+    private SummaryResponse buildResponse(Timeframe timeframe, AssetClass assetClass, FreshnessStatus status) {
         // One unfiltered, pre-sorted fetch rather than one call per state - listSignals' state
         // filter is applied in-memory downstream of its DAO calls anyway, so fetching once and
         // splitting here avoids re-running the same ~6 queries twice (see TrendAlignmentService,
         // which hit the same pattern for W1+D1 x bullish+bearish).
-        List<SignalSummary> allByFlipDesc = signalQueryService.listSignals(timeframe, null, SignalSort.LAST_FLIP_DESC);
+        List<SignalSummary> allByFlipDesc = signalQueryService.listSignals(timeframe, null, SignalSort.LAST_FLIP_DESC, assetClass);
         List<SignalSummary> bullishSignals = allByFlipDesc.stream().filter(s -> s.trendState() == TrendState.BULLISH).toList();
         List<SignalSummary> bearishSignals = allByFlipDesc.stream().filter(s -> s.trendState() == TrendState.BEARISH).toList();
         MarketBreadthSnapshot pulse = marketBreadthSnapshotDao.findLatest(timeframe).orElse(null);
         FreshnessMetadata metadata = freshnessService.metadataFor(Provider.BINANCE, status);
 
         return new SummaryResponse(
-                timeframe, pulse, bullishSignals, bearishSignals, metadata.lastSuccessfulIngestionAt(), metadata.latestCandleDate(), !status.upToDate());
+                timeframe, assetClass, pulse, bullishSignals, bearishSignals, metadata.lastSuccessfulIngestionAt(), metadata.latestCandleDate(), !status.upToDate());
     }
 }

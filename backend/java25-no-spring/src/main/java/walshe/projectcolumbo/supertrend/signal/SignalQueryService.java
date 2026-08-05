@@ -5,6 +5,7 @@ import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.AssetLiquidityDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
 import walshe.projectcolumbo.supertrend.persistence.SignalStateDao;
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.shared.TradingViewUrl;
 
@@ -38,9 +39,9 @@ public final class SignalQueryService {
         this.assetLiquidityDao = Objects.requireNonNull(assetLiquidityDao, "assetLiquidityDao must not be null");
     }
 
-    /** {@code sort} defaults to {@link SignalSort#ASSET_ASC} when null. {@code stateFilter} is skipped when null. */
-    public List<SignalSummary> listSignals(Timeframe timeframe, TrendState stateFilter, SignalSort sort) {
-        Map<Long, Asset> activeAssetsById = assetDao.findAllActive().stream()
+    /** {@code sort} defaults to {@link SignalSort#ASSET_ASC} when null. {@code stateFilter} and {@code assetClassFilter} are skipped when null. */
+    public List<SignalSummary> listSignals(Timeframe timeframe, TrendState stateFilter, SignalSort sort, AssetClass assetClassFilter) {
+        Map<Long, Asset> activeAssetsById = assetDao.findAllActive(assetClassFilter).stream()
                 .collect(Collectors.toMap(Asset::id, Function.identity()));
 
         // Neither DAO query is scoped to active assets (no join to asset table) - a deactivated
@@ -97,7 +98,7 @@ public final class SignalQueryService {
         OffsetDateTime lastFlipTime = flip != null ? flip.timeframe().openTimeFor(flip.closeTime()) : null;
         BigDecimal pctChangeSinceFlip = pctChangeSinceFlip(flipClose, latestClose);
         String tradingviewUrl = TradingViewUrl.generateUrl(asset.provider(), asset.symbol(), latest.timeframe());
-        return new SignalSummary(asset.symbol(), latest.trendState(), lastFlipTime, avgVolume7d, pctChangeSinceFlip, tradingviewUrl);
+        return new SignalSummary(asset.symbol(), latest.trendState(), lastFlipTime, avgVolume7d, pctChangeSinceFlip, tradingviewUrl, asset.assetClass());
     }
 
     private static BigDecimal pctChangeSinceFlip(BigDecimal flipClose, BigDecimal latestClose) {

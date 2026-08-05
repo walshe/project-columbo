@@ -21,6 +21,9 @@ public final class SummaryFormatter {
         OffsetDateTime now = OffsetDateTime.now(clock);
         StringBuilder markdown = new StringBuilder("# Market Summary Report\n\n");
         markdown.append("**Timeframe:** ").append(response.timeframe()).append("\n\n");
+        if (response.assetClass() != null) {
+            markdown.append("**Asset Class:** ").append(response.assetClass()).append("\n\n");
+        }
         appendPulseSection(markdown, response.pulse());
         appendFlipsSection(markdown, "Recent Bullish Flips", response.bullishSignals(), now);
         appendFlipsSection(markdown, "Recent Bearish Flips", response.bearishSignals(), now);
