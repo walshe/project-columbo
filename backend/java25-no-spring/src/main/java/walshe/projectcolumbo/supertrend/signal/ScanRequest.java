@@ -8,12 +8,14 @@ import java.util.Objects;
 /**
  * @param limit      optional; caps the number of returned matches when set
  * @param assetClass optional; restricts every condition's candidates to this asset class when set
+ * @param sort       optional; defaults to {@link ScanSort#SYMBOL_ASC} when null
  */
 public record ScanRequest(
         ScanOperator operator,
         List<ScanCondition> conditions,
         Integer limit,
-        AssetClass assetClass
+        AssetClass assetClass,
+        ScanSort sort
 ) {
     public ScanRequest {
         Objects.requireNonNull(operator, "operator must not be null");
