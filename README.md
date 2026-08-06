@@ -50,7 +50,7 @@ GET /api/v1/summary
 GET /api/v1/summary?timeframe=W1
 ```
 
-The exact sections available (e.g. whether RSI confirmation is included) depend on which backend is serving the request — see [For Developers](#for-developers) below.
+The exact sections available depend on which backend is serving the request — see [For Developers](#for-developers) below.
 
 ---
 
@@ -58,7 +58,6 @@ The exact sections available (e.g. whether RSI confirmation is included) depend 
 
 | Strategy | What it does |
 |----------|-------------|
-| **SuperTrend + RSI** (Java/Spring backend only) | Momentum confirmation — SuperTrend identifies the trend direction; RSI crossing above 60 or below 40 confirms the move has force behind it. |
 | **Cross-timeframe Alignment** | Use the trend alignment report to find assets where the weekly and daily are in agreement. Use the retest list to time entries into pullbacks within the weekly trend. |
 
 ---
@@ -72,7 +71,7 @@ This repository contains **three parallel, independent backend implementations**
 
 | Backend | Stack | Status | Docs |
 |---|---|---|---|
-| **`backend/java`** | Java 17+, Spring Boot 4, JPA/Hibernate, Flyway | Original implementation — full feature set (SuperTrend + RSI, multi-timeframe scan, EMA/MACD/Elder Impulse tables retained but disabled) | [`backend/java/README.md`](backend/java/README.md) |
+| **`backend/java`** | Java 17+, Spring Boot 4, JPA/Hibernate, Flyway | Original implementation — SuperTrend, multi-timeframe scan; RSI, EMA/MACD/Elder Impulse tables retained in code but no longer part of the active trading workflow | [`backend/java/README.md`](backend/java/README.md) |
 | **`backend/java25-no-spring`** | Java 25, no framework, plain JDBC, Javalin | Parallel rewrite evaluating how much simpler the system gets without Spring — SuperTrend only (no RSI/other indicators) | [`backend/java25-no-spring/README.md`](backend/java25-no-spring/README.md) + [`backend/java25-no-spring/developer-notes.md`](backend/java25-no-spring/developer-notes.md) (architecture/conventions overview) |
 | **`backend/supabase`** | Supabase (Postgres + Deno edge functions) | Parallel implementation evaluating a managed/serverless stack — SuperTrend, signal state, market breadth | [`backend/supabase/README.md`](backend/supabase/README.md) |
 
