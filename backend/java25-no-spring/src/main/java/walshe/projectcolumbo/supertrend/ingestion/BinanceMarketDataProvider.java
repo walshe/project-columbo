@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import walshe.projectcolumbo.supertrend.indicator.Candle;
+import walshe.projectcolumbo.supertrend.shared.AssetVenue;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.io.IOException;
@@ -19,33 +20,52 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/** Binance's public klines API — the only market data provider actually active in production. */
+/**
+ * Binance's public klines API — the only market data provider actually active in production.
+ * Spot and futures are separate Binance products with separate hosts <em>and</em> separate klines
+ * paths, not just a configurable base URL, so one instance is scoped to exactly one {@link
+ * AssetVenue} for its whole lifetime.
+ */
 public final class BinanceMarketDataProvider implements MarketDataProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(BinanceMarketDataProvider.class);
-    private static final String DEFAULT_BASE_URL = "https://api.binance.com";
-    private static final String KLINES_PATH = "/api/v3/klines";
+    private static final String SPOT_DEFAULT_BASE_URL = "https://api.binance.com";
+    private static final String SPOT_KLINES_PATH = "/api/v3/klines";
+    private static final String FUTURES_DEFAULT_BASE_URL = "https://fapi.binance.com";
+    private static final String FUTURES_KLINES_PATH = "/fapi/v1/klines";
     private static final int BINANCE_INVALID_SYMBOL_CODE = -1121;
 
     private final HttpClient httpClient;
     private final String baseUrl;
+    private final String klinesPath;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public BinanceMarketDataProvider() {
-        this(HttpClient.newHttpClient(), DEFAULT_BASE_URL);
+    public BinanceMarketDataProvider(HttpClient httpClient, AssetVenue venue) {
+        this(httpClient, venue, defaultBaseUrlFor(venue));
     }
 
-    public BinanceMarketDataProvider(HttpClient httpClient) {
-        this(httpClient, DEFAULT_BASE_URL);
-    }
-
-    /** @param baseUrl overridable so tests can point this at a stub server instead of the real Binance API. */
-    public BinanceMarketDataProvider(HttpClient httpClient, String baseUrl) {
+    /** @param baseUrl overridable so tests can point this venue at a stub server instead of the real Binance API. */
+    public BinanceMarketDataProvider(HttpClient httpClient, AssetVenue venue, String baseUrl) {
         this.httpClient = Objects.requireNonNull(httpClient, "httpClient must not be null");
+        this.klinesPath = klinesPathFor(Objects.requireNonNull(venue, "venue must not be null"));
         this.baseUrl = stripTrailingSlashes(Objects.requireNonNull(baseUrl, "baseUrl must not be null"));
     }
 
-    /** A trailing slash on the configured base URL would otherwise double up with {@link #KLINES_PATH}'s leading one. */
+    private static String defaultBaseUrlFor(AssetVenue venue) {
+        return switch (venue) {
+            case SPOT -> SPOT_DEFAULT_BASE_URL;
+            case FUTURES -> FUTURES_DEFAULT_BASE_URL;
+        };
+    }
+
+    private static String klinesPathFor(AssetVenue venue) {
+        return switch (venue) {
+            case SPOT -> SPOT_KLINES_PATH;
+            case FUTURES -> FUTURES_KLINES_PATH;
+        };
+    }
+
+    /** A trailing slash on the configured base URL would otherwise double up with {@link #klinesPath}'s leading one. */
     private static String stripTrailingSlashes(String url) {
         int end = url.length();
         while (end > 0 && url.charAt(end - 1) == '/') {
@@ -81,7 +101,7 @@ public final class BinanceMarketDataProvider implements MarketDataProvider {
     }
 
     URI klinesUri(String normalizedSymbol, long startTimeMs, long endTimeMs) {
-        return URI.create(baseUrl + KLINES_PATH
+        return URI.create(baseUrl + klinesPath
                 + "?symbol=" + normalizedSymbol
                 + "&interval=1d"
                 + "&startTime=" + startTimeMs

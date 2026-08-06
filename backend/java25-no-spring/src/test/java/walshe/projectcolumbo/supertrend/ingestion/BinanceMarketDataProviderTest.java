@@ -2,6 +2,7 @@ package walshe.projectcolumbo.supertrend.ingestion;
 
 import org.junit.jupiter.api.Test;
 import walshe.projectcolumbo.supertrend.indicator.Candle;
+import walshe.projectcolumbo.supertrend.shared.AssetVenue;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.net.URI;
@@ -14,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class BinanceMarketDataProviderTest {
 
-    private final BinanceMarketDataProvider provider = new BinanceMarketDataProvider();
+    private final BinanceMarketDataProvider provider = new BinanceMarketDataProvider(HttpClient.newHttpClient(), AssetVenue.SPOT);
 
     @Test
     void parsesKlineRowsIntoD1Candles() {
@@ -91,7 +92,7 @@ class BinanceMarketDataProviderTest {
     @Test
     void klinesUriStripsTrailingSlashFromConfiguredBaseUrlToAvoidADoubleSlash() {
         BinanceMarketDataProvider withTrailingSlash =
-                new BinanceMarketDataProvider(HttpClient.newHttpClient(), "http://binance-stub:8080/");
+                new BinanceMarketDataProvider(HttpClient.newHttpClient(), AssetVenue.SPOT, "http://binance-stub:8080/");
 
         URI uri = withTrailingSlash.klinesUri("BTCUSDT", 1000L, 2000L);
 
@@ -101,7 +102,7 @@ class BinanceMarketDataProviderTest {
     @Test
     void klinesUriStripsMultipleTrailingSlashes() {
         BinanceMarketDataProvider withTrailingSlashes =
-                new BinanceMarketDataProvider(HttpClient.newHttpClient(), "http://binance-stub:8080///");
+                new BinanceMarketDataProvider(HttpClient.newHttpClient(), AssetVenue.SPOT, "http://binance-stub:8080///");
 
         URI uri = withTrailingSlashes.klinesUri("BTCUSDT", 1000L, 2000L);
 
@@ -112,5 +113,31 @@ class BinanceMarketDataProviderTest {
     void klinesUriIsUnaffectedWhenBaseUrlHasNoTrailingSlash() {
         assertThat(provider.klinesUri("BTCUSDT", 1000L, 2000L))
                 .isEqualTo(URI.create("https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1000&endTime=2000"));
+    }
+
+    @Test
+    void spotVenueDefaultsToTheSpotHostAndPath() {
+        BinanceMarketDataProvider spotProvider = new BinanceMarketDataProvider(HttpClient.newHttpClient(), AssetVenue.SPOT);
+
+        assertThat(spotProvider.klinesUri("BTCUSDT", 1000L, 2000L))
+                .isEqualTo(URI.create("https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1000&endTime=2000"));
+    }
+
+    @Test
+    void futuresVenueDefaultsToTheFuturesHostAndPath() {
+        BinanceMarketDataProvider futuresProvider = new BinanceMarketDataProvider(HttpClient.newHttpClient(), AssetVenue.FUTURES);
+
+        assertThat(futuresProvider.klinesUri("HYPEUSDT", 1000L, 2000L))
+                .isEqualTo(URI.create("https://fapi.binance.com/fapi/v1/klines?symbol=HYPEUSDT&interval=1d&startTime=1000&endTime=2000"));
+    }
+
+    @Test
+    void futuresVenueBaseUrlOverrideStripsTrailingSlashesTooAndKeepsTheFuturesPath() {
+        BinanceMarketDataProvider futuresProvider =
+                new BinanceMarketDataProvider(HttpClient.newHttpClient(), AssetVenue.FUTURES, "http://binance-stub:8080/");
+
+        URI uri = futuresProvider.klinesUri("HYPEUSDT", 1000L, 2000L);
+
+        assertThat(uri).isEqualTo(URI.create("http://binance-stub:8080/fapi/v1/klines?symbol=HYPEUSDT&interval=1d&startTime=1000&endTime=2000"));
     }
 }

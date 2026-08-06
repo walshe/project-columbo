@@ -28,6 +28,7 @@ import walshe.projectcolumbo.supertrend.pipeline.IngestionRunStatus;
 import walshe.projectcolumbo.supertrend.pipeline.PipelineOrchestrator;
 import walshe.projectcolumbo.supertrend.pulse.MarketBreadthPulseService;
 import walshe.projectcolumbo.supertrend.rollup.CandleRollupService;
+import walshe.projectcolumbo.supertrend.shared.AssetVenue;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.SignalStateDetectionService;
@@ -37,6 +38,7 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -82,7 +84,10 @@ class IngestionTriggerHandlerIntegrationTest {
     private static Javalin newApp(MarketDataProvider provider) {
         Clock clock = Clock.fixed(NOW.toInstant(), ZoneOffset.UTC);
         IngestionConfig ingestionConfig = new IngestionConfig(BACKFILL_START);
-        CandleIngestionService candleIngestionService = new CandleIngestionService(assetDao, candleDao, provider, ingestionConfig, clock);
+        CandleIngestionService candleIngestionService = new CandleIngestionService(
+                assetDao, candleDao,
+                Map.of(AssetVenue.SPOT, provider, AssetVenue.FUTURES, provider),
+                ingestionConfig, clock);
         IndicatorComputationService indicatorComputationService =
                 new IndicatorComputationService(assetDao, candleDao, new SuperTrendIndicatorDao(dataSource));
         CandleRollupService candleRollupService = new CandleRollupService(assetDao, candleDao, clock);

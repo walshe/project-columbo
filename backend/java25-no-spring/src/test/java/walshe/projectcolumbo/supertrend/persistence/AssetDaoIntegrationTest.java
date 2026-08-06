@@ -9,6 +9,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import walshe.projectcolumbo.supertrend.shared.AssetClass;
+import walshe.projectcolumbo.supertrend.shared.AssetVenue;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 
 import javax.sql.DataSource;
@@ -80,6 +81,30 @@ class AssetDaoIntegrationTest {
         assertThat(asset.assetClass()).isEqualTo(AssetClass.CRYPTO);
     }
 
+    @Test
+    void seededAssetsDefaultToSpotVenue() {
+        seedAssetWithDefaultClass("AD5USDT");
+
+        Asset asset = assetDao.findAllActive(null).stream()
+                .filter(a -> a.symbol().equals("AD5USDT"))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(asset.venue()).isEqualTo(AssetVenue.SPOT);
+    }
+
+    @Test
+    void findAllActiveReadsAnExplicitFuturesVenue() {
+        seedAsset("AD6USDT", AssetClass.CRYPTO, AssetVenue.FUTURES);
+
+        Asset asset = assetDao.findAllActive(null).stream()
+                .filter(a -> a.symbol().equals("AD6USDT"))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(asset.venue()).isEqualTo(AssetVenue.FUTURES);
+    }
+
     private static void seedAsset(String symbol, AssetClass assetClass) {
         try (var connection = dataSource.getConnection();
              var statement = connection.prepareStatement(
@@ -87,6 +112,20 @@ class AssetDaoIntegrationTest {
             statement.setString(1, symbol);
             statement.setString(2, Provider.BINANCE.name());
             statement.setString(3, assetClass.name());
+            statement.executeUpdate();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void seedAsset(String symbol, AssetClass assetClass, AssetVenue venue) {
+        try (var connection = dataSource.getConnection();
+             var statement = connection.prepareStatement(
+                     "INSERT INTO asset (symbol, provider, active, asset_class, venue) VALUES (?, ?::provider, true, ?::asset_class, ?::asset_venue)")) {
+            statement.setString(1, symbol);
+            statement.setString(2, Provider.BINANCE.name());
+            statement.setString(3, assetClass.name());
+            statement.setString(4, venue.name());
             statement.executeUpdate();
         } catch (Exception e) {
             throw new RuntimeException(e);

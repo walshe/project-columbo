@@ -14,6 +14,7 @@ import walshe.projectcolumbo.supertrend.indicator.Candle;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
 import walshe.projectcolumbo.supertrend.persistence.SchemaMigrator;
+import walshe.projectcolumbo.supertrend.shared.AssetVenue;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
@@ -129,16 +130,44 @@ class CandleIngestionServiceTest {
         assertThat(stats.insertedCount()).isEqualTo(1);
     }
 
+    @Test
+    @Order(5)
+    void routesEachAssetToTheProviderForItsVenue() {
+        seedAsset("ING5SPOTUSDT", AssetVenue.SPOT);
+        seedAsset("ING5FUTUSDT", AssetVenue.FUTURES);
+        FakeMarketDataProvider spotProvider = new FakeMarketDataProvider();
+        spotProvider.onFetch("ING5SPOTUSDT", () -> List.of(candle(1)));
+        FakeMarketDataProvider futuresProvider = new FakeMarketDataProvider();
+        futuresProvider.onFetch("ING5FUTUSDT", () -> List.of(candle(1), candle(2)));
+        CandleIngestionService service = new CandleIngestionService(
+                assetDao, candleDao,
+                Map.of(AssetVenue.SPOT, spotProvider, AssetVenue.FUTURES, futuresProvider),
+                ingestionConfig, clock);
+
+        IngestionStats stats = service.ingestDaily();
+
+        assertThat(stats.insertedCount()).isEqualTo(3);
+        assertThat(stats.errorCount()).isZero();
+    }
+
     private static CandleIngestionService ingestionService(FakeMarketDataProvider provider) {
-        return new CandleIngestionService(assetDao, candleDao, provider, ingestionConfig, clock);
+        return new CandleIngestionService(
+                assetDao, candleDao,
+                Map.of(AssetVenue.SPOT, provider, AssetVenue.FUTURES, provider),
+                ingestionConfig, clock);
     }
 
     private static long seedAsset(String symbol) {
+        return seedAsset(symbol, AssetVenue.SPOT);
+    }
+
+    private static long seedAsset(String symbol, AssetVenue venue) {
         try (var connection = dataSource.getConnection();
              var statement = connection.prepareStatement(
-                     "INSERT INTO asset (symbol, provider, active) VALUES (?, ?::provider, true)")) {
+                     "INSERT INTO asset (symbol, provider, active, venue) VALUES (?, ?::provider, true, ?::asset_venue)")) {
             statement.setString(1, symbol);
             statement.setString(2, Provider.BINANCE.name());
+            statement.setString(3, venue.name());
             statement.executeUpdate();
         } catch (Exception e) {
             throw new RuntimeException(e);

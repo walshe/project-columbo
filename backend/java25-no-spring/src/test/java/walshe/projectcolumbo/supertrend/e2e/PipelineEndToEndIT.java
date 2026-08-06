@@ -58,6 +58,14 @@ class PipelineEndToEndIT {
 
     private static final String BEARISH_SYMBOL = "BTCUSDT";
     private static final String INVALID_SYMBOL = "ETHUSDT";
+    // A real FUTURES-venue asset (STOCK class, seeded by V12/V14) - proves candles actually flow
+    // through the /fapi/v1/klines route, not just that the pipeline completes at all. Before the
+    // asset-venue-routing fix, every asset was queried against the SPOT endpoint only; a single
+    // catch-all WireMock stub keyed on symbol (not path) meant that bug never failed this test.
+    private static final String FUTURES_SYMBOL = "AAPLUSDT";
+
+    private static final String SPOT_KLINES_PATH = "/api/v3/klines";
+    private static final String FUTURES_KLINES_PATH = "/fapi/v1/klines";
 
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final HttpClient HTTP = HttpClient.newHttpClient();
@@ -112,7 +120,8 @@ class PipelineEndToEndIT {
                 .withEnv("SUPERTREND_DB_USER", "postgres")
                 .withEnv("SUPERTREND_DB_PASSWORD", "postgres")
                 .withEnv("SUPERTREND_BACKFILL_START", BACKFILL_START)
-                .withEnv("SUPERTREND_BINANCE_BASE_URL", "http://binance-stub:" + WIREMOCK_PORT)
+                .withEnv("SUPERTREND_BINANCE_SPOT_BASE_URL", "http://binance-stub:" + WIREMOCK_PORT)
+                .withEnv("SUPERTREND_BINANCE_FUTURES_BASE_URL", "http://binance-stub:" + WIREMOCK_PORT)
                 .waitingFor(Wait.forHttp("/api/v1/candles/coverage").forStatusCode(200))
                 .withStartupTimeout(Duration.ofMinutes(5));
         app.start();
@@ -147,6 +156,10 @@ class PipelineEndToEndIT {
         assertThat(symbolsIn(d1Signals)).contains("SOLUSDT").doesNotContain(INVALID_SYMBOL);
         assertThat(trendStateOf(d1Signals, BEARISH_SYMBOL)).isEqualTo("BEARISH");
         assertThat(trendStateOf(d1Signals, "SOLUSDT")).isEqualTo("BULLISH");
+        // Proves the FUTURES venue route actually delivered candles - not just that some assets
+        // ingested successfully. If SUPERTREND_BINANCE_FUTURES_BASE_URL or the /fapi/v1/klines
+        // stub mappings were wrong, this asset would have no candles and show UNKNOWN here.
+        assertThat(trendStateOf(d1Signals, FUTURES_SYMBOL)).isEqualTo("BULLISH");
 
         JsonNode w1Signals = getJson("/api/v1/signals?timeframe=W1").get("signals");
         assertThat(trendStateOf(w1Signals, BEARISH_SYMBOL)).isEqualTo("BEARISH");
@@ -157,7 +170,10 @@ class PipelineEndToEndIT {
         assertThat(summary.get("pulse").get("bullishCount").asInt()).isGreaterThan(0);
 
         JsonNode coverage = getJson("/api/v1/candles/coverage");
-        assertThat(coverage.get("D1").get("assetCount").asLong()).isEqualTo(199); // 200 seeded - 1 deactivated invalid symbol
+        // 200 seeded - 1 deactivated invalid symbol. Stays 199 (not fewer) with venue routing in
+        // place: every FUTURES-venue asset now gets real candles from the /fapi/v1/klines stub
+        // instead of silently failing, so no extra assets end up erroring/deactivated here.
+        assertThat(coverage.get("D1").get("assetCount").asLong()).isEqualTo(199);
         assertThat(coverage.get("W1").get("assetCount").asLong()).isEqualTo(199);
 
         // Idempotency: a second trigger either starts cleanly or is rejected because the first
@@ -230,22 +246,35 @@ class PipelineEndToEndIT {
     private record StubMapping(String name, String json) {
     }
 
+    /**
+     * One stub set per Binance klines path - SPOT ({@link #SPOT_KLINES_PATH}) and FUTURES ({@link
+     * #FUTURES_KLINES_PATH}) are stubbed by symbol, with WireMock's urlPathPattern isolating the
+     * two: a request to one path never matches a mapping registered under the other. That
+     * isolation is exactly what makes {@link #FUTURES_SYMBOL}'s assertion meaningful - it can
+     * only get real candles if the app actually routed it to {@code /fapi/v1/klines}.
+     * <p>
+     * The futures path gets a single (bullish) catch-all, not a bearish/bullish pair like SPOT -
+     * two catch-alls at equal priority is an ambiguous WireMock config (which one wins for an
+     * unmatched symbol is unspecified) that SPOT only gets away with because nothing here asserts
+     * a symbol relying on the losing one.
+     */
     private static List<StubMapping> buildStubMappings() {
         return List.of(
-                new StubMapping("bearish-default.json", stubMapping(null, 200, klinesBody(false), 100)),
-                new StubMapping("bearish-btc.json", stubMapping(BEARISH_SYMBOL, 200, klinesBody(false), 1)),
-                new StubMapping("bullish-default.json", stubMapping(null, 200, klinesBody(true), 100)),
-                new StubMapping("invalid-symbol.json", stubMapping(INVALID_SYMBOL, 400, invalidSymbolBody(), 1))
+                new StubMapping("bearish-default-spot.json", stubMapping(SPOT_KLINES_PATH, null, 200, klinesBody(false), 100)),
+                new StubMapping("bearish-btc-spot.json", stubMapping(SPOT_KLINES_PATH, BEARISH_SYMBOL, 200, klinesBody(false), 1)),
+                new StubMapping("bullish-default-spot.json", stubMapping(SPOT_KLINES_PATH, null, 200, klinesBody(true), 100)),
+                new StubMapping("invalid-symbol-spot.json", stubMapping(SPOT_KLINES_PATH, INVALID_SYMBOL, 400, invalidSymbolBody(), 1)),
+                new StubMapping("bullish-default-futures.json", stubMapping(FUTURES_KLINES_PATH, null, 200, klinesBody(true), 100))
         );
     }
 
     /** Bullish is the catch-all (priority 100); BTC and the invalid symbol are higher-priority (lower number) overrides. */
-    private static String stubMapping(String symbolOrNullForCatchAll, int status, JsonNode body, int priority) {
+    private static String stubMapping(String urlPathPattern, String symbolOrNullForCatchAll, int status, JsonNode body, int priority) {
         ObjectNode root = JSON.createObjectNode();
         root.put("priority", priority);
         ObjectNode request = root.putObject("request");
         request.put("method", "GET");
-        request.put("urlPathPattern", "/api/v3/klines");
+        request.put("urlPathPattern", urlPathPattern);
         if (symbolOrNullForCatchAll != null) {
             request.putObject("queryParameters").putObject("symbol").put("equalTo", symbolOrNullForCatchAll);
         }

@@ -8,32 +8,45 @@ class TradingViewUrlTest {
 
     @Test
     void generateUrlAppendsUsdtWhenMissing() {
-        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "ETH", Timeframe.D1);
+        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "ETH", Timeframe.D1, AssetVenue.SPOT);
         assertThat(url).isEqualTo("https://www.tradingview.com/chart/?symbol=BINANCE%3AETHUSDT&interval=1D");
     }
 
     @Test
     void generateUrlDoesNotDoubleAppendUsdt() {
-        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "BTCUSDT", Timeframe.W1);
+        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "BTCUSDT", Timeframe.W1, AssetVenue.SPOT);
         assertThat(url).isEqualTo("https://www.tradingview.com/chart/?symbol=BINANCE%3ABTCUSDT&interval=1W");
     }
 
     @Test
+    void generateUrlAppendsDotPForFuturesVenue() {
+        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "BITOUSDT", Timeframe.D1, AssetVenue.FUTURES);
+        assertThat(url).isEqualTo("https://www.tradingview.com/chart/?symbol=BINANCE%3ABITOUSDT.P&interval=1D");
+    }
+
+    @Test
+    void generateUrlAppendsUsdtThenDotPForFuturesVenueWhenUsdtIsMissing() {
+        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "BITO", Timeframe.D1, AssetVenue.FUTURES);
+        assertThat(url).isEqualTo("https://www.tradingview.com/chart/?symbol=BINANCE%3ABITOUSDT.P&interval=1D");
+    }
+
+    @Test
     void generateUrlIsNullWhenAnyArgumentIsNull() {
-        assertThat(TradingViewUrl.generateUrl(null, "BTCUSDT", Timeframe.D1)).isNull();
-        assertThat(TradingViewUrl.generateUrl(Provider.BINANCE, null, Timeframe.D1)).isNull();
-        assertThat(TradingViewUrl.generateUrl(Provider.BINANCE, "BTCUSDT", null)).isNull();
+        assertThat(TradingViewUrl.generateUrl(null, "BTCUSDT", Timeframe.D1, AssetVenue.SPOT)).isNull();
+        assertThat(TradingViewUrl.generateUrl(Provider.BINANCE, null, Timeframe.D1, AssetVenue.SPOT)).isNull();
+        assertThat(TradingViewUrl.generateUrl(Provider.BINANCE, "BTCUSDT", null, AssetVenue.SPOT)).isNull();
+        assertThat(TradingViewUrl.generateUrl(Provider.BINANCE, "BTCUSDT", Timeframe.D1, null)).isNull();
     }
 
     @Test
     void watchlistSymbolRoundTripsFromGeneratedUrl() {
-        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "BTCUSDT", Timeframe.D1);
+        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "BTCUSDT", Timeframe.D1, AssetVenue.SPOT);
         assertThat(TradingViewUrl.watchlistSymbol(url)).isEqualTo("BINANCE:BTCUSDT");
     }
 
     @Test
     void watchlistSymbolMatchesUrlUsdtAppending() {
-        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "ETH", Timeframe.W1);
+        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "ETH", Timeframe.W1, AssetVenue.SPOT);
         assertThat(TradingViewUrl.watchlistSymbol(url)).isEqualTo("BINANCE:ETHUSDT");
     }
 

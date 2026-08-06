@@ -12,12 +12,20 @@ public final class TradingViewUrl {
     private TradingViewUrl() {
     }
 
-    /** Null if any argument is null. Appends {@code USDT} to {@code symbol} unless it already ends with it. */
-    public static String generateUrl(Provider provider, String symbol, Timeframe timeframe) {
-        if (provider == null || symbol == null || timeframe == null) {
+    /**
+     * Null if any argument is null. Appends {@code USDT} to {@code symbol} unless it already ends
+     * with it. A {@link AssetVenue#FUTURES} asset gets a trailing {@code .P} on top of that —
+     * TradingView's suffix for a Binance perpetual futures contract (e.g. {@code BITOUSDT.P}) —
+     * since without it TradingView resolves the symbol against the spot market instead.
+     */
+    public static String generateUrl(Provider provider, String symbol, Timeframe timeframe, AssetVenue venue) {
+        if (provider == null || symbol == null || timeframe == null || venue == null) {
             return null;
         }
         String fullSymbol = symbol.endsWith("USDT") ? symbol : symbol + "USDT";
+        if (venue == AssetVenue.FUTURES) {
+            fullSymbol = fullSymbol + ".P";
+        }
         String encodedSymbol = encode(provider.name() + ":" + fullSymbol);
         String encodedInterval = encode(interval(timeframe));
         return "https://www.tradingview.com/chart/?symbol=" + encodedSymbol + "&interval=" + encodedInterval;

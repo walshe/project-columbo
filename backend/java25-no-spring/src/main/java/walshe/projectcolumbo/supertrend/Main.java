@@ -29,6 +29,7 @@ import walshe.projectcolumbo.supertrend.pipeline.DailyScheduler;
 import walshe.projectcolumbo.supertrend.pipeline.PipelineOrchestrator;
 import walshe.projectcolumbo.supertrend.pulse.MarketBreadthPulseService;
 import walshe.projectcolumbo.supertrend.rollup.CandleRollupService;
+import walshe.projectcolumbo.supertrend.shared.AssetVenue;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.ScanService;
@@ -39,13 +40,14 @@ import walshe.projectcolumbo.supertrend.signal.TrendAlignmentService;
 import javax.sql.DataSource;
 import java.net.http.HttpClient;
 import java.time.Clock;
+import java.util.Map;
+import java.util.Optional;
 
 /** Composition root: wires every DAO/service/handler by hand (no DI container) and starts the HTTP server + daily scheduler. */
 public final class Main {
 
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
     private static final int DEFAULT_HTTP_PORT = 8080;
-    private static final String DEFAULT_BINANCE_BASE_URL = "https://api.binance.com";
 
     public static void main(String[] args) {
         LOG.info("SuperTrend Core starting (Java {})", Runtime.version());
@@ -65,9 +67,17 @@ public final class Main {
         IngestionRunDao ingestionRunDao = new IngestionRunDao(dataSource);
         AssetLiquidityDao assetLiquidityDao = new AssetLiquidityDao(dataSource);
 
-        BinanceMarketDataProvider marketDataProvider = new BinanceMarketDataProvider(HttpClient.newHttpClient(), binanceBaseUrl());
-        CandleIngestionService candleIngestionService =
-                new CandleIngestionService(assetDao, candleDao, marketDataProvider, ingestionConfig, clock);
+        HttpClient httpClient = HttpClient.newHttpClient();
+        BinanceMarketDataProvider spotProvider = binanceSpotBaseUrl()
+                .map(baseUrl -> new BinanceMarketDataProvider(httpClient, AssetVenue.SPOT, baseUrl))
+                .orElseGet(() -> new BinanceMarketDataProvider(httpClient, AssetVenue.SPOT));
+        BinanceMarketDataProvider futuresProvider = binanceFuturesBaseUrl()
+                .map(baseUrl -> new BinanceMarketDataProvider(httpClient, AssetVenue.FUTURES, baseUrl))
+                .orElseGet(() -> new BinanceMarketDataProvider(httpClient, AssetVenue.FUTURES));
+        CandleIngestionService candleIngestionService = new CandleIngestionService(
+                assetDao, candleDao,
+                Map.of(AssetVenue.SPOT, spotProvider, AssetVenue.FUTURES, futuresProvider),
+                ingestionConfig, clock);
         IndicatorComputationService indicatorComputationService =
                 new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao);
         CandleRollupService candleRollupService = new CandleRollupService(assetDao, candleDao, clock);
@@ -119,9 +129,18 @@ public final class Main {
         return (value == null || value.isBlank()) ? DEFAULT_HTTP_PORT : Integer.parseInt(value);
     }
 
-    /** Overridable so an end-to-end test can point this at a stub server instead of the real Binance API. */
-    private static String binanceBaseUrl() {
-        String value = System.getenv("SUPERTREND_BINANCE_BASE_URL");
-        return (value == null || value.isBlank()) ? DEFAULT_BINANCE_BASE_URL : value;
+    /** Overridable so an end-to-end test can point Binance spot calls at a stub server instead of the real API. */
+    private static Optional<String> binanceSpotBaseUrl() {
+        return envOrEmpty("SUPERTREND_BINANCE_SPOT_BASE_URL");
+    }
+
+    /** Overridable so an end-to-end test can point Binance futures calls at a stub server instead of the real API. */
+    private static Optional<String> binanceFuturesBaseUrl() {
+        return envOrEmpty("SUPERTREND_BINANCE_FUTURES_BASE_URL");
+    }
+
+    private static Optional<String> envOrEmpty(String name) {
+        String value = System.getenv(name);
+        return (value == null || value.isBlank()) ? Optional.empty() : Optional.of(value);
     }
 }

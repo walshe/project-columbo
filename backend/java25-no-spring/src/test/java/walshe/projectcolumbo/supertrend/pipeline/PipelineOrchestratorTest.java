@@ -25,6 +25,7 @@ import walshe.projectcolumbo.supertrend.persistence.SignalStateDao;
 import walshe.projectcolumbo.supertrend.persistence.SuperTrendIndicatorDao;
 import walshe.projectcolumbo.supertrend.pulse.MarketBreadthPulseService;
 import walshe.projectcolumbo.supertrend.rollup.CandleRollupService;
+import walshe.projectcolumbo.supertrend.shared.AssetVenue;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.SignalStateDetectionService;
@@ -190,8 +191,10 @@ class PipelineOrchestratorTest {
     }
 
     private static PipelineOrchestrator orchestrator(MarketDataProvider provider) {
-        CandleIngestionService candleIngestionService =
-                new CandleIngestionService(assetDao, candleDao, provider, ingestionConfig, clock);
+        CandleIngestionService candleIngestionService = new CandleIngestionService(
+                assetDao, candleDao,
+                Map.of(AssetVenue.SPOT, provider, AssetVenue.FUTURES, provider),
+                ingestionConfig, clock);
         IndicatorComputationService indicatorComputationService =
                 new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao);
         CandleRollupService candleRollupService = new CandleRollupService(assetDao, candleDao, clock);
