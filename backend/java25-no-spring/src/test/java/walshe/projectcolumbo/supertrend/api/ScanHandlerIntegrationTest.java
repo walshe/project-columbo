@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import walshe.projectcolumbo.supertrend.indicator.Candle;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.AssetLiquidityDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
@@ -29,6 +30,7 @@ import walshe.projectcolumbo.supertrend.signal.ScanService;
 import walshe.projectcolumbo.supertrend.signal.TrendState;
 
 import javax.sql.DataSource;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -47,6 +49,7 @@ class ScanHandlerIntegrationTest {
 
     static DataSource dataSource;
     static AssetDao assetDao;
+    static CandleDao candleDao;
     static SignalStateDao signalStateDao;
     static SignalQueryService signalQueryService;
 
@@ -59,7 +62,7 @@ class ScanHandlerIntegrationTest {
         dataSource = new HikariDataSource(config);
         SchemaMigrator.migrate(dataSource);
         assetDao = new AssetDao(dataSource);
-        CandleDao candleDao = new CandleDao(dataSource);
+        candleDao = new CandleDao(dataSource);
         signalStateDao = new SignalStateDao(dataSource);
         AssetLiquidityDao assetLiquidityDao = new AssetLiquidityDao(dataSource);
         signalQueryService = new SignalQueryService(assetDao, signalStateDao, candleDao, assetLiquidityDao);
@@ -194,6 +197,42 @@ class ScanHandlerIntegrationTest {
     }
 
     @Test
+    void liquiditySortOrdersResultsByVolumeDescending() {
+        long low = seedAsset("SCH6LOWUSDT");
+        long high = seedAsset("SCH6HIGHUSDT");
+        OffsetDateTime recentClose = OffsetDateTime.now(ZoneOffset.UTC).minusHours(1);
+        seedCandle(low, recentClose, new BigDecimal("10"));
+        seedCandle(high, recentClose, new BigDecimal("1000"));
+        signalStateDao.upsert(new SignalState(low, Timeframe.D1, recentClose, TrendState.BULLISH, SignalEvent.NONE));
+        signalStateDao.upsert(new SignalState(high, Timeframe.D1, recentClose, TrendState.BULLISH, SignalEvent.NONE));
+
+        JavalinTest.test(newApp(), (server, client) -> {
+            Response response = postJson(client, "/api/v1/scan", """
+                    {"operator":"AND","conditions":[{"timeframe":"D1","state":"BULLISH"}],"sort":"LIQUIDITY_DESC"}
+                    """);
+            String body = response.body().string();
+            assertThat(response.code()).isEqualTo(200);
+            assertThat(body.indexOf("SCH6HIGHUSDT")).isLessThan(body.indexOf("SCH6LOWUSDT"));
+        });
+    }
+
+    @Test
+    void omittingSortKeepsSymbolAscendingOrder() {
+        long z = seedAsset("SCH7ZUSDT");
+        long a = seedAsset("SCH7AUSDT");
+        signalStateDao.upsert(new SignalState(z, Timeframe.D1, CLOSE_TIME, TrendState.BULLISH, SignalEvent.NONE));
+        signalStateDao.upsert(new SignalState(a, Timeframe.D1, CLOSE_TIME, TrendState.BULLISH, SignalEvent.NONE));
+
+        JavalinTest.test(newApp(), (server, client) -> {
+            Response response = postJson(client, "/api/v1/scan", """
+                    {"operator":"AND","conditions":[{"timeframe":"D1","state":"BULLISH"}]}
+                    """);
+            String body = response.body().string();
+            assertThat(body.indexOf("SCH7AUSDT")).isLessThan(body.indexOf("SCH7ZUSDT"));
+        });
+    }
+
+    @Test
     void assetClassFilterWithNoMatchesReturnsEmptyResultsNotError() {
         long crypto = seedAsset("SCH5USDT", AssetClass.CRYPTO);
         signalStateDao.upsert(new SignalState(crypto, Timeframe.D1, CLOSE_TIME, TrendState.BULLISH, SignalEvent.NONE));
@@ -227,5 +266,11 @@ class ScanHandlerIntegrationTest {
                 .findFirst()
                 .orElseThrow()
                 .id();
+    }
+
+    private static void seedCandle(long assetId, OffsetDateTime closeTime, BigDecimal volume) {
+        candleDao.upsert(assetId, new Candle(
+                closeTime.minusDays(1), closeTime, Timeframe.D1,
+                new BigDecimal("50.00"), new BigDecimal("50.00"), new BigDecimal("50.00"), new BigDecimal("50.00"), volume));
     }
 }

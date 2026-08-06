@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import walshe.projectcolumbo.supertrend.indicator.Candle;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.AssetLiquidityDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
@@ -17,6 +18,7 @@ import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import javax.sql.DataSource;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -35,6 +37,7 @@ class ScanServiceIntegrationTest {
 
     static DataSource dataSource;
     static AssetDao assetDao;
+    static CandleDao candleDao;
     static SignalStateDao signalStateDao;
     static ScanService scanService;
 
@@ -47,7 +50,7 @@ class ScanServiceIntegrationTest {
         dataSource = new HikariDataSource(config);
         SchemaMigrator.migrate(dataSource);
         assetDao = new AssetDao(dataSource);
-        CandleDao candleDao = new CandleDao(dataSource);
+        candleDao = new CandleDao(dataSource);
         signalStateDao = new SignalStateDao(dataSource);
         AssetLiquidityDao assetLiquidityDao = new AssetLiquidityDao(dataSource);
         SignalQueryService signalQueryService = new SignalQueryService(assetDao, signalStateDao, candleDao, assetLiquidityDao);
@@ -71,7 +74,7 @@ class ScanServiceIntegrationTest {
         ScanRequest request = new ScanRequest(ScanOperator.AND, List.of(
                 new ScanCondition(Timeframe.D1, TrendState.BULLISH, null),
                 new ScanCondition(Timeframe.W1, TrendState.BULLISH, null)
-        ), null, null);
+        ), null, null, null);
 
         List<ScanResult> results = scanService.execute(request);
 
@@ -91,9 +94,26 @@ class ScanServiceIntegrationTest {
 
         ScanRequest request = new ScanRequest(ScanOperator.AND, List.of(
                 new ScanCondition(Timeframe.D1, TrendState.BULLISH, null)
-        ), null, null);
+        ), null, null, null);
 
         assertThat(scanService.execute(request)).isEmpty();
+    }
+
+    @Test
+    void avgVolume7dFlowsThroughFromRealSeededLiquidityData() {
+        long assetId = seedAsset("SC3USDT");
+        OffsetDateTime recentClose = OffsetDateTime.now(ZoneOffset.UTC).minusHours(1);
+        seedCandle(assetId, recentClose, new BigDecimal("777"));
+        signalStateDao.upsert(new SignalState(assetId, Timeframe.D1, recentClose, TrendState.BULLISH, SignalEvent.NONE));
+
+        ScanRequest request = new ScanRequest(ScanOperator.AND, List.of(
+                new ScanCondition(Timeframe.D1, TrendState.BULLISH, null)
+        ), null, null, null);
+
+        List<ScanResult> results = scanService.execute(request);
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).avgVolume7d()).isEqualByComparingTo(new BigDecimal("777"));
     }
 
     private static long seedAsset(String symbol) {
@@ -111,5 +131,11 @@ class ScanServiceIntegrationTest {
                 .findFirst()
                 .orElseThrow()
                 .id();
+    }
+
+    private static void seedCandle(long assetId, OffsetDateTime closeTime, BigDecimal volume) {
+        candleDao.upsert(assetId, new Candle(
+                closeTime.minusDays(1), closeTime, Timeframe.D1,
+                new BigDecimal("50.00"), new BigDecimal("50.00"), new BigDecimal("50.00"), new BigDecimal("50.00"), volume));
     }
 }
