@@ -6,19 +6,22 @@ import walshe.projectcolumbo.supertrend.indicator.Candle;
 import walshe.projectcolumbo.supertrend.persistence.Asset;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
+import walshe.projectcolumbo.supertrend.shared.AssetVenue;
 import walshe.projectcolumbo.supertrend.shared.FinalizedBoundary;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 /**
  * Ingests D1 candles for every active asset: computes an incremental time window per asset,
- * fetches from the provider, persists idempotently, and isolates one asset's failure from the
- * rest of the run (a provider error or invalid symbol never aborts the whole run).
+ * fetches from the provider for that asset's {@link AssetVenue}, persists idempotently, and
+ * isolates one asset's failure from the rest of the run (a provider error or invalid symbol
+ * never aborts the whole run).
  */
 public final class CandleIngestionService {
 
@@ -27,20 +30,21 @@ public final class CandleIngestionService {
 
     private final AssetDao assetDao;
     private final CandleDao candleDao;
-    private final MarketDataProvider provider;
+    private final Map<AssetVenue, MarketDataProvider> providersByVenue;
     private final IngestionConfig ingestionConfig;
     private final Clock clock;
 
+    /** @param providersByVenue SHALL have an entry for every {@link AssetVenue}. */
     public CandleIngestionService(
             AssetDao assetDao,
             CandleDao candleDao,
-            MarketDataProvider provider,
+            Map<AssetVenue, MarketDataProvider> providersByVenue,
             IngestionConfig ingestionConfig,
             Clock clock
     ) {
         this.assetDao = Objects.requireNonNull(assetDao, "assetDao must not be null");
         this.candleDao = Objects.requireNonNull(candleDao, "candleDao must not be null");
-        this.provider = Objects.requireNonNull(provider, "provider must not be null");
+        this.providersByVenue = Map.copyOf(Objects.requireNonNull(providersByVenue, "providersByVenue must not be null"));
         this.ingestionConfig = Objects.requireNonNull(ingestionConfig, "ingestionConfig must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
@@ -97,6 +101,10 @@ public final class CandleIngestionService {
             return IngestionStats.EMPTY;
         }
 
+        MarketDataProvider provider = providersByVenue.get(asset.venue());
+        if (provider == null) {
+            throw new IllegalStateException("No market data provider configured for venue " + asset.venue());
+        }
         List<Candle> candles = provider.fetchDailyCandles(asset.symbol(), startTimeMs, endTimeMs);
 
         int inserted = 0;

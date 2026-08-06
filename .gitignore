@@ -34,3 +34,6 @@ Thumbs.db
 # Test coverage/temp (if introduced later)
 coverage/
 .tmp/
+
+# Large local reference dumps (any module) - not source, not fixtures
+**/reference/

@@ -70,7 +70,8 @@ docker compose -f compose.yaml -f compose.prod.yaml --profile prod up -d
 | `SUPERTREND_DB_PASSWORD` | no | `postgres` | Postgres password |
 | `SUPERTREND_BACKFILL_START` | **yes** | — | ISO-8601 timestamp; how far back to backfill candles. Must be far enough in the past to give W1 SuperTrend's ATR at least ~147 days (~20 weekly candles) to warm up — startup fails fast (`BackfillStartValidator`) if it isn't. |
 | `SUPERTREND_HTTP_PORT` | no | `8080` | HTTP port the API listens on |
-| `SUPERTREND_BINANCE_BASE_URL` | no | `https://api.binance.com` | Base URL for the market data provider. Overridable so tests can point the app at a stub server instead of the real Binance API - see the end-to-end test below |
+| `SUPERTREND_BINANCE_SPOT_BASE_URL` | no | `https://api.binance.com` | Base URL for SPOT-venue assets. Overridable so tests can point the app at a stub server instead of the real Binance API - see the end-to-end test below |
+| `SUPERTREND_BINANCE_FUTURES_BASE_URL` | no | `https://fapi.binance.com` | Base URL for FUTURES-venue assets (e.g. stocks/ETFs traded as Binance perpetual futures). Same override use case as the spot variable above |
 
 ## HTTP endpoints
 
@@ -88,9 +89,11 @@ All under `/api/v1`, JSON by default unless noted.
 
 Plus `GET /openapi` (OpenAPI spec) and `GET /swagger` (Swagger UI).
 
-Every signal/scan-match entry that has an asset+timeframe includes a `tradingviewUrl` deep link to the matching TradingView chart; Markdown/watchlist output renders these as real links/importable watchlist tokens instead of plain symbol text.
+Every signal/scan-match entry that has an asset+timeframe includes a `tradingviewUrl` deep link to the matching TradingView chart; Markdown/watchlist output renders these as real links/importable watchlist tokens instead of plain symbol text. A FUTURES-venue asset's URL carries TradingView's `.P` perpetual-contract suffix (e.g. `BINANCE:BITOUSDT.P`) — without it TradingView resolves the symbol against the spot market instead.
 
-Every asset has an `assetClass` (`CRYPTO`/`STOCK`/`ETF`/`COMMODITY`) - every asset onboarded so far is `CRYPTO` (Binance-traded). The `assetClass` query param above filters results to one class; each signal/scan-match entry also includes its own `assetClass` in the response.
+Every asset has an `assetClass` (`CRYPTO`/`STOCK`/`ETF`/`COMMODITY`) - crypto and a large batch of Binance-tradeable stocks/ETFs are onboarded. The `assetClass` query param above filters results to one class; each signal/scan-match entry also includes its own `assetClass` in the response.
+
+Every asset also has a `venue` (`SPOT` or `FUTURES`) that isn't exposed via the API but determines which Binance host/path (`SUPERTREND_BINANCE_SPOT_BASE_URL` vs `SUPERTREND_BINANCE_FUTURES_BASE_URL`) `CandleIngestionService` fetches its candles from — spot and futures are separate Binance products with entirely separate symbol universes, so an asset only tradeable on one must be routed there specifically. Stocks/ETFs and a handful of crypto symbols (e.g. `HYPEUSDT`) are `FUTURES`; ordinary crypto defaults to `SPOT`.
 
 ## Logging
 

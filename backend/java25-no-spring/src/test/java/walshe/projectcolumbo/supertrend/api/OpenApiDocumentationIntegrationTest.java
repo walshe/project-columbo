@@ -26,13 +26,16 @@ import walshe.projectcolumbo.supertrend.persistence.SuperTrendIndicatorDao;
 import walshe.projectcolumbo.supertrend.pipeline.PipelineOrchestrator;
 import walshe.projectcolumbo.supertrend.pulse.MarketBreadthPulseService;
 import walshe.projectcolumbo.supertrend.rollup.CandleRollupService;
+import walshe.projectcolumbo.supertrend.shared.AssetVenue;
 import walshe.projectcolumbo.supertrend.signal.ScanService;
 import walshe.projectcolumbo.supertrend.signal.SignalQueryService;
 import walshe.projectcolumbo.supertrend.signal.SignalStateDetectionService;
 import walshe.projectcolumbo.supertrend.signal.TrendAlignmentService;
 
 import javax.sql.DataSource;
+import java.net.http.HttpClient;
 import java.time.Clock;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -82,8 +85,13 @@ class OpenApiDocumentationIntegrationTest {
         // only exercises route registration and spec generation, never IngestionTriggerHandler's
         // actual triggerAsync() call path - but the constructor now requires non-null dependencies,
         // so these need to be real instances rather than null, even though nothing here calls them.
+        HttpClient httpClient = HttpClient.newHttpClient();
         CandleIngestionService candleIngestionService = new CandleIngestionService(
-                assetDao, candleDao, new BinanceMarketDataProvider(), new IngestionConfig(null), clock);
+                assetDao, candleDao,
+                Map.of(
+                        AssetVenue.SPOT, new BinanceMarketDataProvider(httpClient, AssetVenue.SPOT),
+                        AssetVenue.FUTURES, new BinanceMarketDataProvider(httpClient, AssetVenue.FUTURES)),
+                new IngestionConfig(null), clock);
         IndicatorComputationService indicatorComputationService =
                 new IndicatorComputationService(assetDao, candleDao, new SuperTrendIndicatorDao(dataSource));
         PipelineOrchestrator pipelineOrchestrator = new PipelineOrchestrator(
