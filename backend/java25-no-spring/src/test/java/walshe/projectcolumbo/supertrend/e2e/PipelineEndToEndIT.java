@@ -253,14 +253,17 @@ class PipelineEndToEndIT {
      * isolation is exactly what makes {@link #FUTURES_SYMBOL}'s assertion meaningful - it can
      * only get real candles if the app actually routed it to {@code /fapi/v1/klines}.
      * <p>
-     * The futures path gets a single (bullish) catch-all, not a bearish/bullish pair like SPOT -
-     * two catch-alls at equal priority is an ambiguous WireMock config (which one wins for an
-     * unmatched symbol is unspecified) that SPOT only gets away with because nothing here asserts
-     * a symbol relying on the losing one.
+     * Each path gets exactly one catch-all (bullish), never two at equal priority. An earlier
+     * version of this test had both a bearish and a bullish catch-all on the SPOT path at the
+     * same priority, on the (wrong) assumption that WireMock resolves such a tie the same way for
+     * every request in a run - it doesn't: on one CI run this produced a real, reproducible
+     * failure where an unrelated symbol resolved bearish while {@link #BEARISH_SYMBOL} and other
+     * symbols resolved bullish in the very same run. A single unambiguous catch-all per path plus
+     * priority-1 overrides for the specific symbols that need one ({@link #BEARISH_SYMBOL}, {@link
+     * #INVALID_SYMBOL}) is the only reliably deterministic shape here.
      */
     private static List<StubMapping> buildStubMappings() {
         return List.of(
-                new StubMapping("bearish-default-spot.json", stubMapping(SPOT_KLINES_PATH, null, 200, klinesBody(false), 100)),
                 new StubMapping("bearish-btc-spot.json", stubMapping(SPOT_KLINES_PATH, BEARISH_SYMBOL, 200, klinesBody(false), 1)),
                 new StubMapping("bullish-default-spot.json", stubMapping(SPOT_KLINES_PATH, null, 200, klinesBody(true), 100)),
                 new StubMapping("invalid-symbol-spot.json", stubMapping(SPOT_KLINES_PATH, INVALID_SYMBOL, 400, invalidSymbolBody(), 1)),
