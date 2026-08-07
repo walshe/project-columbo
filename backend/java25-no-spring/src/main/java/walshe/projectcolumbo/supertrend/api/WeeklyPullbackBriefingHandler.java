@@ -20,6 +20,7 @@ import walshe.projectcolumbo.supertrend.signal.ScanResult;
 import walshe.projectcolumbo.supertrend.signal.ScanService;
 import walshe.projectcolumbo.supertrend.signal.ScanSort;
 import walshe.projectcolumbo.supertrend.signal.SignalQueryService;
+import walshe.projectcolumbo.supertrend.signal.SignalSummary;
 import walshe.projectcolumbo.supertrend.signal.TrendAlignment;
 import walshe.projectcolumbo.supertrend.signal.TrendAlignmentService;
 import walshe.projectcolumbo.supertrend.signal.TrendState;
@@ -32,19 +33,19 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * Registers {@code POST /api/v1/weekly-trend-briefing}: runs a full D1 ingestion pipeline to
- * completion, then composes the weekly regime-read / BTC-alignment / trend-alignment / scan
- * routine (CRYPTO, ETF, and STOCK) into a single Markdown report. A scripted version of the
- * manual weekly checklist this system exists to support - see {@link WeeklyTrendBriefingFormatter}
- * for the rendering and {@link WeeklyTrendBriefingReport} for the composed shape.
+ * Registers {@code POST /api/v1/weekly-pullback-briefing}: the mean-reversion sibling of
+ * {@link WeeklyTrendBriefingHandler}. Runs a full D1 ingestion pipeline to completion, then
+ * composes a report headlined by <em>retest</em> candidates - W1 trend intact, D1 recently
+ * flipped counter to it - rather than confluence. The opinion this briefing expresses is "buy the
+ * dip in an established trend" rather than "follow the already-confirmed move"; confluence data
+ * (the trend briefing's headline) isn't rendered here at all.
  * <p>
- * Crypto is reported both directions (bullish and bearish) since BTC alignment - not this
- * endpoint - is the signal for caution. Stocks and ETFs are longs-only, so only their bullish
- * side is scanned/reported at all.
+ * Crypto is reported both directions (bullish pullback and bearish bounce) since BTC alignment -
+ * not this endpoint - is the signal for caution. Stocks and ETFs are longs-only, so only bullish
+ * pullbacks are scanned/reported for them.
  */
-public final class WeeklyTrendBriefingHandler {
+public final class WeeklyPullbackBriefingHandler {
 
-    private static final int MAX_DAYS_SINCE_FLIP = 7;
     private static final int MAX_RETEST_AGE_DAYS = 7;
     private static final int SCAN_LIMIT = 15;
     private static final List<AssetClass> BRIEFING_ASSET_CLASSES = WeeklyBriefingFormatting.BRIEFING_ASSET_CLASSES;
@@ -56,7 +57,7 @@ public final class WeeklyTrendBriefingHandler {
     private final ScanService scanService;
     private final Clock clock;
 
-    public WeeklyTrendBriefingHandler(
+    public WeeklyPullbackBriefingHandler(
             PipelineOrchestrator pipelineOrchestrator,
             MarketBreadthSnapshotDao marketBreadthSnapshotDao,
             SignalQueryService signalQueryService,
@@ -73,13 +74,13 @@ public final class WeeklyTrendBriefingHandler {
     }
 
     public void register(Javalin app) {
-        app.post("/api/v1/weekly-trend-briefing", this::runBriefing);
+        app.post("/api/v1/weekly-pullback-briefing", this::runBriefing);
     }
 
     @OpenApi(
-            path = "/api/v1/weekly-trend-briefing",
+            path = "/api/v1/weekly-pullback-briefing",
             methods = HttpMethod.POST,
-            summary = "Runs D1 ingestion to completion, then composes the weekly regime/BTC-alignment/trend-alignment/scan routine into one Markdown report",
+            summary = "Runs D1 ingestion to completion, then composes a mean-reversion weekly briefing (retest/pullback candidates, not confluence) into one Markdown report",
             responses = {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(mimeType = "text/markdown", type = "string")),
                     @OpenApiResponse(status = "409", description = "A BINANCE/D1 ingestion run is already RUNNING")
@@ -87,46 +88,53 @@ public final class WeeklyTrendBriefingHandler {
     )
     private void runBriefing(Context ctx) {
         PipelineRunResult ingestionResult = pipelineOrchestrator.runDaily(Provider.BINANCE, Timeframe.D1);
-        WeeklyTrendBriefingReport report = buildReport(ingestionResult);
-        ctx.contentType("text/markdown").result(WeeklyTrendBriefingFormatter.toMarkdown(report, OffsetDateTime.now(clock)));
+        WeeklyPullbackBriefingReport report = buildReport(ingestionResult);
+        ctx.contentType("text/markdown").result(WeeklyPullbackBriefingFormatter.toMarkdown(report, OffsetDateTime.now(clock)));
     }
 
-    private WeeklyTrendBriefingReport buildReport(PipelineRunResult ingestionResult) {
+    private WeeklyPullbackBriefingReport buildReport(PipelineRunResult ingestionResult) {
         Map<AssetClass, MarketBreadthSnapshot> regimePulses = BRIEFING_ASSET_CLASSES.stream()
                 .collect(Collectors.toMap(assetClass -> assetClass,
                         assetClass -> marketBreadthSnapshotDao.findLatest(Timeframe.W1, assetClass).orElse(null)));
 
-        Map<AssetClass, TrendAlignment> trendAlignments = BRIEFING_ASSET_CLASSES.stream()
+        Map<AssetClass, TrendAlignment> alignments = BRIEFING_ASSET_CLASSES.stream()
                 .collect(Collectors.toMap(assetClass -> assetClass,
                         assetClass -> trendAlignmentService.computeAlignment(MAX_RETEST_AGE_DAYS, assetClass)));
 
-        Map<AssetClass, List<ScanResult>> bullishScanCandidates = BRIEFING_ASSET_CLASSES.stream()
-                .collect(Collectors.toMap(assetClass -> assetClass, assetClass -> scan(assetClass, TrendState.BULLISH)));
-        Map<AssetClass, List<ScanResult>> bearishScanCandidates = Map.of(
-                AssetClass.CRYPTO, scan(AssetClass.CRYPTO, TrendState.BEARISH));
+        Map<AssetClass, List<SignalSummary>> bullishPullbackCandidates = alignments.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().bullishRetest()));
+        Map<AssetClass, List<SignalSummary>> bearishPullbackCandidates = Map.of(
+                AssetClass.CRYPTO, alignments.get(AssetClass.CRYPTO).bearishRetest());
 
-        return new WeeklyTrendBriefingReport(
+        Map<AssetClass, List<ScanResult>> bullishScanCandidates = BRIEFING_ASSET_CLASSES.stream()
+                .collect(Collectors.toMap(assetClass -> assetClass, assetClass -> pullbackScan(assetClass, TrendState.BULLISH)));
+        Map<AssetClass, List<ScanResult>> bearishScanCandidates = Map.of(
+                AssetClass.CRYPTO, pullbackScan(AssetClass.CRYPTO, TrendState.BEARISH));
+
+        return new WeeklyPullbackBriefingReport(
                 ingestionResult.runId(), ingestionResult.status(),
                 regimePulses, WeeklyBriefingSignals.btcState(signalQueryService, Timeframe.W1), WeeklyBriefingSignals.btcState(signalQueryService, Timeframe.D1),
-                trendAlignments, bullishScanCandidates, bearishScanCandidates);
+                bullishPullbackCandidates, bearishPullbackCandidates, bullishScanCandidates, bearishScanCandidates);
     }
 
     /**
      * Liquidity gates which candidates make the cut ({@link ScanSort#LIQUIDITY_DESC}, capped at
-     * {@link #SCAN_LIMIT}); movement since the D1 flip then ranks that already-liquid shortlist -
-     * biggest confirming move first for bullish, biggest confirming drop first for bearish (a
-     * bearish asset up against its own signal is a failing move, not a favorable one, so it sorts
-     * last rather than first).
+     * {@link #SCAN_LIMIT}); depth of the counter-trend move then ranks that already-liquid
+     * shortlist - deepest dip first for a bullish pullback (most negative D1 move since its
+     * counter-flip), biggest bounce first for a bearish one (most positive D1 move). This is the
+     * opposite ranking direction from {@link WeeklyTrendBriefingHandler}, since here the D1 leg
+     * is the counter-trend move being evaluated, not a confirming one.
      */
-    private List<ScanResult> scan(AssetClass assetClass, TrendState state) {
+    private List<ScanResult> pullbackScan(AssetClass assetClass, TrendState primaryState) {
+        TrendState counterState = primaryState == TrendState.BULLISH ? TrendState.BEARISH : TrendState.BULLISH;
         ScanRequest request = new ScanRequest(
                 ScanOperator.AND,
-                List.of(new ScanCondition(Timeframe.W1, state, null), new ScanCondition(Timeframe.D1, state, MAX_DAYS_SINCE_FLIP)),
+                List.of(new ScanCondition(Timeframe.W1, primaryState, null), new ScanCondition(Timeframe.D1, counterState, MAX_RETEST_AGE_DAYS)),
                 SCAN_LIMIT, assetClass, ScanSort.LIQUIDITY_DESC);
         List<ScanResult> liquidityGated = scanService.execute(request);
 
         return liquidityGated.stream()
-                .sorted(WeeklyBriefingSignals.byD1Movement(state == TrendState.BULLISH))
+                .sorted(WeeklyBriefingSignals.byD1Movement(primaryState == TrendState.BEARISH))
                 .toList();
     }
 }
