@@ -104,17 +104,17 @@ Two composite, trader-facing endpoints that each script a full weekly market rea
 Every report opens with the same objective context, regardless of which briefing:
 
 - **Regime Read** - W1 bullish/bearish market breadth for CRYPTO, ETF, and STOCK, side by side. No inferred rotation between asset classes (e.g. "ETF strength implies crypto weakness") - each class's breadth is measured directly, not guessed from another class.
-- **BTC Alignment** - BTCUSDT's W1 vs D1 trend state. When they agree, that's crypto's prevailing direction for the week; when they conflict, every crypto candidate in the report should be treated with extra caution regardless of anything else it shows.
+- **BTC Alignment** - BTCUSDT's W1 vs D1 trend state, plus BTC's *provisional* W1 read (see below) when there's enough data to compute one. When committed W1/D1 agree, that's crypto's prevailing direction for the week; when they conflict, every crypto candidate in the report should be treated with extra caution regardless of anything else it shows.
 
 Each briefing then takes its own single, opinionated stance on what to do with that context:
 
 ### `POST /weekly-trend-briefing` - follow the confirmed move
 
-Headlines **confluence**: assets where W1 and D1 agree (both bullish, or both bearish). Scan candidates are liquidity-gated (top 15 by 7-day average volume) and then ranked by momentum - the size of the move since the D1 flip, biggest confirming move first. The premise: back the trend that's already proven itself on both timeframes, not one still working itself out.
+Headlines **confluence**: assets where W1 and D1 agree (both bullish, or both bearish). Scan candidates are liquidity-gated (top 15 by 7-day average volume) and then ranked by momentum - the size of the move since the D1 flip, biggest confirming move first. The premise: back the trend that's already proven itself on both timeframes, not one still working itself out. A separate **Flips Forming** section previews names not yet confluence-eligible by committed data, but whose *provisional* W1 read (see below) now agrees with their committed D1 - never blended into the confirmed lists above it.
 
 ### `POST /weekly-pullback-briefing` - buy the dip in an established trend
 
-Headlines **retest**: W1 trend intact, but D1 has recently flipped counter to it - a pullback (or bounce, on the bearish/crypto side) within an otherwise-established trend. Confluence isn't shown here at all. Scan candidates are liquidity-gated the same way, then ranked by depth of the counter-move - deepest dip first for a bullish pullback, biggest bounce first for a bearish one. The premise: a better entry often comes from a temporary disagreement within a trend, not from chasing a move that's already run.
+Headlines **retest**: W1 trend intact, but D1 has recently flipped counter to it - a pullback (or bounce, on the bearish/crypto side) within an otherwise-established trend. Confluence isn't shown here at all. Scan candidates are liquidity-gated the same way, then ranked by depth of the counter-move - deepest dip first for a bullish pullback, biggest bounce first for a bearish one. The premise: a better entry often comes from a temporary disagreement within a trend, not from chasing a move that's already run. Any candidate whose *provisional* W1 read (see below) has drifted away from the committed W1 state it was selected on gets an inline `watch:` annotation - a sign this "pullback" might be turning into an actual reversal, not a temporary dip.
 
 ### Shared conventions across both
 
@@ -122,6 +122,12 @@ Headlines **retest**: W1 trend intact, but D1 has recently flipped counter to it
 - **Liquidity gates; the briefing's opinion ranks.** Every scan-candidate list is cut down to the 15 most liquid matches first, then re-ordered by whichever signal that briefing is built around. A thin, illiquid mover never outranks a liquid one just because it moved more.
 - Neither endpoint takes query parameters - asset classes, retest window, and candidate limit are fixed constants tuned for this specific weekly routine, not a general-purpose reporting API.
 - Future `weekly-<something>-briefing` variants are expected to follow the same shape: share the Regime Read/BTC Alignment header, then express one clear opinion about what to do with a confirmed-vs-diverging W1/D1 signal, rather than trying to cover every angle in one report.
+
+### Provisional W1 flips
+
+Both briefings only ever headline *committed* trend state - the state as of last Friday's actual weekly close. A **provisional read** answers a different question: "if the current week closed right now, based on this week's daily closes so far, would this asset's weekly trend flip, and at what price?" It's synthesized from this week's already-ingested D1 candles (no new data source, no extra ingestion), run through the same SuperTrend calculation used everywhere else in this system, and is never persisted - recomputed fresh on every request, with no effect on `signal_state`, `signal_event`, or `candles`. It's also W1-only: a provisional *daily* flip would need genuinely new intraday ingestion (multiple polls a day, or lower-timeframe candles), which this system doesn't do.
+
+A provisional read only ever surfaces when it *disagrees* with the committed state for that asset/timeframe - an asset whose provisional read still agrees with its committed state has nothing new to report, so it's shown as-is with no extra annotation. Early in the week a provisional read can be noisy (it's built from only a few days of data, and the underlying ATR bands are still settling) - treat it as "worth watching," not as a confirmed signal in its own right. See `openspec/changes/provisional-w1-flip-detection/` for the full design rationale.
 
 ## Logging
 

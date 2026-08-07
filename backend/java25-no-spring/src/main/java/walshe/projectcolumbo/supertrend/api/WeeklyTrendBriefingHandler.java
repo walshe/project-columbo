@@ -13,6 +13,8 @@ import walshe.projectcolumbo.supertrend.pulse.MarketBreadthSnapshot;
 import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
+import walshe.projectcolumbo.supertrend.signal.ProvisionalTrendResult;
+import walshe.projectcolumbo.supertrend.signal.ProvisionalTrendService;
 import walshe.projectcolumbo.supertrend.signal.ScanCondition;
 import walshe.projectcolumbo.supertrend.signal.ScanOperator;
 import walshe.projectcolumbo.supertrend.signal.ScanRequest;
@@ -20,15 +22,19 @@ import walshe.projectcolumbo.supertrend.signal.ScanResult;
 import walshe.projectcolumbo.supertrend.signal.ScanService;
 import walshe.projectcolumbo.supertrend.signal.ScanSort;
 import walshe.projectcolumbo.supertrend.signal.SignalQueryService;
+import walshe.projectcolumbo.supertrend.signal.SignalSummary;
 import walshe.projectcolumbo.supertrend.signal.TrendAlignment;
 import walshe.projectcolumbo.supertrend.signal.TrendAlignmentService;
 import walshe.projectcolumbo.supertrend.signal.TrendState;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -54,6 +60,7 @@ public final class WeeklyTrendBriefingHandler {
     private final SignalQueryService signalQueryService;
     private final TrendAlignmentService trendAlignmentService;
     private final ScanService scanService;
+    private final ProvisionalTrendService provisionalTrendService;
     private final Clock clock;
 
     public WeeklyTrendBriefingHandler(
@@ -62,6 +69,7 @@ public final class WeeklyTrendBriefingHandler {
             SignalQueryService signalQueryService,
             TrendAlignmentService trendAlignmentService,
             ScanService scanService,
+            ProvisionalTrendService provisionalTrendService,
             Clock clock
     ) {
         this.pipelineOrchestrator = Objects.requireNonNull(pipelineOrchestrator, "pipelineOrchestrator must not be null");
@@ -69,6 +77,7 @@ public final class WeeklyTrendBriefingHandler {
         this.signalQueryService = Objects.requireNonNull(signalQueryService, "signalQueryService must not be null");
         this.trendAlignmentService = Objects.requireNonNull(trendAlignmentService, "trendAlignmentService must not be null");
         this.scanService = Objects.requireNonNull(scanService, "scanService must not be null");
+        this.provisionalTrendService = Objects.requireNonNull(provisionalTrendService, "provisionalTrendService must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
@@ -105,10 +114,54 @@ public final class WeeklyTrendBriefingHandler {
         Map<AssetClass, List<ScanResult>> bearishScanCandidates = Map.of(
                 AssetClass.CRYPTO, scan(AssetClass.CRYPTO, TrendState.BEARISH));
 
+        Map<AssetClass, Map<String, ProvisionalTrendResult>> provisionalByClass = BRIEFING_ASSET_CLASSES.stream()
+                .collect(Collectors.toMap(assetClass -> assetClass, provisionalTrendService::computeForActiveAssets));
+        Map<AssetClass, List<FlipForming>> flipsForming = computeFlipsForming(provisionalByClass);
+
         return new WeeklyTrendBriefingReport(
                 ingestionResult.runId(), ingestionResult.status(),
                 regimePulses, WeeklyBriefingSignals.btcState(signalQueryService, Timeframe.W1), WeeklyBriefingSignals.btcState(signalQueryService, Timeframe.D1),
-                trendAlignments, bullishScanCandidates, bearishScanCandidates);
+                WeeklyBriefingSignals.btcProvisional(provisionalByClass.getOrDefault(AssetClass.CRYPTO, Map.of())),
+                trendAlignments, bullishScanCandidates, bearishScanCandidates, flipsForming);
+    }
+
+    /**
+     * A name is "forming" for direction D when its provisional W1 read now agrees with its
+     * committed D1 state D, but it isn't already confluence-eligible (committed W1 doesn't
+     * already equal D) - i.e. it would newly qualify for confluence if the week closed today.
+     * Stocks/ETFs stay longs-only here too: only a BULLISH-forming preview is kept for them.
+     */
+    private Map<AssetClass, List<FlipForming>> computeFlipsForming(Map<AssetClass, Map<String, ProvisionalTrendResult>> provisionalByClass) {
+        Map<AssetClass, List<FlipForming>> result = new LinkedHashMap<>();
+        for (AssetClass assetClass : BRIEFING_ASSET_CLASSES) {
+            Map<String, SignalSummary> committedW1BySymbol = signalQueryService.listSignals(Timeframe.W1, null, null, assetClass).stream()
+                    .collect(Collectors.toMap(SignalSummary::symbol, Function.identity()));
+            Map<String, TrendState> committedD1BySymbol = signalQueryService.listSignals(Timeframe.D1, null, null, assetClass).stream()
+                    .collect(Collectors.toMap(SignalSummary::symbol, SignalSummary::trendState));
+            Map<String, ProvisionalTrendResult> provisional = provisionalByClass.getOrDefault(assetClass, Map.of());
+            boolean longsOnly = assetClass != AssetClass.CRYPTO;
+
+            List<FlipForming> forming = new ArrayList<>();
+            for (Map.Entry<String, ProvisionalTrendResult> entry : provisional.entrySet()) {
+                String symbol = entry.getKey();
+                ProvisionalTrendResult provisionalResult = entry.getValue();
+                if (longsOnly && provisionalResult.direction() != TrendState.BULLISH) {
+                    continue;
+                }
+                TrendState committedD1 = committedD1BySymbol.get(symbol);
+                SignalSummary committedW1 = committedW1BySymbol.get(symbol);
+                if (committedD1 == null || committedW1 == null) {
+                    continue;
+                }
+                boolean alreadyConfluence = committedW1.trendState() == committedD1;
+                boolean provisionalAgreesWithD1 = provisionalResult.direction() == committedD1;
+                if (!alreadyConfluence && provisionalAgreesWithD1) {
+                    forming.add(new FlipForming(symbol, provisionalResult, committedW1.tradingviewUrl()));
+                }
+            }
+            result.put(assetClass, forming);
+        }
+        return result;
     }
 
     /**

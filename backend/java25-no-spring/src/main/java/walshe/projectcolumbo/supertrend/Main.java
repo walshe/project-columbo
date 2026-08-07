@@ -34,6 +34,7 @@ import walshe.projectcolumbo.supertrend.rollup.CandleRollupService;
 import walshe.projectcolumbo.supertrend.shared.AssetVenue;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
+import walshe.projectcolumbo.supertrend.signal.ProvisionalTrendService;
 import walshe.projectcolumbo.supertrend.signal.ScanService;
 import walshe.projectcolumbo.supertrend.signal.SignalQueryService;
 import walshe.projectcolumbo.supertrend.signal.SignalStateDetectionService;
@@ -95,6 +96,7 @@ public final class Main {
         SignalQueryService signalQueryService = new SignalQueryService(assetDao, signalStateDao, candleDao, assetLiquidityDao);
         TrendAlignmentService trendAlignmentService = new TrendAlignmentService(signalQueryService, clock);
         ScanService scanService = new ScanService(signalQueryService, clock);
+        ProvisionalTrendService provisionalTrendService = new ProvisionalTrendService(assetDao, candleDao, clock);
 
         Javalin app = ApiServer.create();
         new SignalsHandler(signalQueryService, freshnessService).register(app);
@@ -103,8 +105,8 @@ public final class Main {
         new ScanHandler(scanService).register(app);
         new CandleCoverageHandler(candleDao, freshnessService).register(app);
         new IngestionTriggerHandler(pipelineOrchestrator).register(app);
-        new WeeklyTrendBriefingHandler(pipelineOrchestrator, marketBreadthSnapshotDao, signalQueryService, trendAlignmentService, scanService, clock).register(app);
-        new WeeklyPullbackBriefingHandler(pipelineOrchestrator, marketBreadthSnapshotDao, signalQueryService, trendAlignmentService, scanService, clock).register(app);
+        new WeeklyTrendBriefingHandler(pipelineOrchestrator, marketBreadthSnapshotDao, signalQueryService, trendAlignmentService, scanService, provisionalTrendService, clock).register(app);
+        new WeeklyPullbackBriefingHandler(pipelineOrchestrator, marketBreadthSnapshotDao, signalQueryService, trendAlignmentService, scanService, provisionalTrendService, clock).register(app);
         app.start(httpPort());
 
         DailyScheduler dailyScheduler = new DailyScheduler(pipelineOrchestrator, Provider.BINANCE, Timeframe.D1, clock);

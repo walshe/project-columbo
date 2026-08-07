@@ -13,6 +13,8 @@ import walshe.projectcolumbo.supertrend.pulse.MarketBreadthSnapshot;
 import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
+import walshe.projectcolumbo.supertrend.signal.ProvisionalTrendResult;
+import walshe.projectcolumbo.supertrend.signal.ProvisionalTrendService;
 import walshe.projectcolumbo.supertrend.signal.ScanCondition;
 import walshe.projectcolumbo.supertrend.signal.ScanOperator;
 import walshe.projectcolumbo.supertrend.signal.ScanRequest;
@@ -27,6 +29,7 @@ import walshe.projectcolumbo.supertrend.signal.TrendState;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,6 +58,7 @@ public final class WeeklyPullbackBriefingHandler {
     private final SignalQueryService signalQueryService;
     private final TrendAlignmentService trendAlignmentService;
     private final ScanService scanService;
+    private final ProvisionalTrendService provisionalTrendService;
     private final Clock clock;
 
     public WeeklyPullbackBriefingHandler(
@@ -63,6 +67,7 @@ public final class WeeklyPullbackBriefingHandler {
             SignalQueryService signalQueryService,
             TrendAlignmentService trendAlignmentService,
             ScanService scanService,
+            ProvisionalTrendService provisionalTrendService,
             Clock clock
     ) {
         this.pipelineOrchestrator = Objects.requireNonNull(pipelineOrchestrator, "pipelineOrchestrator must not be null");
@@ -70,6 +75,7 @@ public final class WeeklyPullbackBriefingHandler {
         this.signalQueryService = Objects.requireNonNull(signalQueryService, "signalQueryService must not be null");
         this.trendAlignmentService = Objects.requireNonNull(trendAlignmentService, "trendAlignmentService must not be null");
         this.scanService = Objects.requireNonNull(scanService, "scanService must not be null");
+        this.provisionalTrendService = Objects.requireNonNull(provisionalTrendService, "provisionalTrendService must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
@@ -111,10 +117,61 @@ public final class WeeklyPullbackBriefingHandler {
         Map<AssetClass, List<ScanResult>> bearishScanCandidates = Map.of(
                 AssetClass.CRYPTO, pullbackScan(AssetClass.CRYPTO, TrendState.BEARISH));
 
+        Map<AssetClass, Map<String, ProvisionalTrendResult>> provisionalByClass = BRIEFING_ASSET_CLASSES.stream()
+                .collect(Collectors.toMap(assetClass -> assetClass, provisionalTrendService::computeForActiveAssets));
+        Map<String, ProvisionalTrendResult> divergingProvisional = buildDivergingProvisional(
+                provisionalByClass, bullishPullbackCandidates, bearishPullbackCandidates, bullishScanCandidates, bearishScanCandidates);
+
         return new WeeklyPullbackBriefingReport(
                 ingestionResult.runId(), ingestionResult.status(),
                 regimePulses, WeeklyBriefingSignals.btcState(signalQueryService, Timeframe.W1), WeeklyBriefingSignals.btcState(signalQueryService, Timeframe.D1),
-                bullishPullbackCandidates, bearishPullbackCandidates, bullishScanCandidates, bearishScanCandidates);
+                WeeklyBriefingSignals.btcProvisional(provisionalByClass.getOrDefault(AssetClass.CRYPTO, Map.of())),
+                bullishPullbackCandidates, bearishPullbackCandidates, bullishScanCandidates, bearishScanCandidates, divergingProvisional);
+    }
+
+    /**
+     * Only the divergent cases matter here (per the divergence-only rule): every entry in a
+     * "bullish" list is already known to be committed W1 BULLISH by construction (that's what
+     * qualified it for the list), and every "bearish" entry is committed W1 BEARISH - so this
+     * only needs each candidate's provisional read, not a separate committed-state lookup.
+     */
+    private static Map<String, ProvisionalTrendResult> buildDivergingProvisional(
+            Map<AssetClass, Map<String, ProvisionalTrendResult>> provisionalByClass,
+            Map<AssetClass, List<SignalSummary>> bullishPullbackCandidates,
+            Map<AssetClass, List<SignalSummary>> bearishPullbackCandidates,
+            Map<AssetClass, List<ScanResult>> bullishScanCandidates,
+            Map<AssetClass, List<ScanResult>> bearishScanCandidates
+    ) {
+        Map<String, ProvisionalTrendResult> diverging = new LinkedHashMap<>();
+        for (AssetClass assetClass : BRIEFING_ASSET_CLASSES) {
+            Map<String, ProvisionalTrendResult> provisional = provisionalByClass.getOrDefault(assetClass, Map.of());
+            addDiverging(diverging, provisional, summarySymbols(bullishPullbackCandidates.get(assetClass)), TrendState.BULLISH);
+            addDiverging(diverging, provisional, scanSymbols(bullishScanCandidates.get(assetClass)), TrendState.BULLISH);
+        }
+        Map<String, ProvisionalTrendResult> cryptoProvisional = provisionalByClass.getOrDefault(AssetClass.CRYPTO, Map.of());
+        addDiverging(diverging, cryptoProvisional, summarySymbols(bearishPullbackCandidates.get(AssetClass.CRYPTO)), TrendState.BEARISH);
+        addDiverging(diverging, cryptoProvisional, scanSymbols(bearishScanCandidates.get(AssetClass.CRYPTO)), TrendState.BEARISH);
+        return diverging;
+    }
+
+    private static void addDiverging(
+            Map<String, ProvisionalTrendResult> diverging, Map<String, ProvisionalTrendResult> provisionalBySymbol,
+            List<String> symbols, TrendState committedDirection
+    ) {
+        for (String symbol : symbols) {
+            ProvisionalTrendResult provisional = provisionalBySymbol.get(symbol);
+            if (provisional != null && provisional.direction() != committedDirection) {
+                diverging.put(symbol, provisional);
+            }
+        }
+    }
+
+    private static List<String> summarySymbols(List<SignalSummary> summaries) {
+        return summaries == null ? List.of() : summaries.stream().map(SignalSummary::symbol).toList();
+    }
+
+    private static List<String> scanSymbols(List<ScanResult> results) {
+        return results == null ? List.of() : results.stream().map(ScanResult::symbol).toList();
     }
 
     /**
