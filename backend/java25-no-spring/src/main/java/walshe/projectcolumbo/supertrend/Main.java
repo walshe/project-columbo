@@ -10,6 +10,7 @@ import walshe.projectcolumbo.supertrend.api.ScanHandler;
 import walshe.projectcolumbo.supertrend.api.SignalsHandler;
 import walshe.projectcolumbo.supertrend.api.SummaryHandler;
 import walshe.projectcolumbo.supertrend.api.TrendAlignmentHandler;
+import walshe.projectcolumbo.supertrend.api.WeeklyTrendBriefingHandler;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessService;
 import walshe.projectcolumbo.supertrend.indicator.IndicatorComputationService;
 import walshe.projectcolumbo.supertrend.ingestion.BackfillStartValidator;
@@ -101,6 +102,7 @@ public final class Main {
         new ScanHandler(scanService).register(app);
         new CandleCoverageHandler(candleDao, freshnessService).register(app);
         new IngestionTriggerHandler(pipelineOrchestrator).register(app);
+        new WeeklyTrendBriefingHandler(pipelineOrchestrator, marketBreadthSnapshotDao, signalQueryService, trendAlignmentService, scanService, clock).register(app);
         app.start(httpPort());
 
         DailyScheduler dailyScheduler = new DailyScheduler(pipelineOrchestrator, Provider.BINANCE, Timeframe.D1, clock);

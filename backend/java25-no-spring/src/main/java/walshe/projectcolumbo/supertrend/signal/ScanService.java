@@ -88,7 +88,8 @@ public final class ScanService {
                 continue;
             }
             matches.put(candidate.symbol(), new ScanConditionMatch(
-                    condition.timeframe(), candidate.trendState(), candidate.lastFlipTime(), daysSinceFlip, candidate.tradingviewUrl()));
+                    condition.timeframe(), candidate.trendState(), candidate.lastFlipTime(), daysSinceFlip,
+                    candidate.pctChangeSinceFlip(), candidate.tradingviewUrl()));
             assetClassBySymbol.put(candidate.symbol(), candidate.assetClass());
             avgVolumeBySymbol.put(candidate.symbol(), candidate.avgVolume7d());
         }
