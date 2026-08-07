@@ -86,6 +86,8 @@ All under `/api/v1`, JSON by default unless noted.
 | `POST` | `/scan` | JSON body: `operator` (`AND`/`OR`), `conditions[]` (`timeframe`, `state`, optional `maxDaysSinceFlip`), optional `limit`, optional `assetClass`, optional `sort` (`SYMBOL_ASC` default, or `LIQUIDITY_DESC`); each result includes `avgVolume7d` |
 | `GET` | `/candles/coverage` | per-timeframe earliest/latest/expected-latest/up-to-date/asset-count; optional `assetClass` restricts `earliest`/`assetCount` only - freshness fields stay global |
 | `POST` | `/internal/ingestion/run` | optional JSON body: `provider`/`timeframe` (default `BINANCE`/`D1`); 202 + run id, 409 if already running for that provider+timeframe |
+| `POST` | `/weekly-trend-briefing` | No params; runs D1 ingestion to completion, then returns a `text/markdown` report - see "Weekly briefings" below |
+| `POST` | `/weekly-pullback-briefing` | No params; runs D1 ingestion to completion, then returns a `text/markdown` report - see "Weekly briefings" below |
 
 Plus `GET /openapi` (OpenAPI spec) and `GET /swagger` (Swagger UI).
 
@@ -94,6 +96,32 @@ Every signal/scan-match entry that has an asset+timeframe includes a `tradingvie
 Every asset has an `assetClass` (`CRYPTO`/`STOCK`/`ETF`/`COMMODITY`) - crypto and a large batch of Binance-tradeable stocks/ETFs are onboarded. The `assetClass` query param above filters results to one class; each signal/scan-match entry also includes its own `assetClass` in the response.
 
 Every asset also has a `venue` (`SPOT` or `FUTURES`) that isn't exposed via the API but determines which Binance host/path (`SUPERTREND_BINANCE_SPOT_BASE_URL` vs `SUPERTREND_BINANCE_FUTURES_BASE_URL`) `CandleIngestionService` fetches its candles from — spot and futures are separate Binance products with entirely separate symbol universes, so an asset only tradeable on one must be routed there specifically. Stocks/ETFs and a handful of crypto symbols (e.g. `HYPEUSDT`) are `FUTURES`; ordinary crypto defaults to `SPOT`.
+
+## Weekly briefings
+
+Two composite, trader-facing endpoints that each script a full weekly market read into a single Markdown report - they run ingestion, then compose several of the read endpoints above into one opinionated take on what's worth looking at. Both are `POST` (they trigger ingestion as a side effect), take no request body/query params, and return `text/markdown` only - point a browser, curl, or any HTTP client at them and read the response directly.
+
+Every report opens with the same objective context, regardless of which briefing:
+
+- **Regime Read** - W1 bullish/bearish market breadth for CRYPTO, ETF, and STOCK, side by side. No inferred rotation between asset classes (e.g. "ETF strength implies crypto weakness") - each class's breadth is measured directly, not guessed from another class.
+- **BTC Alignment** - BTCUSDT's W1 vs D1 trend state. When they agree, that's crypto's prevailing direction for the week; when they conflict, every crypto candidate in the report should be treated with extra caution regardless of anything else it shows.
+
+Each briefing then takes its own single, opinionated stance on what to do with that context:
+
+### `POST /weekly-trend-briefing` - follow the confirmed move
+
+Headlines **confluence**: assets where W1 and D1 agree (both bullish, or both bearish). Scan candidates are liquidity-gated (top 15 by 7-day average volume) and then ranked by momentum - the size of the move since the D1 flip, biggest confirming move first. The premise: back the trend that's already proven itself on both timeframes, not one still working itself out.
+
+### `POST /weekly-pullback-briefing` - buy the dip in an established trend
+
+Headlines **retest**: W1 trend intact, but D1 has recently flipped counter to it - a pullback (or bounce, on the bearish/crypto side) within an otherwise-established trend. Confluence isn't shown here at all. Scan candidates are liquidity-gated the same way, then ranked by depth of the counter-move - deepest dip first for a bullish pullback, biggest bounce first for a bearish one. The premise: a better entry often comes from a temporary disagreement within a trend, not from chasing a move that's already run.
+
+### Shared conventions across both
+
+- **Stocks and ETFs are longs-only** everywhere - only the bullish side is scanned or reported for those classes. Crypto is reported both directions, since BTC Alignment (not the briefing itself) is the intended signal for caution on the short side.
+- **Liquidity gates; the briefing's opinion ranks.** Every scan-candidate list is cut down to the 15 most liquid matches first, then re-ordered by whichever signal that briefing is built around. A thin, illiquid mover never outranks a liquid one just because it moved more.
+- Neither endpoint takes query parameters - asset classes, retest window, and candidate limit are fixed constants tuned for this specific weekly routine, not a general-purpose reporting API.
+- Future `weekly-<something>-briefing` variants are expected to follow the same shape: share the Regime Read/BTC Alignment header, then express one clear opinion about what to do with a confirmed-vs-diverging W1/D1 signal, rather than trying to cover every angle in one report.
 
 ## Logging
 
