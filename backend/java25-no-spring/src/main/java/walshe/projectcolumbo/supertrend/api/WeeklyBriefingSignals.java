@@ -9,12 +9,13 @@ import walshe.projectcolumbo.supertrend.signal.SignalSummary;
 import walshe.projectcolumbo.supertrend.signal.TrendState;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 
 /**
  * Lookups shared by every {@code weekly-*-briefing} handler
  * ({@link WeeklyTrendBriefingHandler}, {@link WeeklyPullbackBriefingHandler}): the BTC
- * direction tiebreaker and reading a scan match's D1 leg are identical regardless of which
- * trading philosophy a given briefing is built around.
+ * direction tiebreaker and reading/ranking a scan match's D1 leg are identical regardless of
+ * which trading philosophy a given briefing is built around.
  */
 final class WeeklyBriefingSignals {
 
@@ -31,7 +32,20 @@ final class WeeklyBriefingSignals {
                 .orElse(null);
     }
 
-    static BigDecimal d1PctChangeSinceFlip(ScanResult result) {
+    /**
+     * Ranks by the D1 leg's movement since flip, nulls always last regardless of direction.
+     * <p>
+     * Deliberately builds the descending case as {@code nullsLast(reverseOrder())} rather than
+     * {@code nullsLast(naturalOrder()).reversed()} on the ascending comparator - the latter
+     * reverses null placement along with everything else, so nulls-last silently becomes
+     * nulls-first. Same pattern as {@code SignalQueryService}'s {@code PCT_CHANGE_DESC}.
+     */
+    static Comparator<ScanResult> byD1Movement(boolean descending) {
+        Comparator<BigDecimal> valueOrder = descending ? Comparator.reverseOrder() : Comparator.naturalOrder();
+        return Comparator.comparing(WeeklyBriefingSignals::d1PctChangeSinceFlip, Comparator.nullsLast(valueOrder));
+    }
+
+    private static BigDecimal d1PctChangeSinceFlip(ScanResult result) {
         return result.matchedConditions().stream()
                 .filter(match -> match.timeframe() == Timeframe.D1)
                 .findFirst()

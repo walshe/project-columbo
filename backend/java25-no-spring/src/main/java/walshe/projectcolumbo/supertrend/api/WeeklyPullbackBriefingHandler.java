@@ -27,7 +27,6 @@ import walshe.projectcolumbo.supertrend.signal.TrendState;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -134,10 +133,8 @@ public final class WeeklyPullbackBriefingHandler {
                 SCAN_LIMIT, assetClass, ScanSort.LIQUIDITY_DESC);
         List<ScanResult> liquidityGated = scanService.execute(request);
 
-        Comparator<ScanResult> byD1Movement = Comparator.comparing(
-                WeeklyBriefingSignals::d1PctChangeSinceFlip, Comparator.nullsLast(Comparator.naturalOrder()));
         return liquidityGated.stream()
-                .sorted(primaryState == TrendState.BULLISH ? byD1Movement : byD1Movement.reversed())
+                .sorted(WeeklyBriefingSignals.byD1Movement(primaryState == TrendState.BEARISH))
                 .toList();
     }
 }
