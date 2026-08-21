@@ -127,8 +127,9 @@ public final class ProvisionalTrendService {
     private List<Candle> weekToDateD1Candles(long assetId) {
         List<Candle> allD1 = candleDao.findByAssetAndTimeframe(assetId, Timeframe.D1);
         OffsetDateTime currentWeekMonday = currentWeekMonday();
+        OffsetDateTime nextWeekMonday = currentWeekMonday.plusWeeks(1);
         return allD1.stream()
-                .filter(candle -> !candle.openTime().isBefore(currentWeekMonday))
+                .filter(candle -> !candle.openTime().isBefore(currentWeekMonday) && candle.openTime().isBefore(nextWeekMonday))
                 .toList();
     }
 
