@@ -2,6 +2,7 @@ package walshe.projectcolumbo.supertrend.api;
 
 import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
+import walshe.projectcolumbo.supertrend.signal.ProvisionalTrendResult;
 import walshe.projectcolumbo.supertrend.signal.ScanConditionMatch;
 import walshe.projectcolumbo.supertrend.signal.ScanResult;
 import walshe.projectcolumbo.supertrend.signal.SignalQueryService;
@@ -10,6 +11,7 @@ import walshe.projectcolumbo.supertrend.signal.TrendState;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
+import java.util.Map;
 
 /**
  * Lookups shared by every {@code weekly-*-briefing} handler
@@ -30,6 +32,11 @@ final class WeeklyBriefingSignals {
                 .map(SignalSummary::trendState)
                 .findFirst()
                 .orElse(null);
+    }
+
+    /** @param cryptoProvisional the CRYPTO-class result of {@code ProvisionalTrendService.computeForActiveAssets} - both handlers already compute this for their own needs, so BTC's entry is just extracted rather than looked up separately */
+    static ProvisionalTrendResult btcProvisional(Map<String, ProvisionalTrendResult> cryptoProvisional) {
+        return cryptoProvisional.get(BTC_SYMBOL);
     }
 
     /**

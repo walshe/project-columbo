@@ -9,19 +9,12 @@ import walshe.projectcolumbo.supertrend.persistence.CandleDao;
 import walshe.projectcolumbo.supertrend.shared.FinalizedBoundary;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
-import java.math.BigDecimal;
 import java.time.Clock;
-import java.time.DayOfWeek;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 /**
  * Derives weekly (W1) candles from finalized D1 candles, grouped into Monday-start weeks.
@@ -64,7 +57,7 @@ public final class CandleRollupService {
         Optional<OffsetDateTime> lastStoredWeekClose = candleDao.findLatestCloseTime(asset.id(), Timeframe.W1);
         OffsetDateTime finalizedBoundary = FinalizedBoundary.utcMidnightToday(OffsetDateTime.now(clock));
 
-        for (Map.Entry<OffsetDateTime, List<Candle>> entry : groupByWeek(sourceCandles).entrySet()) {
+        for (Map.Entry<OffsetDateTime, List<Candle>> entry : WeeklyCandleAggregation.groupByWeek(sourceCandles).entrySet()) {
             List<Candle> weekCandles = entry.getValue();
             if (weekCandles.size() != CANDLES_PER_WEEK) {
                 continue;
@@ -80,29 +73,7 @@ public final class CandleRollupService {
                 continue;
             }
 
-            candleDao.upsert(asset.id(), aggregate(weekCandles));
+            candleDao.upsert(asset.id(), WeeklyCandleAggregation.aggregate(weekCandles));
         }
-    }
-
-    private static Map<OffsetDateTime, List<Candle>> groupByWeek(List<Candle> candles) {
-        return candles.stream().collect(Collectors.groupingBy(
-                candle -> candle.openTime()
-                        .withOffsetSameInstant(ZoneOffset.UTC)
-                        .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                        .truncatedTo(ChronoUnit.DAYS),
-                TreeMap::new,
-                Collectors.toList()
-        ));
-    }
-
-    private static Candle aggregate(List<Candle> weekCandles) {
-        Candle first = weekCandles.get(0);
-        Candle last = weekCandles.get(weekCandles.size() - 1);
-
-        BigDecimal high = weekCandles.stream().map(Candle::high).max(BigDecimal::compareTo).orElse(first.high());
-        BigDecimal low = weekCandles.stream().map(Candle::low).min(BigDecimal::compareTo).orElse(first.low());
-        BigDecimal volume = weekCandles.stream().map(Candle::volume).reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        return new Candle(first.openTime(), last.closeTime(), Timeframe.W1, first.open(), high, low, last.close(), volume);
     }
 }

@@ -5,6 +5,7 @@ import walshe.projectcolumbo.supertrend.signal.TrendAlignment;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 
 /** Renders a {@link WeeklyTrendBriefingReport} as {@code text/markdown} - the only format this briefing produces. */
 public final class WeeklyTrendBriefingFormatter {
@@ -17,7 +18,7 @@ public final class WeeklyTrendBriefingFormatter {
         md.append("**Generated at:** ").append(now).append("\n\n");
         md.append("**Ingestion run:** #").append(report.ingestionRunId()).append(" - ").append(report.ingestionStatus()).append("\n\n");
         WeeklyBriefingFormatting.appendRegimeSection(md, report.regimePulses());
-        WeeklyBriefingFormatting.appendBtcSection(md, report.btcW1State(), report.btcD1State(), report.btcAligned());
+        WeeklyBriefingFormatting.appendBtcSection(md, report.btcW1State(), report.btcD1State(), report.btcAligned(), report.btcW1Provisional());
         for (AssetClass assetClass : WeeklyBriefingFormatting.BRIEFING_ASSET_CLASSES) {
             appendClassSection(md, report, assetClass, now);
         }
@@ -29,16 +30,36 @@ public final class WeeklyTrendBriefingFormatter {
         TrendAlignment alignment = report.trendAlignments().get(assetClass);
         boolean showBearish = assetClass == AssetClass.CRYPTO;
 
-        WeeklyBriefingFormatting.appendSignalList(md, "Bullish Confluence (W1+D1)", alignment.bullishConfluence(), now);
-        WeeklyBriefingFormatting.appendSignalList(md, "Bullish Retest (W1 bullish, D1 recently flipped bearish)", alignment.bullishRetest(), now);
+        // Confirmed lists are built entirely from committed data - Map.of() keeps provisional
+        // annotations out of them entirely, per this report's "only back what's already
+        // confirmed" premise. Provisional data only ever appears in "Flips Forming" below.
+        WeeklyBriefingFormatting.appendSignalList(md, "Bullish Confluence (W1+D1)", alignment.bullishConfluence(), now, Map.of());
+        WeeklyBriefingFormatting.appendSignalList(md, "Bullish Retest (W1 bullish, D1 recently flipped bearish)", alignment.bullishRetest(), now, Map.of());
         if (showBearish) {
-            WeeklyBriefingFormatting.appendSignalList(md, "Bearish Confluence (W1+D1)", alignment.bearishConfluence(), now);
-            WeeklyBriefingFormatting.appendSignalList(md, "Bearish Retest (W1 bearish, D1 recently flipped bullish)", alignment.bearishRetest(), now);
+            WeeklyBriefingFormatting.appendSignalList(md, "Bearish Confluence (W1+D1)", alignment.bearishConfluence(), now, Map.of());
+            WeeklyBriefingFormatting.appendSignalList(md, "Bearish Retest (W1 bearish, D1 recently flipped bullish)", alignment.bearishRetest(), now, Map.of());
         }
 
-        WeeklyBriefingFormatting.appendScanList(md, "Bullish Scan Candidates (top liquidity, ranked by D1 movement since flip)", report.bullishScanCandidates().getOrDefault(assetClass, List.of()));
+        WeeklyBriefingFormatting.appendScanList(md, "Bullish Scan Candidates (top liquidity, ranked by D1 movement since flip)", report.bullishScanCandidates().getOrDefault(assetClass, List.of()), Map.of());
         if (showBearish) {
-            WeeklyBriefingFormatting.appendScanList(md, "Bearish Scan Candidates (top liquidity, ranked by D1 movement since flip)", report.bearishScanCandidates().getOrDefault(assetClass, List.of()));
+            WeeklyBriefingFormatting.appendScanList(md, "Bearish Scan Candidates (top liquidity, ranked by D1 movement since flip)", report.bearishScanCandidates().getOrDefault(assetClass, List.of()), Map.of());
         }
+
+        appendFlipsForming(md, report.flipsForming().getOrDefault(assetClass, List.of()));
+    }
+
+    private static void appendFlipsForming(StringBuilder md, List<FlipForming> forming) {
+        md.append("### Flips Forming (not yet confluence-eligible, provisional W1 now agrees with committed D1)\n");
+        if (forming.isEmpty()) {
+            md.append("_None found._\n\n");
+            return;
+        }
+        for (FlipForming entry : forming) {
+            String symbolText = entry.tradingviewUrl() != null
+                    ? "[" + entry.symbol() + "](" + entry.tradingviewUrl() + ")"
+                    : entry.symbol();
+            md.append("- ").append(symbolText).append(": ").append(WeeklyBriefingFormatting.formatProvisional(entry.provisional())).append('\n');
+        }
+        md.append('\n');
     }
 }
