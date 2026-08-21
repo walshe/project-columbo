@@ -43,19 +43,30 @@ public final class TrendAlignmentHandler {
             path = "/api/v1/summary/trend-alignment",
             methods = HttpMethod.GET,
             summary = "Cross-timeframe (W1+D1) SuperTrend confluence and retest, driven by D1 freshness",
+            description = "Buckets every active asset (per the assetClass filter) into up to four lists: bullish/bearish confluence "
+                    + "(W1 and D1 currently agree - the strongest signal) and bullish/bearish retest (W1 still intact, but D1 "
+                    + "recently flipped counter to it within maxRetestAgeDays - a pullback/bounce, not a reversal). An asset "
+                    + "appears in at most one list. Freshness is always evaluated against D1 (the driving timeframe here), never W1.",
             queryParams = {
-                    @OpenApiParam(name = "format", type = SummaryFormat.class, description = "Defaults to JSON"),
-                    @OpenApiParam(name = "maxRetestAgeDays", type = Integer.class, description = "Defaults to 7"),
-                    @OpenApiParam(name = "assetClass", type = AssetClass.class, description = "Filter to this asset class only"),
-                    @OpenApiParam(name = "requireFresh", type = Boolean.class, description = "Reject with 503 if D1 is stale beyond the grace window")
+                    @OpenApiParam(name = "format", type = SummaryFormat.class,
+                            description = "Response shape. JSON (default) = structured TrendAlignmentResponse. MARKDOWN = "
+                                    + "text/markdown human-readable report. WATCHLIST = text/plain, one symbol per line, "
+                                    + "suitable for pasting into a TradingView watchlist import."),
+                    @OpenApiParam(name = "maxRetestAgeDays", type = Integer.class,
+                            description = "How many days back a D1 flip can be and still count as a \"recent\" retest. Defaults to 7. "
+                                    + "A D1 flip older than this is treated as the new trend, not a retest of the old one."),
+                    @OpenApiParam(name = "assetClass", type = AssetClass.class,
+                            description = "Only include assets in this category: CRYPTO, STOCK, or ETF. Omit to include all categories."),
+                    @OpenApiParam(name = "requireFresh", type = Boolean.class,
+                            description = "When true, respond 503 instead of data if D1 is stale beyond the grace window. Defaults to false.")
             },
             responses = {
                     @OpenApiResponse(status = "200", content = {
                             @OpenApiContent(from = TrendAlignmentResponse.class),
                             @OpenApiContent(mimeType = "text/markdown", type = "string"),
                             @OpenApiContent(mimeType = "text/plain", type = "string")
-                    }),
-                    @OpenApiResponse(status = "503", description = "D1 data is stale and requireFresh=true")
+                    }, description = "Exactly one of the three content types is returned, selected by the format param"),
+                    @OpenApiResponse(status = "503", description = "D1 data is stale and requireFresh=true; no alignment data is returned")
             }
     )
     private void getTrendAlignment(Context ctx) {

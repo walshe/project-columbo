@@ -79,7 +79,7 @@ All under `/api/v1`, JSON by default unless noted.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/signals` | `timeframe` required; `state`, `sort`, `assetClass`, `requireFresh` optional |
+| `GET` | `/signals` | `timeframe` required; `state`, `sort`, `assetClass`, `symbols` (comma-separated, exact-case symbol list, e.g. `symbols=BTCUSDT,ETHUSDT` - unmatched symbols silently omitted), `requireFresh` optional |
 | `GET` | `/assets/by-state` | `timeframe`, `state` required; `assetClass` optional; no freshness gating |
 | `GET` | `/summary` | `timeframe` required; `format` (`JSON`/`MARKDOWN`/`WATCHLIST`), `assetClass`, `requireFresh` optional; response echoes back `timeframe`/`assetClass` in every format; `pulse` (market-breadth) is scoped to `assetClass` too, combined across every class when omitted |
 | `GET` | `/summary/trend-alignment` | `format`, `maxRetestAgeDays` (default 7), `assetClass`, `requireFresh` optional; freshness always checked against D1; response echoes back `maxRetestAgeDays`/`assetClass` in every format |

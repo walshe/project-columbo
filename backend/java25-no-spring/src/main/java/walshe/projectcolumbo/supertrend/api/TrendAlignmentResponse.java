@@ -8,6 +8,12 @@ import java.util.List;
 import java.util.Objects;
 
 /**
+ * "Confluence" = W1 and D1 agree on direction right now (the strongest read: both timeframes
+ * confirm the same trend). "Retest" = W1 is still intact in a direction, but D1 recently flipped
+ * counter to it within {@code maxRetestAgeDays} - a pullback/bounce against the dominant weekly
+ * trend, not (yet) a reversal of it. Each of the four lists is one quadrant of that 2x2
+ * (direction x confluence-vs-retest); an asset appears in at most one.
+ *
  * @param maxRetestAgeDays the requested retest-age cutoff this report was computed with - included
  *                         so the response (and its Markdown rendering) is self-describing rather
  *                         than requiring the reader to already know what request produced it

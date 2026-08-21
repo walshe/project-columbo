@@ -53,19 +53,27 @@ public final class SummaryHandler {
             path = "/api/v1/summary",
             methods = HttpMethod.GET,
             summary = "SuperTrend-only bullish/bearish signal lists plus the latest market-breadth pulse for a timeframe",
+            description = "SuperTrend-only - no RSI or any other indicator. Splits every active asset (per the assetClass filter) "
+                    + "into bullishSignals/bearishSignals (each ordered by most-recent flip first), plus the latest market-breadth "
+                    + "pulse snapshot for the same timeframe/class if one has been computed.",
             queryParams = {
-                    @OpenApiParam(name = "timeframe", type = Timeframe.class, required = true),
-                    @OpenApiParam(name = "format", type = SummaryFormat.class, description = "Defaults to JSON"),
-                    @OpenApiParam(name = "assetClass", type = AssetClass.class, description = "Filter to this asset class only"),
-                    @OpenApiParam(name = "requireFresh", type = Boolean.class, description = "Reject with 503 if the timeframe's data is stale beyond the grace window")
+                    @OpenApiParam(name = "timeframe", type = Timeframe.class, required = true,
+                            description = "Which candle timeframe to summarize. D1 = daily, W1 = weekly (Monday-close)."),
+                    @OpenApiParam(name = "format", type = SummaryFormat.class,
+                            description = "Response shape. JSON (default) = structured SummaryResponse. MARKDOWN = "
+                                    + "text/markdown human-readable report. WATCHLIST = text/plain, one symbol per line."),
+                    @OpenApiParam(name = "assetClass", type = AssetClass.class,
+                            description = "Only include assets in this category: CRYPTO, STOCK, or ETF. Omit to include all categories."),
+                    @OpenApiParam(name = "requireFresh", type = Boolean.class,
+                            description = "When true, respond 503 instead of data if this timeframe's data is stale beyond the grace window. Defaults to false.")
             },
             responses = {
                     @OpenApiResponse(status = "200", content = {
                             @OpenApiContent(from = SummaryResponse.class),
                             @OpenApiContent(mimeType = "text/markdown", type = "string"),
                             @OpenApiContent(mimeType = "text/plain", type = "string")
-                    }),
-                    @OpenApiResponse(status = "503", description = "Data is stale and requireFresh=true")
+                    }, description = "Exactly one of the three content types is returned, selected by the format param"),
+                    @OpenApiResponse(status = "503", description = "Data is stale and requireFresh=true; no summary data is returned")
             }
     )
     private void getSummary(Context ctx) {

@@ -19,8 +19,11 @@ import walshe.projectcolumbo.supertrend.signal.SignalSort;
 import walshe.projectcolumbo.supertrend.signal.SignalSummary;
 import walshe.projectcolumbo.supertrend.signal.TrendState;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /** Registers {@code GET /api/v1/signals} and {@code GET /api/v1/assets/by-state}. */
 public final class SignalsHandler {
@@ -41,17 +44,37 @@ public final class SignalsHandler {
     @OpenApi(
             path = "/api/v1/signals",
             methods = HttpMethod.GET,
-            summary = "List the latest SuperTrend signal state for every active asset on a timeframe",
+            summary = "List the latest SuperTrend signal state for every active asset on a timeframe, or narrow it to one or more specific assets",
+            description = "Returns one entry per matching active asset: its current SuperTrend trend state, when it last flipped, "
+                    + "7-day average volume, percent change since that flip, and a ready-to-open TradingView chart link. "
+                    + "Filters compose: pass any combination of state/assetClass/symbols together. To look up a specific asset's "
+                    + "current trend (the common case for a single-symbol query), use symbols=BTCUSDT rather than fetching the "
+                    + "full list and searching client-side.",
             queryParams = {
-                    @OpenApiParam(name = "timeframe", type = Timeframe.class, required = true),
-                    @OpenApiParam(name = "state", type = TrendState.class, description = "Filter to this trend state only"),
-                    @OpenApiParam(name = "sort", type = SignalSort.class, description = "Defaults to ASSET_ASC"),
-                    @OpenApiParam(name = "assetClass", type = AssetClass.class, description = "Filter to this asset class only"),
-                    @OpenApiParam(name = "requireFresh", type = Boolean.class, description = "Reject with 503 if the timeframe's data is stale beyond the grace window")
+                    @OpenApiParam(name = "timeframe", type = Timeframe.class, required = true,
+                            description = "Which candle timeframe to read the trend from. D1 = daily close-to-close trend, W1 = weekly (Monday-close) trend."),
+                    @OpenApiParam(name = "state", type = TrendState.class,
+                            description = "Only return assets currently in this trend state (BULLISH or BEARISH). Omit to return both."),
+                    @OpenApiParam(name = "sort", type = SignalSort.class,
+                            description = "Result ordering. ASSET_ASC (default, symbol A-Z) | LAST_FLIP_ASC/DESC (oldest/most-recent flip first, nulls last) | "
+                                    + "TREND_STATE_ASC (bullish before bearish) | LIQUIDITY_DESC (highest 7-day avg volume first) | "
+                                    + "PCT_CHANGE_ASC/DESC (smallest/largest move since flip first, nulls last)."),
+                    @OpenApiParam(name = "assetClass", type = AssetClass.class,
+                            description = "Only return assets in this category: CRYPTO, STOCK, or ETF. Omit to include all categories."),
+                    @OpenApiParam(name = "symbols", type = String.class,
+                            description = "Comma-separated list of exact, case-sensitive symbols to look up, e.g. symbols=BTCUSDT or "
+                                    + "symbols=BTCUSDT,ETHUSDT. A symbol that doesn't match any active asset is silently omitted from the "
+                                    + "response, not an error - if a queried symbol is simply missing from the results, double-check the "
+                                    + "exact spelling/case rather than assuming a server error. Composes with state/assetClass/sort. Omit to return all active assets."),
+                    @OpenApiParam(name = "requireFresh", type = Boolean.class,
+                            description = "When true, respond 503 instead of data if this timeframe's ingested data is stale beyond the "
+                                    + "configured grace window. Defaults to false (stale data is still returned, with staleness flagged in the response's freshness metadata).")
             },
             responses = {
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = SignalListResponse.class)),
-                    @OpenApiResponse(status = "503", description = "Data is stale and requireFresh=true")
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = SignalListResponse.class),
+                            description = "Zero or more matching signals plus freshness metadata. An empty list is a valid, non-error result "
+                                    + "(e.g. no assets currently match the filters, or a requested symbol doesn't exist)."),
+                    @OpenApiResponse(status = "503", description = "requireFresh=true and the timeframe's data is stale beyond the grace window; no signal data is returned")
             }
     )
     private void getSignals(Context ctx) {
@@ -59,6 +82,7 @@ public final class SignalsHandler {
         TrendState state = ctx.queryParamAsClass("state", TrendState.class).allowNullable().get();
         SignalSort sort = ctx.queryParamAsClass("sort", SignalSort.class).allowNullable().get();
         AssetClass assetClass = ctx.queryParamAsClass("assetClass", AssetClass.class).allowNullable().get();
+        Set<String> symbols = parseSymbols(ctx.queryParam("symbols"));
         boolean requireFresh = ctx.queryParamAsClass("requireFresh", Boolean.class).getOrDefault(false);
 
         // Computed once and reused below (buildResponse) rather than calling FreshnessService.evaluate
@@ -68,21 +92,39 @@ public final class SignalsHandler {
             throw new StaleDataException(status);
         }
 
-        List<SignalSummary> signals = signalQueryService.listSignals(timeframe, state, sort, assetClass);
+        List<SignalSummary> signals = signalQueryService.listSignals(timeframe, state, sort, assetClass, symbols);
         ctx.json(buildResponse(signals, status));
+    }
+
+    /** {@code null} when the query param is absent/blank, matching how every other optional filter here behaves (null = unfiltered). */
+    private static Set<String> parseSymbols(String rawCommaSeparated) {
+        if (rawCommaSeparated == null || rawCommaSeparated.isBlank()) {
+            return null;
+        }
+        return Arrays.stream(rawCommaSeparated.split(","))
+                .map(String::trim)
+                .filter(symbol -> !symbol.isEmpty())
+                .collect(Collectors.toSet());
     }
 
     @OpenApi(
             path = "/api/v1/assets/by-state",
             methods = HttpMethod.GET,
             summary = "List every active asset currently in a given trend state on a timeframe - no freshness gating",
+            description = "A browse-by-state endpoint, not a symbol lookup - unlike GET /api/v1/signals, there is no symbols "
+                    + "filter here and staleness is never checked (no requireFresh/503 path). Use this to answer \"which assets "
+                    + "are bullish right now\", not \"what is BTCUSDT's trend\" (use /api/v1/signals?symbols=... for that instead).",
             queryParams = {
-                    @OpenApiParam(name = "timeframe", type = Timeframe.class, required = true),
-                    @OpenApiParam(name = "state", type = TrendState.class, required = true),
-                    @OpenApiParam(name = "assetClass", type = AssetClass.class, description = "Filter to this asset class only")
+                    @OpenApiParam(name = "timeframe", type = Timeframe.class, required = true,
+                            description = "Which candle timeframe to read the trend from. D1 = daily, W1 = weekly (Monday-close)."),
+                    @OpenApiParam(name = "state", type = TrendState.class, required = true,
+                            description = "Only return assets currently in this trend state: BULLISH or BEARISH."),
+                    @OpenApiParam(name = "assetClass", type = AssetClass.class,
+                            description = "Only include assets in this category: CRYPTO, STOCK, or ETF. Omit to include all categories.")
             },
             responses = {
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = SignalListResponse.class))
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = SignalListResponse.class),
+                            description = "Zero or more matching assets; an empty list is a valid, non-error result")
             }
     )
     private void getAssetsByState(Context ctx) {

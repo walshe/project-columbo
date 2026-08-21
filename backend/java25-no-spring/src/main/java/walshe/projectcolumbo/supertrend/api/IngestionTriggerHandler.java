@@ -36,10 +36,17 @@ public final class IngestionTriggerHandler {
             path = "/api/v1/internal/ingestion/run",
             methods = HttpMethod.POST,
             summary = "Trigger a manual ingestion pipeline run - defaults to BINANCE/D1 when the body is omitted or fields are absent",
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = IngestionTriggerRequest.class), required = false),
+            description = "Asynchronous: the 202 response confirms the run was recorded and started, not that it finished - "
+                    + "the actual ingest/compute work continues in the background after this call returns. There is currently "
+                    + "no dedicated endpoint to poll a specific run's completion by runId; to check whether new data has landed, "
+                    + "poll GET /api/v1/candles/coverage or the freshness metadata (lastIngestionAt/candlesThrough/stale) on any "
+                    + "read endpoint for the same provider/timeframe instead.",
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = IngestionTriggerRequest.class), required = false,
+                    description = "Both fields optional; omit the body entirely, or omit either field, to default to BINANCE/D1"),
             responses = {
-                    @OpenApiResponse(status = "202", content = @OpenApiContent(from = IngestionTriggerResponse.class)),
-                    @OpenApiResponse(status = "409", description = "A run is already RUNNING for this provider+timeframe")
+                    @OpenApiResponse(status = "202", content = @OpenApiContent(from = IngestionTriggerResponse.class),
+                            description = "Run accepted and started; runId identifies the ingestion_run row, status is always \"STARTED\" at this point"),
+                    @OpenApiResponse(status = "409", description = "A run is already RUNNING for this exact provider+timeframe combination - wait for it to finish before retrying")
             }
     )
     private void triggerRun(Context ctx) {

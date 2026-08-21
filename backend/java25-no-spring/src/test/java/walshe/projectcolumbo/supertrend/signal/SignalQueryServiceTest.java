@@ -12,6 +12,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,7 +30,7 @@ class SignalQueryServiceTest {
     void defaultSortIsAssetAscendingWhenSortIsNull() {
         List<SignalState> latest = List.of(state(2, TrendState.BULLISH), state(1, TrendState.BULLISH));
 
-        List<SignalSummary> result = SignalQueryService.summarize(latest, enrichment(Map.of(), Map.of(), Map.of(), Map.of()), null, null);
+        List<SignalSummary> result = SignalQueryService.summarize(latest, enrichment(Map.of(), Map.of(), Map.of(), Map.of()), null, null, null);
 
         assertThat(result).extracting(SignalSummary::symbol).containsExactly("AAAUSDT", "BBBUSDT");
     }
@@ -39,7 +40,7 @@ class SignalQueryServiceTest {
         List<SignalState> latest = List.of(state(1, TrendState.BULLISH), state(2, TrendState.BEARISH));
 
         List<SignalSummary> result = SignalQueryService.summarize(
-                latest, enrichment(Map.of(), Map.of(), Map.of(), Map.of()), TrendState.BEARISH, null);
+                latest, enrichment(Map.of(), Map.of(), Map.of(), Map.of()), TrendState.BEARISH, null, null);
 
         assertThat(result).extracting(SignalSummary::symbol).containsExactly("BBBUSDT");
     }
@@ -54,7 +55,7 @@ class SignalQueryServiceTest {
         );
 
         List<SignalSummary> result = SignalQueryService.summarize(
-                latest, enrichment(flips, Map.of(), Map.of(), Map.of()), null, SignalSort.LAST_FLIP_ASC);
+                latest, enrichment(flips, Map.of(), Map.of(), Map.of()), null, SignalSort.LAST_FLIP_ASC, null);
 
         assertThat(result).extracting(SignalSummary::symbol).containsExactly("BBBUSDT", "AAAUSDT", "CCCUSDT");
     }
@@ -68,7 +69,7 @@ class SignalQueryServiceTest {
         );
 
         List<SignalSummary> result = SignalQueryService.summarize(
-                latest, enrichment(flips, Map.of(), Map.of(), Map.of()), null, SignalSort.LAST_FLIP_DESC);
+                latest, enrichment(flips, Map.of(), Map.of(), Map.of()), null, SignalSort.LAST_FLIP_DESC, null);
 
         assertThat(result).extracting(SignalSummary::symbol).containsExactly("AAAUSDT", "BBBUSDT", "CCCUSDT");
     }
@@ -79,7 +80,7 @@ class SignalQueryServiceTest {
                 state(1, TrendState.UNKNOWN), state(2, TrendState.BEARISH), state(3, TrendState.BULLISH));
 
         List<SignalSummary> result = SignalQueryService.summarize(
-                latest, enrichment(Map.of(), Map.of(), Map.of(), Map.of()), null, SignalSort.TREND_STATE_ASC);
+                latest, enrichment(Map.of(), Map.of(), Map.of(), Map.of()), null, SignalSort.TREND_STATE_ASC, null);
 
         assertThat(result).extracting(SignalSummary::trendState)
                 .containsExactly(TrendState.BULLISH, TrendState.BEARISH, TrendState.UNKNOWN);
@@ -91,7 +92,7 @@ class SignalQueryServiceTest {
         Map<Long, BigDecimal> liquidity = Map.of(1L, new BigDecimal("10"), 2L, new BigDecimal("100"));
 
         List<SignalSummary> result = SignalQueryService.summarize(
-                latest, enrichment(Map.of(), liquidity, Map.of(), Map.of()), null, SignalSort.LIQUIDITY_DESC);
+                latest, enrichment(Map.of(), liquidity, Map.of(), Map.of()), null, SignalSort.LIQUIDITY_DESC, null);
 
         assertThat(result).extracting(SignalSummary::symbol).containsExactly("BBBUSDT", "AAAUSDT", "CCCUSDT");
     }
@@ -104,11 +105,11 @@ class SignalQueryServiceTest {
         Map<Long, BigDecimal> flipClose = Map.of(1L, new BigDecimal("100"), 2L, new BigDecimal("100"));
 
         List<SignalSummary> asc = SignalQueryService.summarize(
-                latest, enrichment(flips, Map.of(), latestClose, flipClose), null, SignalSort.PCT_CHANGE_ASC);
+                latest, enrichment(flips, Map.of(), latestClose, flipClose), null, SignalSort.PCT_CHANGE_ASC, null);
         assertThat(asc).extracting(SignalSummary::symbol).containsExactly("BBBUSDT", "AAAUSDT", "CCCUSDT");
 
         List<SignalSummary> desc = SignalQueryService.summarize(
-                latest, enrichment(flips, Map.of(), latestClose, flipClose), null, SignalSort.PCT_CHANGE_DESC);
+                latest, enrichment(flips, Map.of(), latestClose, flipClose), null, SignalSort.PCT_CHANGE_DESC, null);
         assertThat(desc).extracting(SignalSummary::symbol).containsExactly("AAAUSDT", "BBBUSDT", "CCCUSDT");
     }
 
@@ -120,7 +121,7 @@ class SignalQueryServiceTest {
         Map<Long, BigDecimal> flipClose = Map.of(1L, new BigDecimal("100.00"));
 
         List<SignalSummary> result = SignalQueryService.summarize(
-                latest, enrichment(flips, Map.of(), latestClose, flipClose), null, null);
+                latest, enrichment(flips, Map.of(), latestClose, flipClose), null, null, null);
 
         assertThat(result.get(0).pctChangeSinceFlip()).isEqualByComparingTo(new BigDecimal("15.00"));
     }
@@ -131,7 +132,7 @@ class SignalQueryServiceTest {
         Map<Long, BigDecimal> latestClose = Map.of(1L, new BigDecimal("115.00"));
 
         List<SignalSummary> result = SignalQueryService.summarize(
-                latest, enrichment(Map.of(), Map.of(), latestClose, Map.of()), null, null);
+                latest, enrichment(Map.of(), Map.of(), latestClose, Map.of()), null, null, null);
 
         assertThat(result.get(0).pctChangeSinceFlip()).isNull();
         assertThat(result.get(0).lastFlipTime()).isNull();
@@ -145,9 +146,39 @@ class SignalQueryServiceTest {
         Map<Long, BigDecimal> flipClose = Map.of(1L, BigDecimal.ZERO);
 
         List<SignalSummary> result = SignalQueryService.summarize(
-                latest, enrichment(flips, Map.of(), latestClose, flipClose), null, null);
+                latest, enrichment(flips, Map.of(), latestClose, flipClose), null, null, null);
 
         assertThat(result.get(0).pctChangeSinceFlip()).isNull();
+    }
+
+    @Test
+    void symbolFilterNarrowsToExactMatches() {
+        List<SignalState> latest = List.of(state(1, TrendState.BULLISH), state(2, TrendState.BULLISH), state(3, TrendState.BULLISH));
+
+        List<SignalSummary> result = SignalQueryService.summarize(
+                latest, enrichment(Map.of(), Map.of(), Map.of(), Map.of()), null, null, Set.of("AAAUSDT", "CCCUSDT"));
+
+        assertThat(result).extracting(SignalSummary::symbol).containsExactly("AAAUSDT", "CCCUSDT");
+    }
+
+    @Test
+    void symbolFilterWithUnknownSymbolReturnsEmptyRatherThanErroring() {
+        List<SignalState> latest = List.of(state(1, TrendState.BULLISH));
+
+        List<SignalSummary> result = SignalQueryService.summarize(
+                latest, enrichment(Map.of(), Map.of(), Map.of(), Map.of()), null, null, Set.of("NOTASYMBOL"));
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void symbolFilterComposesWithStateFilter() {
+        List<SignalState> latest = List.of(state(1, TrendState.BULLISH), state(2, TrendState.BEARISH));
+
+        List<SignalSummary> result = SignalQueryService.summarize(
+                latest, enrichment(Map.of(), Map.of(), Map.of(), Map.of()), TrendState.BULLISH, null, Set.of("AAAUSDT", "BBBUSDT"));
+
+        assertThat(result).extracting(SignalSummary::symbol).containsExactly("AAAUSDT");
     }
 
     @Test
@@ -155,7 +186,7 @@ class SignalQueryServiceTest {
         List<SignalState> latest = List.of(state(1, TrendState.BULLISH));
 
         List<SignalSummary> result = SignalQueryService.summarize(
-                latest, enrichment(Map.of(), Map.of(), Map.of(), Map.of()), null, null);
+                latest, enrichment(Map.of(), Map.of(), Map.of(), Map.of()), null, null, null);
 
         assertThat(result.get(0).avgVolume7d()).isEqualByComparingTo(BigDecimal.ZERO);
     }
