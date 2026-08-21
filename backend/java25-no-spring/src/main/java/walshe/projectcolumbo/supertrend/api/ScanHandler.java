@@ -38,10 +38,21 @@ public final class ScanHandler {
             path = "/api/v1/scan",
             methods = HttpMethod.POST,
             summary = "Match assets against one or more SuperTrend conditions combined by AND/OR, optionally spanning different timeframes",
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ScanRequest.class), required = true),
+            description = "Every condition implicitly targets SuperTrend (the only indicator in this system) - there is no "
+                    + "indicator-type field per condition. Conditions can mix timeframes, e.g. {\"operator\":\"AND\","
+                    + "\"conditions\":[{\"timeframe\":\"D1\",\"state\":\"BULLISH\"},{\"timeframe\":\"W1\",\"state\":\"BULLISH\"}]} "
+                    + "finds assets bullish on both D1 and W1 at once. With operator=OR, an asset needs to match only one "
+                    + "condition. Each matched asset's response entry lists which specific condition(s) it matched, with a "
+                    + "TradingView link per matched condition's own timeframe.",
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ScanRequest.class), required = true,
+                    description = "operator and conditions are required; limit, assetClass, and sort are optional. "
+                            + "sort defaults to SYMBOL_ASC (alphabetical); the only alternative is LIQUIDITY_DESC "
+                            + "(highest 7-day avg volume first) - there is no LIQUIDITY_ASC."),
             responses = {
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = ScanResponse.class)),
-                    @OpenApiResponse(status = "400", description = "Missing/invalid operator, conditions, or limit")
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = ScanResponse.class),
+                            description = "results is a list of matched assets, ordered per the request's sort; empty list if nothing matched (not an error)"),
+                    @OpenApiResponse(status = "400", description = "Missing/invalid operator, conditions (must be non-empty, no null entries, "
+                            + "each needs both timeframe and state), or a negative limit/maxDaysSinceFlip")
             }
     )
     private void scan(Context ctx) {

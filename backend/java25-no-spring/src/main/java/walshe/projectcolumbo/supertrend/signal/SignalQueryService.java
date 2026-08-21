@@ -17,6 +17,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -39,8 +40,13 @@ public final class SignalQueryService {
         this.assetLiquidityDao = Objects.requireNonNull(assetLiquidityDao, "assetLiquidityDao must not be null");
     }
 
-    /** {@code sort} defaults to {@link SignalSort#ASSET_ASC} when null. {@code stateFilter} and {@code assetClassFilter} are skipped when null. */
+    /** {@code sort} defaults to {@link SignalSort#ASSET_ASC} when null. {@code stateFilter}, {@code assetClassFilter}, and {@code symbolFilter} are skipped when null. */
     public List<SignalSummary> listSignals(Timeframe timeframe, TrendState stateFilter, SignalSort sort, AssetClass assetClassFilter) {
+        return listSignals(timeframe, stateFilter, sort, assetClassFilter, null);
+    }
+
+    /** As {@link #listSignals(Timeframe, TrendState, SignalSort, AssetClass)}, with an additional optional exact-match symbol filter. */
+    public List<SignalSummary> listSignals(Timeframe timeframe, TrendState stateFilter, SignalSort sort, AssetClass assetClassFilter, Set<String> symbolFilter) {
         Map<Long, Asset> activeAssetsById = assetDao.findAllActive(assetClassFilter).stream()
                 .collect(Collectors.toMap(Asset::id, Function.identity()));
 
@@ -60,7 +66,7 @@ public final class SignalQueryService {
         Map<Long, BigDecimal> flipCloseByAssetId = candleDao.findCloseAtTimes(timeframe, flipCloseTimeByAssetId);
 
         Enrichment enrichment = new Enrichment(activeAssetsById, flipsByAssetId, avgVolume7dByAssetId, latestCloseByAssetId, flipCloseByAssetId);
-        return summarize(latestStates, enrichment, stateFilter, sort);
+        return summarize(latestStates, enrichment, stateFilter, sort, symbolFilter);
     }
 
     /** The per-asset lookups {@link #summarize} enriches each latest {@link SignalState} with. */
@@ -73,13 +79,16 @@ public final class SignalQueryService {
     }
 
     /** Pure: enrichment, filtering, and sorting, testable without a database. */
-    static List<SignalSummary> summarize(List<SignalState> latestStates, Enrichment enrichment, TrendState stateFilter, SignalSort sort) {
+    static List<SignalSummary> summarize(List<SignalState> latestStates, Enrichment enrichment, TrendState stateFilter, SignalSort sort, Set<String> symbolFilter) {
         List<SignalSummary> summaries = new ArrayList<>();
         for (SignalState latest : latestStates) {
             if (stateFilter != null && latest.trendState() != stateFilter) {
                 continue;
             }
             Asset asset = enrichment.assetsById().get(latest.assetId());
+            if (symbolFilter != null && !symbolFilter.contains(asset.symbol())) {
+                continue;
+            }
             SignalState flip = enrichment.flipsByAssetId().get(latest.assetId());
             BigDecimal avgVolume7d = enrichment.avgVolume7dByAssetId().getOrDefault(latest.assetId(), BigDecimal.ZERO);
             BigDecimal latestClose = enrichment.latestCloseByAssetId().get(latest.assetId());

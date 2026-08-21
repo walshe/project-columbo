@@ -87,9 +87,17 @@ public final class WeeklyPullbackBriefingHandler {
             path = "/api/v1/weekly-pullback-briefing",
             methods = HttpMethod.POST,
             summary = "Runs D1 ingestion to completion, then composes a mean-reversion weekly briefing (retest/pullback candidates, not confluence) into one Markdown report",
+            description = "SYNCHRONOUS and expensive: this call blocks until a full BINANCE/D1 ingestion pipeline run (ingest, "
+                    + "indicators, signals, breadth pulse) finishes, then composes the report. Callers should use a generous "
+                    + "timeout, not the default expected for a simple read. No request body. Response is always text/markdown, "
+                    + "never JSON. Mean-reversion sibling of /api/v1/weekly-trend-briefing: headlines retest candidates (W1 trend "
+                    + "still intact, but D1 recently flipped counter to it - a pullback in an uptrend or a bounce in a downtrend) "
+                    + "rather than confluence. Each candidate gets an inline \"watch:\" annotation whenever its still-forming "
+                    + "(in-progress) weekly trend has since diverged from the committed W1 state it was selected on - a live risk flag.",
             responses = {
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(mimeType = "text/markdown", type = "string")),
-                    @OpenApiResponse(status = "409", description = "A BINANCE/D1 ingestion run is already RUNNING")
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(mimeType = "text/markdown", type = "string"),
+                            description = "The full Markdown report; content-type is always text/markdown, never application/json"),
+                    @OpenApiResponse(status = "409", description = "A BINANCE/D1 ingestion run is already RUNNING - wait for it to finish and retry")
             }
     )
     private void runBriefing(Context ctx) {

@@ -89,9 +89,18 @@ public final class WeeklyTrendBriefingHandler {
             path = "/api/v1/weekly-trend-briefing",
             methods = HttpMethod.POST,
             summary = "Runs D1 ingestion to completion, then composes the weekly regime/BTC-alignment/trend-alignment/scan routine into one Markdown report",
+            description = "SYNCHRONOUS and expensive: this call blocks until a full BINANCE/D1 ingestion pipeline run (ingest, "
+                    + "indicators, signals, breadth pulse - both D1 and the W1 rollup) finishes, then composes the report on top "
+                    + "of that freshly-ingested data. Expect this to take noticeably longer than any other endpoint in this API - "
+                    + "callers should use a generous timeout, not the default expected for a simple read. No request body. "
+                    + "Response is always text/markdown, never JSON - the report includes a BTC W1/D1 alignment section, "
+                    + "per-asset-class confluence/scan lists (crypto both directions, stock/ETF bullish-only), and a "
+                    + "\"Flips Forming\" section previewing assets whose still-forming (in-progress) weekly trend already "
+                    + "agrees with their daily trend, ahead of the week's official close.",
             responses = {
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(mimeType = "text/markdown", type = "string")),
-                    @OpenApiResponse(status = "409", description = "A BINANCE/D1 ingestion run is already RUNNING")
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(mimeType = "text/markdown", type = "string"),
+                            description = "The full Markdown report; content-type is always text/markdown, never application/json"),
+                    @OpenApiResponse(status = "409", description = "A BINANCE/D1 ingestion run is already RUNNING - wait for it to finish and retry")
             }
     )
     private void runBriefing(Context ctx) {
