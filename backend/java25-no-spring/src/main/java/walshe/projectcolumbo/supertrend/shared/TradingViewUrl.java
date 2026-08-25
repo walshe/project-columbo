@@ -13,25 +13,39 @@ public final class TradingViewUrl {
     }
 
     /**
-     * Null if any argument is null. Appends {@code USDT} to {@code symbol} unless it already ends
-     * with it. A {@link AssetVenue#FUTURES} asset gets a trailing {@code .P} on top of that —
-     * TradingView's suffix for a Binance perpetual futures contract (e.g. {@code BITOUSDT.P}) —
-     * since without it TradingView resolves the symbol against the spot market instead.
+     * Null if {@code provider}, {@code symbol}, {@code timeframe}, or {@code venue} is null.
+     * Appends {@code USDT} to {@code symbol} unless it already ends with it. A {@link
+     * AssetVenue#FUTURES} asset gets a trailing {@code .P} on top of that — TradingView's suffix
+     * for a Binance perpetual futures contract (e.g. {@code BITOUSDT.P}) — since without it
+     * TradingView resolves the symbol against the spot market instead.
      * <p>
-     * Also null for {@link AssetVenue#EXCHANGE}: this logic is Binance-specific (USDT pairing,
-     * {@code provider.name()} as the TradingView exchange prefix), and a real equity's actual
-     * TradingView exchange (NASDAQ/NYSE/OTC/SHG) isn't data this system stores per asset — a
-     * fabricated link (e.g. {@code TIINGO:AAPLUSDT}) would be worse than none.
+     * For {@link AssetVenue#EXCHANGE}, this Binance-specific construction (USDT pairing, {@code
+     * provider.name()} as the exchange prefix) doesn't apply — {@code tradingviewRef} (a verified
+     * {@code EXCHANGE:SYMBOL} string, e.g. {@code "NASDAQ:AAPL"}) is used directly instead. Null
+     * when no verified ref is available for that asset: a fabricated link (wrong exchange, or
+     * Tiingo's own ticker format not matching TradingView's — e.g. {@code "BRK-A"} vs. {@code
+     * "BRK.A"}) would be worse than none.
+     *
+     * @param tradingviewRef a verified TradingView {@code EXCHANGE:SYMBOL} reference for an
+     *                       {@code EXCHANGE}-venue asset (see {@code Asset.tradingviewRef()});
+     *                       ignored for every other venue.
      */
-    public static String generateUrl(Provider provider, String symbol, Timeframe timeframe, AssetVenue venue) {
-        if (provider == null || symbol == null || timeframe == null || venue == null || venue == AssetVenue.EXCHANGE) {
+    public static String generateUrl(Provider provider, String symbol, Timeframe timeframe, AssetVenue venue, String tradingviewRef) {
+        if (provider == null || symbol == null || timeframe == null || venue == null) {
             return null;
+        }
+        if (venue == AssetVenue.EXCHANGE) {
+            return (tradingviewRef == null || tradingviewRef.isBlank()) ? null : chartUrl(tradingviewRef, timeframe);
         }
         String fullSymbol = symbol.endsWith("USDT") ? symbol : symbol + "USDT";
         if (venue == AssetVenue.FUTURES) {
             fullSymbol = fullSymbol + ".P";
         }
-        String encodedSymbol = encode(provider.name() + ":" + fullSymbol);
+        return chartUrl(provider.name() + ":" + fullSymbol, timeframe);
+    }
+
+    private static String chartUrl(String tradingviewSymbol, Timeframe timeframe) {
+        String encodedSymbol = encode(tradingviewSymbol);
         String encodedInterval = encode(interval(timeframe));
         return "https://www.tradingview.com/chart/?symbol=" + encodedSymbol + "&interval=" + encodedInterval;
     }

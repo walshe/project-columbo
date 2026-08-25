@@ -167,6 +167,25 @@ class PersistenceIntegrationTest {
         assertThat(dao.isRunning(Provider.BINANCE, Timeframe.D1)).isFalse();
     }
 
+    @Test
+    @Order(9)
+    void everyTiingoAssetHasAVerifiedTradingviewRef() {
+        // Guards against a typo in V19's 47-row VALUES list silently leaving a row's ref null -
+        // an UPDATE that matches zero rows for a mistyped symbol fails silently, no other test
+        // would catch it since PersistenceIntegrationTest's other asset assertions only check counts.
+        List<Asset> tiingoAssets = new AssetDao(dataSource).findAllActive().stream()
+                .filter(a -> a.provider() == Provider.TIINGO)
+                .toList();
+
+        assertThat(tiingoAssets).hasSize(47);
+        assertThat(tiingoAssets).allSatisfy(a -> assertThat(a.tradingviewRef()).as("tradingviewRef for %s", a.symbol()).isNotNull());
+
+        assertThat(tiingoAssets).filteredOn(a -> a.symbol().equals("BRK-A")).extracting(Asset::tradingviewRef).containsExactly("NYSE:BRK.A");
+        assertThat(tiingoAssets).filteredOn(a -> a.symbol().equals("SSNLF")).extracting(Asset::tradingviewRef).containsExactly("OTC:SSNLF");
+        assertThat(tiingoAssets).filteredOn(a -> a.symbol().equals("601398")).extracting(Asset::tradingviewRef).containsExactly("SSE:601398");
+        assertThat(tiingoAssets).filteredOn(a -> a.symbol().equals("AAPL")).extracting(Asset::tradingviewRef).containsExactly("NASDAQ:AAPL");
+    }
+
     private static Candle candle(int dayOffset, String open, String high, String low, String close) {
         return new Candle(
                 closeTime(dayOffset).minusDays(1),

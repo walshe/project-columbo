@@ -8,52 +8,71 @@ class TradingViewUrlTest {
 
     @Test
     void generateUrlAppendsUsdtWhenMissing() {
-        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "ETH", Timeframe.D1, AssetVenue.SPOT);
+        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "ETH", Timeframe.D1, AssetVenue.SPOT, null);
         assertThat(url).isEqualTo("https://www.tradingview.com/chart/?symbol=BINANCE%3AETHUSDT&interval=1D");
     }
 
     @Test
     void generateUrlDoesNotDoubleAppendUsdt() {
-        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "BTCUSDT", Timeframe.W1, AssetVenue.SPOT);
+        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "BTCUSDT", Timeframe.W1, AssetVenue.SPOT, null);
         assertThat(url).isEqualTo("https://www.tradingview.com/chart/?symbol=BINANCE%3ABTCUSDT&interval=1W");
     }
 
     @Test
     void generateUrlAppendsDotPForFuturesVenue() {
-        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "BITOUSDT", Timeframe.D1, AssetVenue.FUTURES);
+        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "BITOUSDT", Timeframe.D1, AssetVenue.FUTURES, null);
         assertThat(url).isEqualTo("https://www.tradingview.com/chart/?symbol=BINANCE%3ABITOUSDT.P&interval=1D");
     }
 
     @Test
     void generateUrlAppendsUsdtThenDotPForFuturesVenueWhenUsdtIsMissing() {
-        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "BITO", Timeframe.D1, AssetVenue.FUTURES);
+        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "BITO", Timeframe.D1, AssetVenue.FUTURES, null);
         assertThat(url).isEqualTo("https://www.tradingview.com/chart/?symbol=BINANCE%3ABITOUSDT.P&interval=1D");
     }
 
     @Test
     void generateUrlIsNullWhenAnyArgumentIsNull() {
-        assertThat(TradingViewUrl.generateUrl(null, "BTCUSDT", Timeframe.D1, AssetVenue.SPOT)).isNull();
-        assertThat(TradingViewUrl.generateUrl(Provider.BINANCE, null, Timeframe.D1, AssetVenue.SPOT)).isNull();
-        assertThat(TradingViewUrl.generateUrl(Provider.BINANCE, "BTCUSDT", null, AssetVenue.SPOT)).isNull();
-        assertThat(TradingViewUrl.generateUrl(Provider.BINANCE, "BTCUSDT", Timeframe.D1, null)).isNull();
+        assertThat(TradingViewUrl.generateUrl(null, "BTCUSDT", Timeframe.D1, AssetVenue.SPOT, null)).isNull();
+        assertThat(TradingViewUrl.generateUrl(Provider.BINANCE, null, Timeframe.D1, AssetVenue.SPOT, null)).isNull();
+        assertThat(TradingViewUrl.generateUrl(Provider.BINANCE, "BTCUSDT", null, AssetVenue.SPOT, null)).isNull();
+        assertThat(TradingViewUrl.generateUrl(Provider.BINANCE, "BTCUSDT", Timeframe.D1, null, null)).isNull();
     }
 
     @Test
-    void generateUrlIsNullForExchangeVenue() {
-        // No real per-asset TradingView exchange (NASDAQ/NYSE/OTC/SHG) is stored for Tiingo
-        // assets, so a fabricated Binance-shaped link (e.g. TIINGO:AAPLUSDT) would be worse than none.
-        assertThat(TradingViewUrl.generateUrl(Provider.TIINGO, "AAPL", Timeframe.D1, AssetVenue.EXCHANGE)).isNull();
+    void generateUrlIsNullForExchangeVenueWithoutAVerifiedRef() {
+        // No fabricated Binance-shaped link (e.g. TIINGO:AAPLUSDT) when no verified TradingView
+        // ref is stored for the asset - a wrong link is worse than none.
+        assertThat(TradingViewUrl.generateUrl(Provider.TIINGO, "AAPL", Timeframe.D1, AssetVenue.EXCHANGE, null)).isNull();
+    }
+
+    @Test
+    void generateUrlIsNullForExchangeVenueWithABlankRef() {
+        assertThat(TradingViewUrl.generateUrl(Provider.TIINGO, "AAPL", Timeframe.D1, AssetVenue.EXCHANGE, "  ")).isNull();
+    }
+
+    @Test
+    void generateUrlUsesTheVerifiedTradingviewRefForExchangeVenue() {
+        String url = TradingViewUrl.generateUrl(Provider.TIINGO, "AAPL", Timeframe.D1, AssetVenue.EXCHANGE, "NASDAQ:AAPL");
+        assertThat(url).isEqualTo("https://www.tradingview.com/chart/?symbol=NASDAQ%3AAAPL&interval=1D");
+    }
+
+    @Test
+    void generateUrlIgnoresTradingviewRefForNonExchangeVenues() {
+        // tradingviewRef is EXCHANGE-venue-specific data; a SPOT/FUTURES asset builds its link
+        // from provider/symbol/venue exactly as before, regardless of what's passed here.
+        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "BTCUSDT", Timeframe.D1, AssetVenue.SPOT, "NASDAQ:AAPL");
+        assertThat(url).isEqualTo("https://www.tradingview.com/chart/?symbol=BINANCE%3ABTCUSDT&interval=1D");
     }
 
     @Test
     void watchlistSymbolRoundTripsFromGeneratedUrl() {
-        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "BTCUSDT", Timeframe.D1, AssetVenue.SPOT);
+        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "BTCUSDT", Timeframe.D1, AssetVenue.SPOT, null);
         assertThat(TradingViewUrl.watchlistSymbol(url)).isEqualTo("BINANCE:BTCUSDT");
     }
 
     @Test
     void watchlistSymbolMatchesUrlUsdtAppending() {
-        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "ETH", Timeframe.W1, AssetVenue.SPOT);
+        String url = TradingViewUrl.generateUrl(Provider.BINANCE, "ETH", Timeframe.W1, AssetVenue.SPOT, null);
         assertThat(TradingViewUrl.watchlistSymbol(url)).isEqualTo("BINANCE:ETHUSDT");
     }
 

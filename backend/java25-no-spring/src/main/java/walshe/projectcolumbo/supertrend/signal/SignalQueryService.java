@@ -106,7 +106,7 @@ public final class SignalQueryService {
         // consistent with where a human would see the flip marker land on a chart.
         OffsetDateTime lastFlipTime = flip != null ? flip.timeframe().openTimeFor(flip.closeTime()) : null;
         BigDecimal pctChangeSinceFlip = pctChangeSinceFlip(flipClose, latestClose);
-        String tradingviewUrl = TradingViewUrl.generateUrl(asset.provider(), asset.symbol(), latest.timeframe(), asset.venue());
+        String tradingviewUrl = TradingViewUrl.generateUrl(asset.provider(), asset.symbol(), latest.timeframe(), asset.venue(), asset.tradingviewRef());
         return new SignalSummary(asset.symbol(), latest.trendState(), lastFlipTime, avgVolume7d, pctChangeSinceFlip, tradingviewUrl, asset.assetClass());
     }
 
