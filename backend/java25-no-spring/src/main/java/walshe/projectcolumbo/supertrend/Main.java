@@ -33,7 +33,6 @@ import walshe.projectcolumbo.supertrend.pipeline.PipelineOrchestrator;
 import walshe.projectcolumbo.supertrend.pulse.MarketBreadthPulseService;
 import walshe.projectcolumbo.supertrend.rollup.CandleRollupService;
 import walshe.projectcolumbo.supertrend.shared.AssetVenue;
-import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.ProvisionalTrendService;
 import walshe.projectcolumbo.supertrend.signal.ScanService;
@@ -114,7 +113,7 @@ public final class Main {
         new WeeklyPullbackBriefingHandler(pipelineOrchestrator, marketBreadthSnapshotDao, signalQueryService, trendAlignmentService, scanService, provisionalTrendService, clock).register(app);
         app.start(httpPort());
 
-        DailyScheduler dailyScheduler = new DailyScheduler(pipelineOrchestrator, Provider.BINANCE, Timeframe.D1, clock);
+        DailyScheduler dailyScheduler = new DailyScheduler(pipelineOrchestrator, Timeframe.D1, clock);
         dailyScheduler.start();
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> shutdown(dailyScheduler, app, dataSource), "shutdown-hook"));

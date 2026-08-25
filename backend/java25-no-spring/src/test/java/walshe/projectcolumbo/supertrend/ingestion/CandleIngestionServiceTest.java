@@ -19,6 +19,8 @@ import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import javax.sql.DataSource;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -171,6 +173,33 @@ class CandleIngestionServiceTest {
 
         assertThat(stats.insertedCount()).isEqualTo(4);
         assertThat(stats.errorCount()).isZero();
+    }
+
+    @Test
+    @Order(7)
+    void zeroCandlesDuringAnExpectedFetchWindowIsLoggedNotSilent() {
+        // Regression test for the production bug: a provider returning a valid-but-empty
+        // response for an asset that wasn't already caught up went completely unlogged,
+        // indistinguishable from "nothing to do". slf4j-simple (this project's only logging
+        // backend, no test-capture API) logs to System.err by default - captured here directly
+        // rather than pulling in a logging framework just to assert one warning line.
+        seedAsset("ING7USDT");
+        FakeMarketDataProvider provider = new FakeMarketDataProvider();
+        provider.onFetch("ING7USDT", List::of);
+
+        PrintStream originalErr = System.err;
+        ByteArrayOutputStream captured = new ByteArrayOutputStream();
+        System.setErr(new PrintStream(captured));
+        try {
+            ingestionService(provider).ingestDaily();
+        } finally {
+            System.setErr(originalErr);
+        }
+
+        // This run also re-touches every asset seeded by earlier tests in this class (none of
+        // them are deactivated), so other symbols may log the same warning too - match the
+        // symbol and the phrase together, not just each independently anywhere in the buffer.
+        assertThat(captured.toString()).containsIgnoringCase("zero candles for ING7USDT");
     }
 
     private static CandleIngestionService ingestionService(FakeMarketDataProvider provider) {

@@ -1,6 +1,5 @@
 package walshe.projectcolumbo.supertrend.pipeline;
 
-import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.time.OffsetDateTime;
@@ -13,7 +12,6 @@ import java.util.Objects;
  */
 public record IngestionRun(
         long id,
-        Provider provider,
         Timeframe timeframe,
         OffsetDateTime startedAt,
         OffsetDateTime finishedAt,
@@ -27,7 +25,6 @@ public record IngestionRun(
         String errorSample
 ) {
     public IngestionRun {
-        Objects.requireNonNull(provider, "provider must not be null");
         Objects.requireNonNull(timeframe, "timeframe must not be null");
         Objects.requireNonNull(startedAt, "startedAt must not be null");
         Objects.requireNonNull(status, "status must not be null");

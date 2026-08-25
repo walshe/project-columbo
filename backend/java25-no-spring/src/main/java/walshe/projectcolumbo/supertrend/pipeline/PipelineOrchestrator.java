@@ -9,7 +9,6 @@ import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.IngestionRunDao;
 import walshe.projectcolumbo.supertrend.pulse.MarketBreadthPulseService;
 import walshe.projectcolumbo.supertrend.rollup.CandleRollupService;
-import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.SignalStateDetectionService;
 
@@ -58,8 +57,8 @@ public final class PipelineOrchestrator {
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 
-    public PipelineRunResult runDaily(Provider provider, Timeframe timeframe) {
-        RunHandle handle = start(provider, timeframe);
+    public PipelineRunResult runDaily(Timeframe timeframe) {
+        RunHandle handle = start(timeframe);
         return executePhases(handle);
     }
 
@@ -70,8 +69,8 @@ public final class PipelineOrchestrator {
      * phases are recorded on the run the same way {@link #runDaily} records them; there's nothing
      * further to propagate to a caller who has already received their response.
      */
-    public long triggerAsync(Provider provider, Timeframe timeframe) {
-        RunHandle handle = start(provider, timeframe);
+    public long triggerAsync(Timeframe timeframe) {
+        RunHandle handle = start(timeframe);
         Thread.ofVirtual().name("ingestion-trigger-" + handle.runId()).start(() -> {
             try {
                 executePhases(handle);
@@ -85,15 +84,15 @@ public final class PipelineOrchestrator {
         return handle.runId();
     }
 
-    private RunHandle start(Provider provider, Timeframe timeframe) {
-        if (ingestionRunDao.isRunning(provider, timeframe)) {
-            throw new IngestionAlreadyRunningException(provider, timeframe);
+    private RunHandle start(Timeframe timeframe) {
+        if (ingestionRunDao.isRunning(timeframe)) {
+            throw new IngestionAlreadyRunningException(timeframe);
         }
 
         int assetCount = assetDao.findAllActive().size();
         OffsetDateTime startedAt = OffsetDateTime.now(clock);
-        long runId = ingestionRunDao.start(provider, timeframe, assetCount, startedAt);
-        LOG.info("Pipeline run {} started for {} {} ({} active assets)", runId, provider, timeframe, assetCount);
+        long runId = ingestionRunDao.start(timeframe, assetCount, startedAt);
+        LOG.info("Pipeline run {} started for {} ({} active assets)", runId, timeframe, assetCount);
         return new RunHandle(runId, assetCount, startedAt);
     }
 

@@ -2,7 +2,6 @@ package walshe.projectcolumbo.supertrend.pipeline;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.time.Clock;
@@ -27,15 +26,13 @@ public final class DailyScheduler {
     private static final LocalTime SCHEDULED_TIME_UTC = LocalTime.of(0, 5);
 
     private final PipelineOrchestrator orchestrator;
-    private final Provider provider;
     private final Timeframe timeframe;
     private final Clock clock;
     private final ScheduledExecutorService executor =
             Executors.newSingleThreadScheduledExecutor(Thread.ofVirtual().name("daily-scheduler").factory());
 
-    public DailyScheduler(PipelineOrchestrator orchestrator, Provider provider, Timeframe timeframe, Clock clock) {
+    public DailyScheduler(PipelineOrchestrator orchestrator, Timeframe timeframe, Clock clock) {
         this.orchestrator = Objects.requireNonNull(orchestrator, "orchestrator must not be null");
-        this.provider = Objects.requireNonNull(provider, "provider must not be null");
         this.timeframe = Objects.requireNonNull(timeframe, "timeframe must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
@@ -54,8 +51,8 @@ public final class DailyScheduler {
 
     private void runAndRescheduleNext() {
         try {
-            LOG.info("Scheduled daily trigger firing for {} {}", provider, timeframe);
-            orchestrator.runDaily(provider, timeframe);
+            LOG.info("Scheduled daily trigger firing for {}", timeframe);
+            orchestrator.runDaily(timeframe);
         } catch (IngestionAlreadyRunningException e) {
             LOG.info("Scheduled daily trigger skipped - already running: {}", e.getMessage());
         } catch (Exception e) {

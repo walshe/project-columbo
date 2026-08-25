@@ -96,7 +96,7 @@ class PipelineOrchestratorTest {
         FakeMarketDataProvider provider = new FakeMarketDataProvider();
         provider.onFetch("PIPE1USDT", () -> dailyCandles(70)); // 10 complete weeks - enough for both D1 and W1 ATR(10) warm-up
 
-        PipelineRunResult result = orchestrator(provider).runDaily(Provider.BINANCE, Timeframe.D1);
+        PipelineRunResult result = orchestrator(provider).runDaily(Timeframe.D1);
 
         assertThat(result.status()).isEqualTo(IngestionRunStatus.SUCCESS);
         assertThat(ingestionRunDao.findById(result.runId())).isPresent();
@@ -112,9 +112,9 @@ class PipelineOrchestratorTest {
     @Test
     @Order(2)
     void rejectsANewRunWhileOneIsAlreadyRunning() {
-        ingestionRunDao.start(Provider.BINANCE, Timeframe.W1, 0, OffsetDateTime.now(clock));
+        ingestionRunDao.start(Timeframe.W1, 0, OffsetDateTime.now(clock));
 
-        assertThatThrownBy(() -> orchestrator(new FakeMarketDataProvider()).runDaily(Provider.BINANCE, Timeframe.W1))
+        assertThatThrownBy(() -> orchestrator(new FakeMarketDataProvider()).runDaily(Timeframe.W1))
                 .isInstanceOf(IngestionAlreadyRunningException.class);
     }
 
@@ -129,7 +129,7 @@ class PipelineOrchestratorTest {
             throw new InvalidSymbolException("PIPE3BUSDT");
         });
 
-        PipelineRunResult result = orchestrator(provider).runDaily(Provider.BINANCE, Timeframe.D1);
+        PipelineRunResult result = orchestrator(provider).runDaily(Timeframe.D1);
 
         assertThat(result.status()).isEqualTo(IngestionRunStatus.PARTIAL);
     }
@@ -149,7 +149,7 @@ class PipelineOrchestratorTest {
             throw new RuntimeException("provider unavailable");
         });
 
-        PipelineRunResult result = orchestrator(provider).runDaily(Provider.BINANCE, Timeframe.D1);
+        PipelineRunResult result = orchestrator(provider).runDaily(Timeframe.D1);
 
         assertThat(result.status()).isEqualTo(IngestionRunStatus.FAILED);
     }
@@ -161,7 +161,7 @@ class PipelineOrchestratorTest {
         FakeMarketDataProvider provider = new FakeMarketDataProvider();
         provider.onFetch("PIPE5USDT", () -> dailyCandles(70));
 
-        long runId = orchestrator(provider).triggerAsync(Provider.BINANCE, Timeframe.D1);
+        long runId = orchestrator(provider).triggerAsync(Timeframe.D1);
 
         IngestionRun run = awaitCompletion(runId);
         assertThat(run.status()).isEqualTo(IngestionRunStatus.SUCCESS);
@@ -172,10 +172,10 @@ class PipelineOrchestratorTest {
     @Order(6)
     void triggerAsyncRejectsANewRunWhileOneIsAlreadyRunning() {
         // No fresh RUNNING row needed here - @Order(2) already left one stuck at RUNNING forever
-        // for (BINANCE, W1) (runDaily was never called to complete it), and the unique partial
-        // index on (provider, timeframe) WHERE status = 'RUNNING' means inserting a second one
-        // for the same pair would itself throw, rather than exercising the isRunning() fast path.
-        assertThatThrownBy(() -> orchestrator(new FakeMarketDataProvider()).triggerAsync(Provider.BINANCE, Timeframe.W1))
+        // for W1 (runDaily was never called to complete it), and the unique partial index on
+        // (timeframe) WHERE status = 'RUNNING' means inserting a second one for the same
+        // timeframe would itself throw, rather than exercising the isRunning() fast path.
+        assertThatThrownBy(() -> orchestrator(new FakeMarketDataProvider()).triggerAsync(Timeframe.W1))
                 .isInstanceOf(IngestionAlreadyRunningException.class);
     }
 

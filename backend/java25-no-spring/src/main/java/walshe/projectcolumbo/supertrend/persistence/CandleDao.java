@@ -202,54 +202,30 @@ public final class CandleDao {
     }
 
     /**
-     * Idempotent upsert keyed on (asset, timeframe, close_time): inserts if absent, is a no-op
-     * if an identical row already exists, or updates and logs a warning if the stored row's
-     * OHLCV differs from the newly ingested candle.
+     * Idempotent, atomic upsert keyed on (asset, timeframe, close_time): a single {@code INSERT
+     * ... ON CONFLICT ... DO UPDATE ... WHERE <differs>} inserts if absent, is a no-op if an
+     * identical row already exists, or updates and logs a warning if the stored row's OHLCV
+     * differs from the newly ingested candle. Atomic so two concurrent upserts for the same new
+     * key can never both attempt an INSERT and have one fail with a raw constraint violation -
+     * unlike a check-then-act (SELECT then INSERT/UPDATE) shape, which is exactly what happened
+     * in production when two pipeline runs ended up processing the same asset concurrently.
      */
     public UpsertOutcome upsert(long assetId, Candle candle) {
-        try (Connection connection = dataSource.getConnection()) {
-            Optional<Candle> existing = findExisting(connection, assetId, candle.timeframe(), candle.closeTime());
-            if (existing.isEmpty()) {
-                insert(connection, assetId, candle);
-                return UpsertOutcome.INSERTED;
-            }
-            if (isSameOhlcv(existing.get(), candle)) {
-                return UpsertOutcome.UNCHANGED;
-            }
-            update(connection, assetId, candle);
-            LOG.warn("Candle revision for asset {} {} at {}: stored={} new={}",
-                    assetId, candle.timeframe(), candle.closeTime(), existing.get(), candle);
-            return UpsertOutcome.UPDATED;
-        } catch (SQLException e) {
-            throw new PersistenceException("Failed to upsert candle for asset " + assetId, e);
-        }
-    }
-
-    private Optional<Candle> findExisting(Connection connection, long assetId, Timeframe timeframe, OffsetDateTime closeTime) throws SQLException {
-        String sql = """
-                SELECT open_time, close_time, open, high, low, close, volume
-                FROM candle
-                WHERE asset_id = ? AND timeframe = ?::timeframe AND close_time = ?
-                """;
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setLong(1, assetId);
-            statement.setString(2, timeframe.name());
-            statement.setObject(3, closeTime);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    return Optional.of(mapRow(resultSet, timeframe));
-                }
-                return Optional.empty();
-            }
-        }
-    }
-
-    private void insert(Connection connection, long assetId, Candle candle) throws SQLException {
         String sql = """
                 INSERT INTO candle (asset_id, timeframe, open_time, close_time, open, high, low, close, volume)
                 VALUES (?, ?::timeframe, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (asset_id, timeframe, close_time) DO UPDATE
+                SET open_time = EXCLUDED.open_time, open = EXCLUDED.open, high = EXCLUDED.high,
+                    low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume
+                WHERE candle.open IS DISTINCT FROM EXCLUDED.open
+                   OR candle.high IS DISTINCT FROM EXCLUDED.high
+                   OR candle.low IS DISTINCT FROM EXCLUDED.low
+                   OR candle.close IS DISTINCT FROM EXCLUDED.close
+                   OR candle.volume IS DISTINCT FROM EXCLUDED.volume
+                RETURNING (xmax = 0) AS inserted
                 """;
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, assetId);
             statement.setString(2, candle.timeframe().name());
             statement.setObject(3, candle.openTime());
@@ -259,36 +235,21 @@ public final class CandleDao {
             statement.setBigDecimal(7, candle.low());
             statement.setBigDecimal(8, candle.close());
             statement.setBigDecimal(9, candle.volume());
-            statement.executeUpdate();
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next()) {
+                    // WHERE on the DO UPDATE branch didn't match - a conflict existed but every
+                    // value was already identical, so xmax=0 vs. not is moot: nothing to report.
+                    return UpsertOutcome.UNCHANGED;
+                }
+                if (resultSet.getBoolean("inserted")) {
+                    return UpsertOutcome.INSERTED;
+                }
+                LOG.warn("Candle revision for asset {} {} at {}: new={}", assetId, candle.timeframe(), candle.closeTime(), candle);
+                return UpsertOutcome.UPDATED;
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to upsert candle for asset " + assetId, e);
         }
-    }
-
-    private void update(Connection connection, long assetId, Candle candle) throws SQLException {
-        String sql = """
-                UPDATE candle
-                SET open_time = ?, open = ?, high = ?, low = ?, close = ?, volume = ?
-                WHERE asset_id = ? AND timeframe = ?::timeframe AND close_time = ?
-                """;
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setObject(1, candle.openTime());
-            statement.setBigDecimal(2, candle.open());
-            statement.setBigDecimal(3, candle.high());
-            statement.setBigDecimal(4, candle.low());
-            statement.setBigDecimal(5, candle.close());
-            statement.setBigDecimal(6, candle.volume());
-            statement.setLong(7, assetId);
-            statement.setString(8, candle.timeframe().name());
-            statement.setObject(9, candle.closeTime());
-            statement.executeUpdate();
-        }
-    }
-
-    private static boolean isSameOhlcv(Candle a, Candle b) {
-        return a.open().compareTo(b.open()) == 0
-                && a.high().compareTo(b.high()) == 0
-                && a.low().compareTo(b.low()) == 0
-                && a.close().compareTo(b.close()) == 0
-                && a.volume().compareTo(b.volume()) == 0;
     }
 
     private static Candle mapRow(ResultSet resultSet, Timeframe timeframe) throws SQLException {

@@ -2,7 +2,6 @@ package walshe.projectcolumbo.supertrend.freshness;
 
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
 import walshe.projectcolumbo.supertrend.persistence.IngestionRunDao;
-import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.time.Clock;
@@ -44,13 +43,13 @@ public final class FreshnessService {
         }
     }
 
-    public FreshnessMetadata metadataFor(Provider provider, Timeframe timeframe) {
-        return metadataFor(provider, evaluate(timeframe));
+    public FreshnessMetadata metadataFor(Timeframe timeframe) {
+        return metadataFor(evaluate(timeframe));
     }
 
-    /** Reuses an already-computed status's candle lookup instead of re-querying it - see {@link #metadataFor(Provider, Timeframe)}. */
-    public FreshnessMetadata metadataFor(Provider provider, FreshnessStatus status) {
-        OffsetDateTime lastSuccessfulIngestionAt = ingestionRunDao.findLatestSuccessfulFinishedAt(provider, status.timeframe()).orElse(null);
+    /** Reuses an already-computed status's candle lookup instead of re-querying it - see {@link #metadataFor(Timeframe)}. */
+    public FreshnessMetadata metadataFor(FreshnessStatus status) {
+        OffsetDateTime lastSuccessfulIngestionAt = ingestionRunDao.findLatestSuccessfulFinishedAt(status.timeframe()).orElse(null);
         return new FreshnessMetadata(lastSuccessfulIngestionAt, status.actualLatestCloseTime());
     }
 

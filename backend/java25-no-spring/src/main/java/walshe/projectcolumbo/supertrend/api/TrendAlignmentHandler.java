@@ -12,7 +12,6 @@ import walshe.projectcolumbo.supertrend.freshness.FreshnessService;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessStatus;
 import walshe.projectcolumbo.supertrend.freshness.StaleDataException;
 import walshe.projectcolumbo.supertrend.shared.AssetClass;
-import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.TrendAlignment;
 import walshe.projectcolumbo.supertrend.signal.TrendAlignmentService;
@@ -92,7 +91,7 @@ public final class TrendAlignmentHandler {
     }
 
     private TrendAlignmentResponse buildResponse(TrendAlignment alignment, int maxRetestAgeDays, AssetClass assetClass, FreshnessStatus status) {
-        FreshnessMetadata metadata = freshnessService.metadataFor(Provider.BINANCE, status);
+        FreshnessMetadata metadata = freshnessService.metadataFor(status);
         return new TrendAlignmentResponse(
                 maxRetestAgeDays, assetClass,
                 alignment.bullishConfluence(), alignment.bullishRetest(), alignment.bearishConfluence(), alignment.bearishRetest(),

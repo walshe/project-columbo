@@ -61,7 +61,7 @@ class FreshnessServiceIntegrationTest {
         // true regardless of test execution order without needing explicit ordering/isolation.
         FreshnessService service = new FreshnessService(candleDao, ingestionRunDao, clock);
 
-        FreshnessMetadata metadata = service.metadataFor(Provider.BINANCE, Timeframe.W1);
+        FreshnessMetadata metadata = service.metadataFor(Timeframe.W1);
 
         assertThat(metadata.lastSuccessfulIngestionAt()).isNull();
         assertThat(metadata.latestCandleDate()).isNull();
@@ -92,10 +92,10 @@ class FreshnessServiceIntegrationTest {
     void metadataReflectsSuccessfulIngestionAndLatestCandle() {
         long assetId = seedAsset("FRESH3USDT");
         seedCandle(assetId, EXPECTED_D1_BOUNDARY_DAY);
-        long runId = ingestionRunDao.start(Provider.BINANCE, Timeframe.D1, 1, NOW);
+        long runId = ingestionRunDao.start(Timeframe.D1, 1, NOW);
         ingestionRunDao.complete(runId, new IngestionRunOutcome(IngestionRunStatus.SUCCESS, NOW.plusMinutes(1), 60_000, 1, 0, 0, 0, null));
 
-        FreshnessMetadata metadata = new FreshnessService(candleDao, ingestionRunDao, clock).metadataFor(Provider.BINANCE, Timeframe.D1);
+        FreshnessMetadata metadata = new FreshnessService(candleDao, ingestionRunDao, clock).metadataFor(Timeframe.D1);
 
         assertThat(metadata.lastSuccessfulIngestionAt()).isEqualTo(NOW.plusMinutes(1));
         assertThat(metadata.latestCandleDate()).isEqualTo(EXPECTED_D1_BOUNDARY_DAY);
