@@ -1,20 +1,18 @@
 package walshe.projectcolumbo.supertrend.pipeline;
 
-import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.util.Objects;
 
-/** Thrown when a new pipeline run is requested while one is already RUNNING for the same provider+timeframe. */
+/** Thrown when a new pipeline run is requested while one is already RUNNING for the same timeframe. */
 public class IngestionAlreadyRunningException extends RuntimeException {
 
-    public IngestionAlreadyRunningException(Provider provider, Timeframe timeframe) {
-        super(messageFor(provider, timeframe));
+    public IngestionAlreadyRunningException(Timeframe timeframe) {
+        super(messageFor(timeframe));
     }
 
-    private static String messageFor(Provider provider, Timeframe timeframe) {
-        Objects.requireNonNull(provider, "provider must not be null");
+    private static String messageFor(Timeframe timeframe) {
         Objects.requireNonNull(timeframe, "timeframe must not be null");
-        return "An ingestion run is already RUNNING for " + provider + " " + timeframe;
+        return "An ingestion run is already RUNNING for " + timeframe;
     }
 }

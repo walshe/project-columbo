@@ -29,7 +29,6 @@ import walshe.projectcolumbo.supertrend.pipeline.PipelineOrchestrator;
 import walshe.projectcolumbo.supertrend.pulse.MarketBreadthPulseService;
 import walshe.projectcolumbo.supertrend.rollup.CandleRollupService;
 import walshe.projectcolumbo.supertrend.shared.AssetVenue;
-import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.SignalStateDetectionService;
 
@@ -76,7 +75,7 @@ class IngestionTriggerHandlerIntegrationTest {
             statement.executeUpdate("UPDATE asset SET active = false");
             // concurrentTriggerIsRejectedWith409 deliberately leaves a row stuck at RUNNING forever
             // (never completed) - without this, whichever test runs after it would incorrectly see
-            // a run "already in progress" for the same provider+timeframe and get 409 instead of 202.
+            // a run "already in progress" for the same timeframe and get 409 instead of 202.
             statement.executeUpdate("DELETE FROM ingestion_run");
         }
     }
@@ -109,7 +108,7 @@ class IngestionTriggerHandlerIntegrationTest {
     }
 
     @Test
-    void missingBodyDefaultsToBinanceD1AndReturns202WithARunId() throws Exception {
+    void missingBodyDefaultsToD1AndReturns202WithARunId() throws Exception {
         JavalinTest.test(newApp((symbol, start, end) -> List.of()), (server, client) -> {
             Response response = client.post("/api/v1/internal/ingestion/run"); // no body at all
             assertThat(response.code()).isEqualTo(202);
@@ -119,16 +118,15 @@ class IngestionTriggerHandlerIntegrationTest {
             long runId = extractRunId(body);
             IngestionRunStatus finalStatus = awaitCompletion(runId);
             assertThat(finalStatus).isIn(IngestionRunStatus.SUCCESS, IngestionRunStatus.FAILED, IngestionRunStatus.PARTIAL);
-            assertThat(ingestionRunDao.findById(runId).orElseThrow().provider()).isEqualTo(Provider.BINANCE);
             assertThat(ingestionRunDao.findById(runId).orElseThrow().timeframe()).isEqualTo(Timeframe.D1);
         });
     }
 
     @Test
-    void explicitProviderAndTimeframeAreHonored() {
+    void explicitTimeframeIsHonored() {
         JavalinTest.test(newApp((symbol, start, end) -> List.of()), (server, client) -> {
             Response response = client.request("/api/v1/internal/ingestion/run", builder -> builder.post(json("""
-                    {"provider":"BINANCE","timeframe":"W1"}
+                    {"timeframe":"W1"}
                     """)));
             assertThat(response.code()).isEqualTo(202);
         });
@@ -136,7 +134,7 @@ class IngestionTriggerHandlerIntegrationTest {
 
     @Test
     void concurrentTriggerIsRejectedWith409() {
-        ingestionRunDao.start(Provider.BINANCE, Timeframe.D1, 0, OffsetDateTime.now(Clock.fixed(NOW.toInstant(), ZoneOffset.UTC)));
+        ingestionRunDao.start(Timeframe.D1, 0, OffsetDateTime.now(Clock.fixed(NOW.toInstant(), ZoneOffset.UTC)));
 
         JavalinTest.test(newApp((symbol, start, end) -> List.of()), (server, client) -> {
             Response response = client.request("/api/v1/internal/ingestion/run", builder -> builder.post(json("{}")));

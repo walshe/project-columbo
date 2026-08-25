@@ -106,6 +106,11 @@ public final class CandleIngestionService {
             throw new IllegalStateException("No market data provider configured for venue " + asset.venue());
         }
         List<Candle> candles = provider.fetchDailyCandles(asset.symbol(), startTimeMs, endTimeMs);
+        if (candles.isEmpty()) {
+            LOG.warn("Provider returned zero candles for {} in an expected fetch window ({} to {}); "
+                    + "no error was raised, but this is not the same as already being up to date.",
+                    asset.symbol(), startTimeMs, endTimeMs);
+        }
 
         int inserted = 0;
         int updated = 0;

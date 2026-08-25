@@ -28,6 +28,11 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -158,13 +163,51 @@ class PersistenceIntegrationTest {
     void ingestionRunDaoLifecycle() {
         IngestionRunDao dao = new IngestionRunDao(dataSource);
 
-        assertThat(dao.isRunning(Provider.BINANCE, Timeframe.D1)).isFalse();
+        assertThat(dao.isRunning(Timeframe.D1)).isFalse();
 
-        long runId = dao.start(Provider.BINANCE, Timeframe.D1, 60, OffsetDateTime.now(ZoneOffset.UTC));
-        assertThat(dao.isRunning(Provider.BINANCE, Timeframe.D1)).isTrue();
+        long runId = dao.start(Timeframe.D1, 60, OffsetDateTime.now(ZoneOffset.UTC));
+        assertThat(dao.isRunning(Timeframe.D1)).isTrue();
 
         dao.complete(runId, new IngestionRunOutcome(IngestionRunStatus.SUCCESS, OffsetDateTime.now(ZoneOffset.UTC), 1234, 60, 0, 0, 0, null));
-        assertThat(dao.isRunning(Provider.BINANCE, Timeframe.D1)).isFalse();
+        assertThat(dao.isRunning(Timeframe.D1)).isFalse();
+    }
+
+    @Test
+    @Order(10)
+    void concurrentCandleUpsertsForTheSameNewKeyBothSucceed() throws Exception {
+        // Regression test for the production bug: two overlapping ingestion runs both saw "no
+        // row yet" for the same (asset, timeframe, close_time) and both attempted an INSERT, so
+        // the loser threw a raw "duplicate key value violates unique constraint" instead of
+        // converging. The atomic INSERT ... ON CONFLICT ... DO UPDATE rewrite means neither
+        // concurrent call can throw for this reason any more, regardless of true timing.
+        CandleDao candleDao = new CandleDao(dataSource);
+        long assetId = new AssetDao(dataSource).findAllActive().get(5).id();
+        Candle first = candle(20, "200", "210", "190", "205");
+        Candle second = candle(20, "200", "210", "190", "207"); // same close_time, different close - a real revision either way
+
+        CyclicBarrier barrier = new CyclicBarrier(2);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<UpsertOutcome> resultA = executor.submit(() -> {
+                barrier.await();
+                return candleDao.upsert(assetId, first);
+            });
+            Future<UpsertOutcome> resultB = executor.submit(() -> {
+                barrier.await();
+                return candleDao.upsert(assetId, second);
+            });
+
+            List<UpsertOutcome> outcomes = List.of(resultA.get(10, TimeUnit.SECONDS), resultB.get(10, TimeUnit.SECONDS));
+            // Exactly one of the two is the actual INSERT (whichever wins); the other sees the
+            // conflict and, since first/second deliberately have different close prices, updates.
+            assertThat(outcomes).containsExactlyInAnyOrder(UpsertOutcome.INSERTED, UpsertOutcome.UPDATED);
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertThat(candleDao.findByAssetAndTimeframe(assetId, Timeframe.D1))
+                .filteredOn(c -> c.closeTime().equals(closeTime(20)))
+                .hasSize(1);
     }
 
     @Test

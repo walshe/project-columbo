@@ -11,7 +11,6 @@ import walshe.projectcolumbo.supertrend.pipeline.PipelineOrchestrator;
 import walshe.projectcolumbo.supertrend.pipeline.PipelineRunResult;
 import walshe.projectcolumbo.supertrend.pulse.MarketBreadthSnapshot;
 import walshe.projectcolumbo.supertrend.shared.AssetClass;
-import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.ProvisionalTrendResult;
 import walshe.projectcolumbo.supertrend.signal.ProvisionalTrendService;
@@ -100,11 +99,11 @@ public final class WeeklyTrendBriefingHandler {
             responses = {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(mimeType = "text/markdown", type = "string"),
                             description = "The full Markdown report; content-type is always text/markdown, never application/json"),
-                    @OpenApiResponse(status = "409", description = "A BINANCE/D1 ingestion run is already RUNNING - wait for it to finish and retry")
+                    @OpenApiResponse(status = "409", description = "A D1 ingestion run is already RUNNING - wait for it to finish and retry")
             }
     )
     private void runBriefing(Context ctx) {
-        PipelineRunResult ingestionResult = pipelineOrchestrator.runDaily(Provider.BINANCE, Timeframe.D1);
+        PipelineRunResult ingestionResult = pipelineOrchestrator.runDaily(Timeframe.D1);
         WeeklyTrendBriefingReport report = buildReport(ingestionResult);
         ctx.contentType("text/markdown").result(WeeklyTrendBriefingFormatter.toMarkdown(report, OffsetDateTime.now(clock)));
     }

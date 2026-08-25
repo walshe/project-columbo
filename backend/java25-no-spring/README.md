@@ -87,7 +87,7 @@ All under `/api/v1`, JSON by default unless noted.
 | `GET` | `/summary/trend-alignment` | `format`, `maxRetestAgeDays` (default 7), `assetClass`, `requireFresh` optional; freshness always checked against D1; response echoes back `maxRetestAgeDays`/`assetClass` in every format |
 | `POST` | `/scan` | JSON body: `operator` (`AND`/`OR`), `conditions[]` (`timeframe`, `state`, optional `maxDaysSinceFlip`), optional `limit`, optional `assetClass`, optional `sort` (`SYMBOL_ASC` default, or `LIQUIDITY_DESC`); each result includes `avgVolume7d` |
 | `GET` | `/candles/coverage` | per-timeframe earliest/latest/expected-latest/up-to-date/asset-count; optional `assetClass` restricts `earliest`/`assetCount` only - freshness fields stay global |
-| `POST` | `/internal/ingestion/run` | optional JSON body: `provider`/`timeframe` (default `BINANCE`/`D1`); 202 + run id, 409 if already running for that provider+timeframe |
+| `POST` | `/internal/ingestion/run` | optional JSON body: `timeframe` (default `D1`); always covers every provider's assets in one run - there is no per-provider trigger; 202 + run id, 409 if already running for that timeframe |
 | `POST` | `/weekly-trend-briefing` | No params; runs D1 ingestion to completion, then returns a `text/markdown` report - see "Weekly briefings" below |
 | `POST` | `/weekly-pullback-briefing` | No params; runs D1 ingestion to completion, then returns a `text/markdown` report - see "Weekly briefings" below |
 

@@ -14,7 +14,6 @@ import walshe.projectcolumbo.supertrend.freshness.StaleDataException;
 import walshe.projectcolumbo.supertrend.persistence.MarketBreadthSnapshotDao;
 import walshe.projectcolumbo.supertrend.pulse.MarketBreadthSnapshot;
 import walshe.projectcolumbo.supertrend.shared.AssetClass;
-import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.SignalQueryService;
 import walshe.projectcolumbo.supertrend.signal.SignalSort;
@@ -105,7 +104,7 @@ public final class SummaryHandler {
         List<SignalSummary> bullishSignals = allByFlipDesc.stream().filter(s -> s.trendState() == TrendState.BULLISH).toList();
         List<SignalSummary> bearishSignals = allByFlipDesc.stream().filter(s -> s.trendState() == TrendState.BEARISH).toList();
         MarketBreadthSnapshot pulse = marketBreadthSnapshotDao.findLatest(timeframe, assetClass).orElse(null);
-        FreshnessMetadata metadata = freshnessService.metadataFor(Provider.BINANCE, status);
+        FreshnessMetadata metadata = freshnessService.metadataFor(status);
 
         return new SummaryResponse(
                 timeframe, assetClass, pulse, bullishSignals, bearishSignals, metadata.lastSuccessfulIngestionAt(), metadata.latestCandleDate(), !status.upToDate());

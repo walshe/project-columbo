@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessStatus;
 import walshe.projectcolumbo.supertrend.freshness.StaleDataException;
 import walshe.projectcolumbo.supertrend.pipeline.IngestionAlreadyRunningException;
-import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.time.OffsetDateTime;
@@ -45,7 +44,7 @@ class ApiServerIntegrationTest {
             throw new NotFoundResponse("asset XYZ not found");
         });
         app.get("/conflict", ctx -> {
-            throw new IngestionAlreadyRunningException(Provider.BINANCE, Timeframe.D1);
+            throw new IngestionAlreadyRunningException(Timeframe.D1);
         });
         app.get("/stale", ctx -> {
             throw new StaleDataException(new FreshnessStatus(Timeframe.D1, OffsetDateTime.now(), null, false, true));

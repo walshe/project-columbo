@@ -4,7 +4,6 @@ import walshe.projectcolumbo.supertrend.pipeline.IngestionAlreadyRunningExceptio
 import walshe.projectcolumbo.supertrend.pipeline.IngestionRun;
 import walshe.projectcolumbo.supertrend.pipeline.IngestionRunOutcome;
 import walshe.projectcolumbo.supertrend.pipeline.IngestionRunStatus;
-import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import javax.sql.DataSource;
@@ -25,18 +24,17 @@ public final class IngestionRunDao {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
     }
 
-    /** Returns true if a run for this provider+timeframe is currently RUNNING (concurrency guard). */
-    public boolean isRunning(Provider provider, Timeframe timeframe) {
-        String sql = "SELECT 1 FROM ingestion_run WHERE provider = ?::provider AND timeframe = ?::timeframe AND status = 'RUNNING'";
+    /** Returns true if a run for this timeframe is currently RUNNING (concurrency guard). */
+    public boolean isRunning(Timeframe timeframe) {
+        String sql = "SELECT 1 FROM ingestion_run WHERE timeframe = ?::timeframe AND status = 'RUNNING'";
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, provider.name());
-            statement.setString(2, timeframe.name());
+            statement.setString(1, timeframe.name());
             try (ResultSet resultSet = statement.executeQuery()) {
                 return resultSet.next();
             }
         } catch (SQLException e) {
-            throw new PersistenceException("Failed to check running ingestion for " + provider + " " + timeframe, e);
+            throw new PersistenceException("Failed to check running ingestion for " + timeframe, e);
         }
     }
 
@@ -44,21 +42,20 @@ public final class IngestionRunDao {
 
     /**
      * Inserts a new RUNNING run record and returns its id. The unique partial index on
-     * (provider, timeframe) WHERE status = 'RUNNING' (see V9 migration) is the actual source of
-     * truth against two concurrent callers both starting a run — {@link #isRunning} is only a
-     * cheap fast-path check and can't prevent that race on its own.
+     * (timeframe) WHERE status = 'RUNNING' (see V20 migration) is the actual source of truth
+     * against two concurrent callers both starting a run — {@link #isRunning} is only a cheap
+     * fast-path check and can't prevent that race on its own.
      */
-    public long start(Provider provider, Timeframe timeframe, int assetCount, OffsetDateTime startedAt) {
+    public long start(Timeframe timeframe, int assetCount, OffsetDateTime startedAt) {
         String sql = """
-                INSERT INTO ingestion_run (provider, timeframe, started_at, status, asset_count)
-                VALUES (?::provider, ?::timeframe, ?, 'RUNNING', ?)
+                INSERT INTO ingestion_run (timeframe, started_at, status, asset_count)
+                VALUES (?::timeframe, ?, 'RUNNING', ?)
                 """;
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            statement.setString(1, provider.name());
-            statement.setString(2, timeframe.name());
-            statement.setObject(3, startedAt);
-            statement.setInt(4, assetCount);
+            statement.setString(1, timeframe.name());
+            statement.setObject(2, startedAt);
+            statement.setInt(3, assetCount);
             statement.executeUpdate();
             try (ResultSet keys = statement.getGeneratedKeys()) {
                 keys.next();
@@ -66,9 +63,9 @@ public final class IngestionRunDao {
             }
         } catch (SQLException e) {
             if (UNIQUE_VIOLATION_SQLSTATE.equals(e.getSQLState())) {
-                throw new IngestionAlreadyRunningException(provider, timeframe);
+                throw new IngestionAlreadyRunningException(timeframe);
             }
-            throw new PersistenceException("Failed to start ingestion run for " + provider + " " + timeframe, e);
+            throw new PersistenceException("Failed to start ingestion run for " + timeframe, e);
         }
     }
 
@@ -104,16 +101,15 @@ public final class IngestionRunDao {
     }
 
     /** Finished-at of the most recent non-FAILED run (SUCCESS or PARTIAL both count as "some data was ingested") - used for freshness metadata. */
-    public Optional<OffsetDateTime> findLatestSuccessfulFinishedAt(Provider provider, Timeframe timeframe) {
+    public Optional<OffsetDateTime> findLatestSuccessfulFinishedAt(Timeframe timeframe) {
         String sql = """
                 SELECT MAX(finished_at) AS latest
                 FROM ingestion_run
-                WHERE provider = ?::provider AND timeframe = ?::timeframe AND status IN ('SUCCESS', 'PARTIAL')
+                WHERE timeframe = ?::timeframe AND status IN ('SUCCESS', 'PARTIAL')
                 """;
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, provider.name());
-            statement.setString(2, timeframe.name());
+            statement.setString(1, timeframe.name());
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
                     return Optional.ofNullable(resultSet.getObject("latest", OffsetDateTime.class));
@@ -121,13 +117,13 @@ public final class IngestionRunDao {
                 return Optional.empty();
             }
         } catch (SQLException e) {
-            throw new PersistenceException("Failed to load latest successful ingestion time for " + provider + " " + timeframe, e);
+            throw new PersistenceException("Failed to load latest successful ingestion time for " + timeframe, e);
         }
     }
 
     public Optional<IngestionRun> findById(long runId) {
         String sql = """
-                SELECT id, provider, timeframe, started_at, finished_at, duration_ms, status, asset_count,
+                SELECT id, timeframe, started_at, finished_at, duration_ms, status, asset_count,
                        inserted_count, updated_count, skipped_count, error_count, error_sample
                 FROM ingestion_run
                 WHERE id = ?
@@ -147,7 +143,6 @@ public final class IngestionRunDao {
         Long durationMs = resultSet.getObject("duration_ms", Long.class);
         return new IngestionRun(
                 resultSet.getLong("id"),
-                Provider.valueOf(resultSet.getString("provider")),
                 Timeframe.valueOf(resultSet.getString("timeframe")),
                 resultSet.getObject("started_at", OffsetDateTime.class),
                 resultSet.getObject("finished_at", OffsetDateTime.class),

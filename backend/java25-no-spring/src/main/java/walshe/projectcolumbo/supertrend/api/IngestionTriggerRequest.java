@@ -1,14 +1,10 @@
 package walshe.projectcolumbo.supertrend.api;
 
-import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
-/** Both fields are optional - a missing or empty body is equivalent to {@code {}}. */
-public record IngestionTriggerRequest(Provider provider, Timeframe timeframe) {
+/** {@code timeframe} is optional - a missing or empty body is equivalent to {@code {}}. A run always covers every provider's assets; there is no per-provider scoping. */
+public record IngestionTriggerRequest(Timeframe timeframe) {
     public IngestionTriggerRequest {
-        if (provider == null) {
-            provider = Provider.BINANCE;
-        }
         if (timeframe == null) {
             timeframe = Timeframe.D1;
         }
