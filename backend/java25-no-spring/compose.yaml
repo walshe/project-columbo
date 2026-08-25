@@ -35,6 +35,10 @@ services:
       # Required - BackfillStartValidator fails fast at startup if unset. ~215 days back, comfortably
       # past the ~147 days W1 SuperTrend's ATR warm-up needs; move forward periodically.
       - 'SUPERTREND_BACKFILL_START=2026-01-01T00:00:00Z'
+      # Required - Main.requireEnv fails fast at startup if unset. Real value must be supplied via
+      # the deploying environment (e.g. a .env file next to this compose file, gitignored) - never
+      # commit a real key here.
+      - 'TIINGO_API_KEY=${TIINGO_API_KEY}'
     depends_on:
       postgres:
         condition: service_healthy

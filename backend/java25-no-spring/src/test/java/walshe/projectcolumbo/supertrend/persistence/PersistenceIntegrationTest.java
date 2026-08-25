@@ -58,7 +58,7 @@ class PersistenceIntegrationTest {
     void assetDaoFindsAllSeededActiveAssets() {
         List<Asset> assets = new AssetDao(dataSource).findAllActive();
 
-        assertThat(assets).hasSize(200); // 60 crypto (V8) + 140 stock/ETF (V12)
+        assertThat(assets).hasSize(247); // 60 crypto (V8) + 140 stock/ETF (V12) + 47 Tiingo real equities (V17)
         assertThat(assets).allSatisfy(a -> assertThat(a.active()).isTrue());
     }
 

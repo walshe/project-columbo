@@ -22,9 +22,9 @@ class SignalQueryServiceTest {
     private static final OffsetDateTime FLIP_EARLY = OffsetDateTime.of(2024, 1, 5, 0, 0, 0, 0, ZoneOffset.UTC);
     private static final OffsetDateTime FLIP_LATE = OffsetDateTime.of(2024, 1, 8, 0, 0, 0, 0, ZoneOffset.UTC);
 
-    private static final Asset ASSET_A = new Asset(1, "AAAUSDT", Provider.BINANCE, true, AssetClass.CRYPTO, AssetVenue.SPOT);
-    private static final Asset ASSET_B = new Asset(2, "BBBUSDT", Provider.BINANCE, true, AssetClass.CRYPTO, AssetVenue.SPOT);
-    private static final Asset ASSET_C = new Asset(3, "CCCUSDT", Provider.BINANCE, true, AssetClass.CRYPTO, AssetVenue.SPOT);
+    private static final Asset ASSET_A = new Asset(1, "AAAUSDT", Provider.BINANCE, true, AssetClass.CRYPTO, AssetVenue.SPOT, null);
+    private static final Asset ASSET_B = new Asset(2, "BBBUSDT", Provider.BINANCE, true, AssetClass.CRYPTO, AssetVenue.SPOT, null);
+    private static final Asset ASSET_C = new Asset(3, "CCCUSDT", Provider.BINANCE, true, AssetClass.CRYPTO, AssetVenue.SPOT, null);
 
     @Test
     void defaultSortIsAssetAscendingWhenSortIsNull() {

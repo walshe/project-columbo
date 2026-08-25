@@ -72,6 +72,8 @@ docker compose -f compose.yaml -f compose.prod.yaml --profile prod up -d
 | `SUPERTREND_HTTP_PORT` | no | `8080` | HTTP port the API listens on |
 | `SUPERTREND_BINANCE_SPOT_BASE_URL` | no | `https://api.binance.com` | Base URL for SPOT-venue assets. Overridable so tests can point the app at a stub server instead of the real Binance API - see the end-to-end test below |
 | `SUPERTREND_BINANCE_FUTURES_BASE_URL` | no | `https://fapi.binance.com` | Base URL for FUTURES-venue assets (e.g. stocks/ETFs traded as Binance perpetual futures). Same override use case as the spot variable above |
+| `TIINGO_API_KEY` | **yes** | — | API key for Tiingo's daily prices API, used for EXCHANGE-venue (real equity) assets. Startup fails fast if unset |
+| `SUPERTREND_TIINGO_BASE_URL` | no | `https://api.tiingo.com` | Base URL for EXCHANGE-venue assets. Overridable so tests can point the app at a stub server instead of the real Tiingo API - see the end-to-end test below |
 
 ## HTTP endpoints
 
@@ -91,11 +93,11 @@ All under `/api/v1`, JSON by default unless noted.
 
 Plus `GET /openapi` (OpenAPI spec) and `GET /swagger` (Swagger UI).
 
-Every signal/scan-match entry that has an asset+timeframe includes a `tradingviewUrl` deep link to the matching TradingView chart; Markdown/watchlist output renders these as real links/importable watchlist tokens instead of plain symbol text. A FUTURES-venue asset's URL carries TradingView's `.P` perpetual-contract suffix (e.g. `BINANCE:BITOUSDT.P`) — without it TradingView resolves the symbol against the spot market instead.
+Every signal/scan-match entry that has an asset+timeframe includes a `tradingviewUrl` deep link to the matching TradingView chart; Markdown/watchlist output renders these as real links/importable watchlist tokens instead of plain symbol text. A FUTURES-venue asset's URL carries TradingView's `.P` perpetual-contract suffix (e.g. `BINANCE:BITOUSDT.P`) — without it TradingView resolves the symbol against the spot market instead. An EXCHANGE-venue (Tiingo) asset's `tradingviewUrl` is `null` — this system doesn't store the real per-asset TradingView exchange (NASDAQ/NYSE/OTC/SHG), so no link is generated rather than a fabricated one.
 
-Every asset has an `assetClass` (`CRYPTO`/`STOCK`/`ETF`/`COMMODITY`) - crypto and a large batch of Binance-tradeable stocks/ETFs are onboarded. The `assetClass` query param above filters results to one class; each signal/scan-match entry also includes its own `assetClass` in the response.
+Every asset has an `assetClass` (`CRYPTO`/`STOCK`/`ETF`/`COMMODITY`) - crypto, a large batch of tokenized Binance stocks/ETFs, and a smaller set of real equities sourced from Tiingo (`provider = TIINGO`) are all onboarded as `STOCK`. Both a company's tokenized Binance asset and its real Tiingo asset can be active at once — these are additive, independent rows, not deduplicated. The `assetClass` query param above filters results to one class; each signal/scan-match entry also includes its own `assetClass` in the response.
 
-Every asset also has a `venue` (`SPOT` or `FUTURES`) that isn't exposed via the API but determines which Binance host/path (`SUPERTREND_BINANCE_SPOT_BASE_URL` vs `SUPERTREND_BINANCE_FUTURES_BASE_URL`) `CandleIngestionService` fetches its candles from — spot and futures are separate Binance products with entirely separate symbol universes, so an asset only tradeable on one must be routed there specifically. Stocks/ETFs and a handful of crypto symbols (e.g. `HYPEUSDT`) are `FUTURES`; ordinary crypto defaults to `SPOT`.
+Every asset also has a `venue` (`SPOT`, `FUTURES`, or `EXCHANGE`) that isn't exposed via the API but determines which provider/host `CandleIngestionService` fetches its candles from: `SPOT`/`FUTURES` route to Binance (`SUPERTREND_BINANCE_SPOT_BASE_URL`/`SUPERTREND_BINANCE_FUTURES_BASE_URL`) — separate Binance products with entirely separate symbol universes — while `EXCHANGE` routes to Tiingo (`SUPERTREND_TIINGO_BASE_URL`) for real equities. Stocks/ETFs tokenized on Binance and a handful of crypto symbols (e.g. `HYPEUSDT`) are `FUTURES`; ordinary crypto defaults to `SPOT`; Tiingo-sourced real equities are `EXCHANGE`.
 
 ## Weekly briefings
 

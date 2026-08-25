@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Builds this module's actual Docker image via Testcontainers' {@link ImageFromDockerfile} and
  * runs it against a real Postgres container plus a WireMock container stubbing Binance's klines
- * API, then drives the full pipeline (ingest -&gt; D1 indicators -&gt; D1 signals -&gt; D1 pulse -&gt;
+ * API and Tiingo's daily prices API, then drives the full pipeline (ingest -&gt; D1 indicators -&gt; D1 signals -&gt; D1 pulse -&gt;
  * W1 rollup -&gt; W1 indicators -&gt; W1 signals -&gt; W1 pulse) through real HTTP exactly as a client
  * would. This is the automated, repeatable counterpart to the one-time manual "Group 16"
  * validation documented in {@code openspec/changes/supertrend-core-java25-rewrite/design.md},
@@ -63,9 +63,15 @@ class PipelineEndToEndIT {
     // asset-venue-routing fix, every asset was queried against the SPOT endpoint only; a single
     // catch-all WireMock stub keyed on symbol (not path) meant that bug never failed this test.
     private static final String FUTURES_SYMBOL = "AAPLUSDT";
+    // A real EXCHANGE-venue Tiingo asset (STOCK class, seeded by V17) - distinct row/symbol from
+    // the tokenized Binance FUTURES_SYMBOL above (real "AAPL" vs. tokenized "AAPLUSDT"). Proves
+    // candles actually flow through TiingoMarketDataProvider, not just that the pipeline completes.
+    private static final String EXCHANGE_SYMBOL = "AAPL";
 
     private static final String SPOT_KLINES_PATH = "/api/v3/klines";
     private static final String FUTURES_KLINES_PATH = "/fapi/v1/klines";
+    private static final String TIINGO_PRICES_PATH = "/tiingo/daily/.*";
+    private static final String TIINGO_API_KEY = "test-tiingo-key";
 
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final HttpClient HTTP = HttpClient.newHttpClient();
@@ -88,6 +94,8 @@ class PipelineEndToEndIT {
                 .withPassword("postgres");
         postgres.start();
 
+        // "binance-stub" also serves the Tiingo prices stub below - one WireMock instance stubs
+        // both market-data providers rather than standing up a second container for it.
         wiremock = new GenericContainer<>(DockerImageName.parse("wiremock/wiremock:3.13.2"))
                 .withNetwork(network)
                 .withNetworkAliases("binance-stub")
@@ -122,6 +130,8 @@ class PipelineEndToEndIT {
                 .withEnv("SUPERTREND_BACKFILL_START", BACKFILL_START)
                 .withEnv("SUPERTREND_BINANCE_SPOT_BASE_URL", "http://binance-stub:" + WIREMOCK_PORT)
                 .withEnv("SUPERTREND_BINANCE_FUTURES_BASE_URL", "http://binance-stub:" + WIREMOCK_PORT)
+                .withEnv("SUPERTREND_TIINGO_BASE_URL", "http://binance-stub:" + WIREMOCK_PORT)
+                .withEnv("TIINGO_API_KEY", TIINGO_API_KEY)
                 .waitingFor(Wait.forHttp("/api/v1/candles/coverage").forStatusCode(200))
                 .withStartupTimeout(Duration.ofMinutes(5));
         app.start();
@@ -160,6 +170,10 @@ class PipelineEndToEndIT {
         // ingested successfully. If SUPERTREND_BINANCE_FUTURES_BASE_URL or the /fapi/v1/klines
         // stub mappings were wrong, this asset would have no candles and show UNKNOWN here.
         assertThat(trendStateOf(d1Signals, FUTURES_SYMBOL)).isEqualTo("BULLISH");
+        // Proves the EXCHANGE venue route actually delivered candles via TiingoMarketDataProvider
+        // - not just that assetCount increased by 47. If SUPERTREND_TIINGO_BASE_URL/TIINGO_API_KEY
+        // or the /tiingo/daily/.../prices stub were wrong, this asset would show UNKNOWN here.
+        assertThat(trendStateOf(d1Signals, EXCHANGE_SYMBOL)).isEqualTo("BULLISH");
 
         JsonNode w1Signals = getJson("/api/v1/signals?timeframe=W1").get("signals");
         assertThat(trendStateOf(w1Signals, BEARISH_SYMBOL)).isEqualTo("BEARISH");
@@ -170,11 +184,12 @@ class PipelineEndToEndIT {
         assertThat(summary.get("pulse").get("bullishCount").asInt()).isGreaterThan(0);
 
         JsonNode coverage = getJson("/api/v1/candles/coverage");
-        // 200 seeded - 1 deactivated invalid symbol. Stays 199 (not fewer) with venue routing in
-        // place: every FUTURES-venue asset now gets real candles from the /fapi/v1/klines stub
-        // instead of silently failing, so no extra assets end up erroring/deactivated here.
-        assertThat(coverage.get("D1").get("assetCount").asLong()).isEqualTo(199);
-        assertThat(coverage.get("W1").get("assetCount").asLong()).isEqualTo(199);
+        // 200 Binance-seeded - 1 deactivated invalid symbol + 47 Tiingo-seeded (V17), all valid.
+        // Stays 246 (not fewer) with venue routing in place: every FUTURES-venue asset gets real
+        // candles from /fapi/v1/klines and every EXCHANGE-venue asset from the Tiingo stub, so no
+        // extra assets end up erroring/deactivated here.
+        assertThat(coverage.get("D1").get("assetCount").asLong()).isEqualTo(246);
+        assertThat(coverage.get("W1").get("assetCount").asLong()).isEqualTo(246);
 
         // Idempotency: a second trigger either starts cleanly or is rejected because the first
         // hasn't finished yet - both are correct, a 5xx would not be.
@@ -184,7 +199,7 @@ class PipelineEndToEndIT {
             awaitPipelineCompletion();
         }
         JsonNode coverageAfterRepeat = getJson("/api/v1/candles/coverage");
-        assertThat(coverageAfterRepeat.get("D1").get("assetCount").asLong()).isEqualTo(199);
+        assertThat(coverageAfterRepeat.get("D1").get("assetCount").asLong()).isEqualTo(246);
     }
 
     private static void awaitPipelineCompletion() throws InterruptedException {
@@ -267,8 +282,23 @@ class PipelineEndToEndIT {
                 new StubMapping("bearish-btc-spot.json", stubMapping(SPOT_KLINES_PATH, BEARISH_SYMBOL, 200, klinesBody(false), 1)),
                 new StubMapping("bullish-default-spot.json", stubMapping(SPOT_KLINES_PATH, null, 200, klinesBody(true), 100)),
                 new StubMapping("invalid-symbol-spot.json", stubMapping(SPOT_KLINES_PATH, INVALID_SYMBOL, 400, invalidSymbolBody(), 1)),
-                new StubMapping("bullish-default-futures.json", stubMapping(FUTURES_KLINES_PATH, null, 200, klinesBody(true), 100))
+                new StubMapping("bullish-default-futures.json", stubMapping(FUTURES_KLINES_PATH, null, 200, klinesBody(true), 100)),
+                new StubMapping("bullish-default-tiingo.json", tiingoStubMapping(200, tiingoPricesBody(true), 100))
         );
+    }
+
+    /** Path-pattern-only match (every Tiingo symbol, including ones with a dash like BRK-A) - unlike {@link #stubMapping}, Tiingo's symbol is part of the path, not a query parameter. */
+    private static String tiingoStubMapping(int status, JsonNode body, int priority) {
+        ObjectNode root = JSON.createObjectNode();
+        root.put("priority", priority);
+        ObjectNode request = root.putObject("request");
+        request.put("method", "GET");
+        request.put("urlPathPattern", TIINGO_PRICES_PATH);
+        ObjectNode response = root.putObject("response");
+        response.put("status", status);
+        response.set("jsonBody", body);
+        response.putObject("headers").put("Content-Type", "application/json");
+        return root.toString();
     }
 
     /** Bullish is the catch-all (priority 100); BTC and the invalid symbol are higher-priority (lower number) overrides. */
@@ -329,6 +359,40 @@ class PipelineEndToEndIT {
             row.add("500.0000");
             row.add("50000.0000");
             row.add("0");
+        }
+        return rows;
+    }
+
+    /**
+     * Tiingo daily-prices object shape: {@code date/open/high/low/close/volume} plus the
+     * split/dividend-adjusted variants. Only the {@code adj*} fields are ever read by {@code
+     * TiingoMarketDataProvider}; the raw fields are populated anyway to mirror the real API shape.
+     */
+    private static JsonNode tiingoPricesBody(boolean bullish) {
+        ArrayNode rows = JSON.createArrayNode();
+        double base = 100.0;
+        double dailyFactor = bullish ? 1.005 : 0.995;
+        for (int day = 0; day < SERIES_DAYS; day++) {
+            OffsetDateTime date = SERIES_START.plusDays(day);
+            double openPrice = base * Math.pow(dailyFactor, day);
+            double closePrice = base * Math.pow(dailyFactor, day + 1);
+            double high = Math.max(openPrice, closePrice) * 1.01;
+            double low = Math.min(openPrice, closePrice) * 0.99;
+
+            ObjectNode row = rows.addObject();
+            row.put("date", date.toString());
+            row.put("open", openPrice);
+            row.put("high", high);
+            row.put("low", low);
+            row.put("close", closePrice);
+            row.put("volume", 1_000_000);
+            row.put("adjOpen", openPrice);
+            row.put("adjHigh", high);
+            row.put("adjLow", low);
+            row.put("adjClose", closePrice);
+            row.put("adjVolume", 1_000_000);
+            row.put("divCash", 0.0);
+            row.put("splitFactor", 1.0);
         }
         return rows;
     }

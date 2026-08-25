@@ -150,6 +150,29 @@ class CandleIngestionServiceTest {
         assertThat(stats.errorCount()).isZero();
     }
 
+    @Test
+    @Order(6)
+    void routesAnExchangeVenueAssetToItsConfiguredProviderAlongsideSpotAndFutures() {
+        seedAsset("ING6SPOTUSDT", AssetVenue.SPOT);
+        seedAsset("ING6FUTUSDT", AssetVenue.FUTURES);
+        seedAsset("AAPL", AssetVenue.EXCHANGE);
+        FakeMarketDataProvider spotProvider = new FakeMarketDataProvider();
+        spotProvider.onFetch("ING6SPOTUSDT", () -> List.of(candle(1)));
+        FakeMarketDataProvider futuresProvider = new FakeMarketDataProvider();
+        futuresProvider.onFetch("ING6FUTUSDT", () -> List.of(candle(1)));
+        FakeMarketDataProvider exchangeProvider = new FakeMarketDataProvider();
+        exchangeProvider.onFetch("AAPL", () -> List.of(candle(1), candle(2)));
+        CandleIngestionService service = new CandleIngestionService(
+                assetDao, candleDao,
+                Map.of(AssetVenue.SPOT, spotProvider, AssetVenue.FUTURES, futuresProvider, AssetVenue.EXCHANGE, exchangeProvider),
+                ingestionConfig, clock);
+
+        IngestionStats stats = service.ingestDaily();
+
+        assertThat(stats.insertedCount()).isEqualTo(4);
+        assertThat(stats.errorCount()).isZero();
+    }
+
     private static CandleIngestionService ingestionService(FakeMarketDataProvider provider) {
         return new CandleIngestionService(
                 assetDao, candleDao,
