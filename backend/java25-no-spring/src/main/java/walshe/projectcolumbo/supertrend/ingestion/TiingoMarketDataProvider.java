@@ -8,6 +8,7 @@ import walshe.projectcolumbo.supertrend.indicator.Candle;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -143,10 +144,19 @@ public final class TiingoMarketDataProvider implements MarketDataProvider {
      * stored — derived from {@code openTime}'s calendar date rather than assumed to already be
      * exact UTC midnight, since some of the seeded assets (Shanghai A-shares, OTC ADRs) may not
      * share Tiingo's usual US-exchange {@code date} convention.
+     * <p>
+     * {@code Candle.volume} is stored as dollar-notional value traded ({@code adjVolume *
+     * adjClose}), not Tiingo's raw share count, so it's comparable to Binance's quote-asset
+     * (USDT) volume — {@code candle.volume} has "notional value traded" semantics system-wide,
+     * used directly (unnormalized) by {@code v_asset_liquidity}'s cross-provider liquidity
+     * ranking. Storing raw share counts here previously made that ranking meaningless whenever a
+     * Tiingo asset was compared against a Binance one - shares and dollars are not the same unit.
      */
     Candle toCandle(JsonNode row) {
         OffsetDateTime openTime = OffsetDateTime.parse(row.get("date").asText());
         OffsetDateTime closeTime = openTime.toLocalDate().plusDays(1).atStartOfDay(ZoneOffset.UTC).toOffsetDateTime().minusNanos(1_000_000);
+        BigDecimal adjClose = row.get("adjClose").decimalValue();
+        BigDecimal dollarVolume = row.get("adjVolume").decimalValue().multiply(adjClose);
         return new Candle(
                 openTime,
                 closeTime,
@@ -154,8 +164,8 @@ public final class TiingoMarketDataProvider implements MarketDataProvider {
                 row.get("adjOpen").decimalValue(),
                 row.get("adjHigh").decimalValue(),
                 row.get("adjLow").decimalValue(),
-                row.get("adjClose").decimalValue(),
-                row.get("adjVolume").decimalValue()
+                adjClose,
+                dollarVolume
         );
     }
 }

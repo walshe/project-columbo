@@ -47,7 +47,29 @@ class TiingoMarketDataProviderTest {
         assertThat(candle.high()).isEqualByComparingTo("55.0");
         assertThat(candle.low()).isEqualByComparingTo("45.0");
         assertThat(candle.close()).isEqualByComparingTo("52.5");
-        assertThat(candle.volume()).isEqualByComparingTo("2000");
+        // Dollar-notional (adjVolume * adjClose = 2000 * 52.5), not Tiingo's raw share count -
+        // comparable to Binance's quote-asset (USDT) volume for cross-provider liquidity ranking.
+        assertThat(candle.volume()).isEqualByComparingTo("105000.0");
+    }
+
+    @Test
+    void volumeIsDollarNotionalNotRawShareCount() {
+        // A separate, explicit case for the unit conversion itself - the production bug this
+        // guards against silently made cross-provider liquidity ranking meaningless (shares vs.
+        // dollars), not something that fails loudly, so this needs a test that would actually
+        // catch a regression back to storing adjVolume as-is.
+        String json = """
+                [
+                  {
+                    "date": "2024-01-02T00:00:00.000Z",
+                    "adjOpen": 100.0, "adjHigh": 100.0, "adjLow": 100.0, "adjClose": 200.0, "adjVolume": 1000000
+                  }
+                ]
+                """;
+
+        Candle candle = provider.parseDailyPrices(json).get(0);
+
+        assertThat(candle.volume()).isEqualByComparingTo("200000000.0"); // 1,000,000 shares * $200/share
     }
 
     @Test
