@@ -51,10 +51,37 @@ class TiingoMarketDataProviderTest {
     }
 
     @Test
+    void closeTimeIsTheLastMillisecondOfTheCalendarDateEvenWhenDateFieldIsNotExactlyMidnight() {
+        // Not every seeded asset is on a US exchange (e.g. Shanghai-listed A-shares) - closeTime
+        // must be derived from the calendar date, not assumed to already be UTC midnight.
+        String json = """
+                [
+                  {
+                    "date": "2024-01-02T08:00:00.000Z",
+                    "adjOpen": 50.0, "adjHigh": 55.0, "adjLow": 45.0, "adjClose": 52.5, "adjVolume": 2000
+                  }
+                ]
+                """;
+
+        Candle candle = provider.parseDailyPrices(json).get(0);
+
+        assertThat(candle.closeTime()).isEqualTo(OffsetDateTime.parse("2024-01-02T23:59:59.999Z"));
+    }
+
+    @Test
     void toCalendarDateTruncatesEpochMillisToUtcCalendarDate() {
         long epochMs = Instant.parse("2024-06-15T13:45:00Z").toEpochMilli();
 
         assertThat(TiingoMarketDataProvider.toCalendarDate(epochMs)).isEqualTo("2024-06-15");
+    }
+
+    @Test
+    void pricesUriPercentEncodesTheSymbolAsAPathSegmentNotAFormField() {
+        // URLEncoder's raw output would turn a space into "+", which is form-encoding, not
+        // path-segment encoding - the symbol sits in the URL path here, not a query value.
+        URI uri = provider.pricesUri("FOO BAR", 1000L, 86_400_000L);
+
+        assertThat(uri.getRawPath()).isEqualTo("/tiingo/daily/FOO%20BAR/prices");
     }
 
     @Test

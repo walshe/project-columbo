@@ -97,7 +97,10 @@ public final class TiingoMarketDataProvider implements MarketDataProvider {
         // last calendar day actually requested is the one that boundary minus 1ms falls on.
         String startDate = toCalendarDate(startTimeMs);
         String endDate = toCalendarDate(endTimeMs - 1);
-        String encodedSymbol = URLEncoder.encode(symbol, StandardCharsets.UTF_8);
+        // URLEncoder applies application/x-www-form-urlencoded rules (e.g. space -> "+"), which
+        // is wrong for a URL path segment; ".replace("+", "%20")" is this codebase's existing fix
+        // for that mismatch (see TradingViewUrl.encode).
+        String encodedSymbol = URLEncoder.encode(symbol, StandardCharsets.UTF_8).replace("+", "%20");
         return URI.create(baseUrl + PRICES_PATH_TEMPLATE.formatted(encodedSymbol)
                 + "?startDate=" + startDate
                 + "&endDate=" + endDate
@@ -135,13 +138,15 @@ public final class TiingoMarketDataProvider implements MarketDataProvider {
     /**
      * Uses the split/dividend-adjusted fields ({@code adjOpen}/{@code adjHigh}/{@code adjLow}/
      * {@code adjClose}/{@code adjVolume}), not the raw ones, so a split or dividend doesn't look
-     * like a discontinuous price jump to SuperTrend. {@code date} is midnight UTC for a daily bar;
-     * closeTime follows Binance's own D1 convention ({@code open + 1 day - 1ms}) for consistency
-     * with every other candle already stored.
+     * like a discontinuous price jump to SuperTrend. {@code closeTime} follows Binance's own D1
+     * convention ({@code open + 1 day - 1ms}) for consistency with every other candle already
+     * stored — derived from {@code openTime}'s calendar date rather than assumed to already be
+     * exact UTC midnight, since some of the seeded assets (Shanghai A-shares, OTC ADRs) may not
+     * share Tiingo's usual US-exchange {@code date} convention.
      */
     Candle toCandle(JsonNode row) {
         OffsetDateTime openTime = OffsetDateTime.parse(row.get("date").asText());
-        OffsetDateTime closeTime = openTime.plusDays(1).minusNanos(1_000_000);
+        OffsetDateTime closeTime = openTime.toLocalDate().plusDays(1).atStartOfDay(ZoneOffset.UTC).toOffsetDateTime().minusNanos(1_000_000);
         return new Candle(
                 openTime,
                 closeTime,
