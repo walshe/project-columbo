@@ -35,7 +35,7 @@ public final class TradingViewUrl {
             return null;
         }
         if (venue == AssetVenue.EXCHANGE) {
-            return tradingviewRef == null ? null : chartUrl(tradingviewRef, timeframe);
+            return (tradingviewRef == null || tradingviewRef.isBlank()) ? null : chartUrl(tradingviewRef, timeframe);
         }
         String fullSymbol = symbol.endsWith("USDT") ? symbol : symbol + "USDT";
         if (venue == AssetVenue.FUTURES) {

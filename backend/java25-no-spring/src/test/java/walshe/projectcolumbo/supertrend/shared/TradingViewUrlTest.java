@@ -46,6 +46,11 @@ class TradingViewUrlTest {
     }
 
     @Test
+    void generateUrlIsNullForExchangeVenueWithABlankRef() {
+        assertThat(TradingViewUrl.generateUrl(Provider.TIINGO, "AAPL", Timeframe.D1, AssetVenue.EXCHANGE, "  ")).isNull();
+    }
+
+    @Test
     void generateUrlUsesTheVerifiedTradingviewRefForExchangeVenue() {
         String url = TradingViewUrl.generateUrl(Provider.TIINGO, "AAPL", Timeframe.D1, AssetVenue.EXCHANGE, "NASDAQ:AAPL");
         assertThat(url).isEqualTo("https://www.tradingview.com/chart/?symbol=NASDAQ%3AAAPL&interval=1D");

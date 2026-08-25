@@ -18,6 +18,8 @@
 
 - [x] 3.5 Add a `PersistenceIntegrationTest` case asserting all 47 Tiingo assets have a non-null `tradingviewRef`, with exact-value spot-checks for the trickiest ones (`BRK-A`, `SSNLF`, `601398`) — guards against a typo in `V19`'s VALUES list silently matching zero rows for a symbol (an `UPDATE` with no matching `WHERE` rows doesn't error).
 
+- [x] 3.6 Self-review via `pr_agent` on PR #68: flagged that `generateUrl` only null-checked `tradingviewRef`, not blank — a future asset seeded with an empty string would produce a dead link (`?symbol=&interval=1D`). Fixed to treat blank the same as null.
+
 ## 4. Verification
 
 - [x] 4.1 Run full `mvn test` suite, confirm no regressions.
