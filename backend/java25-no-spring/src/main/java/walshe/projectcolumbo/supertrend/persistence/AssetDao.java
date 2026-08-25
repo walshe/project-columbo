@@ -28,8 +28,8 @@ public final class AssetDao {
     /** @param assetClassFilter restricts results to this class only; every active asset is returned when null. */
     public List<Asset> findAllActive(AssetClass assetClassFilter) {
         String sql = assetClassFilter == null
-                ? "SELECT id, symbol, provider, active, asset_class, venue FROM asset WHERE active = true ORDER BY id"
-                : "SELECT id, symbol, provider, active, asset_class, venue FROM asset WHERE active = true AND asset_class = ?::asset_class ORDER BY id";
+                ? "SELECT id, symbol, provider, active, asset_class, venue, name FROM asset WHERE active = true ORDER BY id"
+                : "SELECT id, symbol, provider, active, asset_class, venue, name FROM asset WHERE active = true AND asset_class = ?::asset_class ORDER BY id";
         List<Asset> assets = new ArrayList<>();
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -66,7 +66,8 @@ public final class AssetDao {
                 Provider.valueOf(resultSet.getString("provider")),
                 resultSet.getBoolean("active"),
                 AssetClass.valueOf(resultSet.getString("asset_class")),
-                AssetVenue.valueOf(resultSet.getString("venue"))
+                AssetVenue.valueOf(resultSet.getString("venue")),
+                resultSet.getString("name")
         );
     }
 }

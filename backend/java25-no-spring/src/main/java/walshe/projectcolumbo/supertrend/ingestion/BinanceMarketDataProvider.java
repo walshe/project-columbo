@@ -55,6 +55,7 @@ public final class BinanceMarketDataProvider implements MarketDataProvider {
         return switch (venue) {
             case SPOT -> SPOT_DEFAULT_BASE_URL;
             case FUTURES -> FUTURES_DEFAULT_BASE_URL;
+            case EXCHANGE -> throw unsupportedVenue(venue);
         };
     }
 
@@ -62,7 +63,12 @@ public final class BinanceMarketDataProvider implements MarketDataProvider {
         return switch (venue) {
             case SPOT -> SPOT_KLINES_PATH;
             case FUTURES -> FUTURES_KLINES_PATH;
+            case EXCHANGE -> throw unsupportedVenue(venue);
         };
+    }
+
+    private static IllegalArgumentException unsupportedVenue(AssetVenue venue) {
+        return new IllegalArgumentException("BinanceMarketDataProvider does not support venue " + venue);
     }
 
     /** A trailing slash on the configured base URL would otherwise double up with {@link #klinesPath}'s leading one. */

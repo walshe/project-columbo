@@ -17,9 +17,14 @@ public final class TradingViewUrl {
      * with it. A {@link AssetVenue#FUTURES} asset gets a trailing {@code .P} on top of that —
      * TradingView's suffix for a Binance perpetual futures contract (e.g. {@code BITOUSDT.P}) —
      * since without it TradingView resolves the symbol against the spot market instead.
+     * <p>
+     * Also null for {@link AssetVenue#EXCHANGE}: this logic is Binance-specific (USDT pairing,
+     * {@code provider.name()} as the TradingView exchange prefix), and a real equity's actual
+     * TradingView exchange (NASDAQ/NYSE/OTC/SHG) isn't data this system stores per asset — a
+     * fabricated link (e.g. {@code TIINGO:AAPLUSDT}) would be worse than none.
      */
     public static String generateUrl(Provider provider, String symbol, Timeframe timeframe, AssetVenue venue) {
-        if (provider == null || symbol == null || timeframe == null || venue == null) {
+        if (provider == null || symbol == null || timeframe == null || venue == null || venue == AssetVenue.EXCHANGE) {
             return null;
         }
         String fullSymbol = symbol.endsWith("USDT") ? symbol : symbol + "USDT";

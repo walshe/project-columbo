@@ -39,6 +39,13 @@ class TradingViewUrlTest {
     }
 
     @Test
+    void generateUrlIsNullForExchangeVenue() {
+        // No real per-asset TradingView exchange (NASDAQ/NYSE/OTC/SHG) is stored for Tiingo
+        // assets, so a fabricated Binance-shaped link (e.g. TIINGO:AAPLUSDT) would be worse than none.
+        assertThat(TradingViewUrl.generateUrl(Provider.TIINGO, "AAPL", Timeframe.D1, AssetVenue.EXCHANGE)).isNull();
+    }
+
+    @Test
     void watchlistSymbolRoundTripsFromGeneratedUrl() {
         String url = TradingViewUrl.generateUrl(Provider.BINANCE, "BTCUSDT", Timeframe.D1, AssetVenue.SPOT);
         assertThat(TradingViewUrl.watchlistSymbol(url)).isEqualTo("BINANCE:BTCUSDT");

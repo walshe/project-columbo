@@ -18,6 +18,7 @@ import walshe.projectcolumbo.supertrend.ingestion.BackfillStartValidator;
 import walshe.projectcolumbo.supertrend.ingestion.BinanceMarketDataProvider;
 import walshe.projectcolumbo.supertrend.ingestion.CandleIngestionService;
 import walshe.projectcolumbo.supertrend.ingestion.IngestionConfig;
+import walshe.projectcolumbo.supertrend.ingestion.TiingoMarketDataProvider;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.AssetLiquidityDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
@@ -77,9 +78,13 @@ public final class Main {
         BinanceMarketDataProvider futuresProvider = binanceFuturesBaseUrl()
                 .map(baseUrl -> new BinanceMarketDataProvider(httpClient, AssetVenue.FUTURES, baseUrl))
                 .orElseGet(() -> new BinanceMarketDataProvider(httpClient, AssetVenue.FUTURES));
+        String tiingoApiKey = requireEnv("TIINGO_API_KEY");
+        TiingoMarketDataProvider exchangeProvider = tiingoBaseUrl()
+                .map(baseUrl -> new TiingoMarketDataProvider(httpClient, tiingoApiKey, baseUrl))
+                .orElseGet(() -> new TiingoMarketDataProvider(httpClient, tiingoApiKey));
         CandleIngestionService candleIngestionService = new CandleIngestionService(
                 assetDao, candleDao,
-                Map.of(AssetVenue.SPOT, spotProvider, AssetVenue.FUTURES, futuresProvider),
+                Map.of(AssetVenue.SPOT, spotProvider, AssetVenue.FUTURES, futuresProvider, AssetVenue.EXCHANGE, exchangeProvider),
                 ingestionConfig, clock);
         IndicatorComputationService indicatorComputationService =
                 new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao);
@@ -145,8 +150,22 @@ public final class Main {
         return envOrEmpty("SUPERTREND_BINANCE_FUTURES_BASE_URL");
     }
 
+    /** Overridable so an end-to-end test can point Tiingo calls at a stub server instead of the real API. */
+    private static Optional<String> tiingoBaseUrl() {
+        return envOrEmpty("SUPERTREND_TIINGO_BASE_URL");
+    }
+
     private static Optional<String> envOrEmpty(String name) {
         String value = System.getenv(name);
         return (value == null || value.isBlank()) ? Optional.empty() : Optional.of(value);
+    }
+
+    /** Fails fast at startup rather than constructing a Tiingo client that would 401 on first use. */
+    private static String requireEnv(String name) {
+        String value = System.getenv(name);
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException(name + " is not configured");
+        }
+        return value;
     }
 }

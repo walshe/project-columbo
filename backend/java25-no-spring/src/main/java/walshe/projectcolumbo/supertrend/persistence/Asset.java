@@ -6,7 +6,8 @@ import walshe.projectcolumbo.supertrend.shared.Provider;
 
 import java.util.Objects;
 
-public record Asset(long id, String symbol, Provider provider, boolean active, AssetClass assetClass, AssetVenue venue) {
+/** @param name optional human-readable display name (e.g. "Apple Inc"), distinct from the tradeable {@code symbol} - null when not known/set. */
+public record Asset(long id, String symbol, Provider provider, boolean active, AssetClass assetClass, AssetVenue venue, String name) {
     public Asset {
         Objects.requireNonNull(symbol, "symbol must not be null");
         Objects.requireNonNull(provider, "provider must not be null");
