@@ -30,14 +30,22 @@ public final class SignalStateDao {
      * insert-or-replace.
      */
     public void upsert(SignalState state) {
+        try (Connection connection = dataSource.getConnection()) {
+            upsert(connection, state);
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to acquire connection to upsert signal state for asset " + state.assetId(), e);
+        }
+    }
+
+    /** Reuses a caller-managed connection instead of acquiring its own - see {@link CandleDao#findByAssetAndTimeframe(Connection, long, Timeframe)} for why. */
+    public void upsert(Connection connection, SignalState state) {
         String sql = """
                 INSERT INTO signal_state (asset_id, timeframe, close_time, trend_state, event)
                 VALUES (?, ?::timeframe, ?, ?::trend_state, ?::signal_event)
                 ON CONFLICT (asset_id, timeframe, close_time)
                 DO UPDATE SET trend_state = EXCLUDED.trend_state, event = EXCLUDED.event
                 """;
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, state.assetId());
             statement.setString(2, state.timeframe().name());
             statement.setObject(3, state.closeTime());
@@ -50,9 +58,17 @@ public final class SignalStateDao {
     }
 
     public Optional<OffsetDateTime> findLatestCloseTime(long assetId, Timeframe timeframe) {
+        try (Connection connection = dataSource.getConnection()) {
+            return findLatestCloseTime(connection, assetId, timeframe);
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to acquire connection to load latest signal state close time for asset " + assetId + " " + timeframe, e);
+        }
+    }
+
+    /** Reuses a caller-managed connection instead of acquiring its own - see {@link CandleDao#findByAssetAndTimeframe(Connection, long, Timeframe)} for why. */
+    public Optional<OffsetDateTime> findLatestCloseTime(Connection connection, long assetId, Timeframe timeframe) {
         String sql = "SELECT MAX(close_time) AS latest FROM signal_state WHERE asset_id = ? AND timeframe = ?::timeframe";
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, assetId);
             statement.setString(2, timeframe.name());
             try (ResultSet resultSet = statement.executeQuery()) {

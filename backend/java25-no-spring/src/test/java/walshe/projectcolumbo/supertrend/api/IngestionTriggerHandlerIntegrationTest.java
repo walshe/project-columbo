@@ -88,10 +88,10 @@ class IngestionTriggerHandlerIntegrationTest {
                 Map.of(AssetVenue.SPOT, provider, AssetVenue.FUTURES, provider),
                 ingestionConfig, clock);
         IndicatorComputationService indicatorComputationService =
-                new IndicatorComputationService(assetDao, candleDao, new SuperTrendIndicatorDao(dataSource));
+                new IndicatorComputationService(assetDao, candleDao, new SuperTrendIndicatorDao(dataSource), dataSource);
         CandleRollupService candleRollupService = new CandleRollupService(assetDao, candleDao, clock);
         SignalStateDetectionService signalStateDetectionService =
-                new SignalStateDetectionService(assetDao, candleDao, new SignalStateDao(dataSource));
+                new SignalStateDetectionService(assetDao, candleDao, new SignalStateDao(dataSource), dataSource);
         MarketBreadthPulseService marketBreadthPulseService =
                 new MarketBreadthPulseService(assetDao, new SignalStateDao(dataSource), new MarketBreadthSnapshotDao(dataSource));
         PipelineOrchestrator orchestrator = new PipelineOrchestrator(
