@@ -86,10 +86,10 @@ public final class Main {
                 Map.of(AssetVenue.SPOT, spotProvider, AssetVenue.FUTURES, futuresProvider, AssetVenue.EXCHANGE, exchangeProvider),
                 ingestionConfig, clock);
         IndicatorComputationService indicatorComputationService =
-                new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao);
+                new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao, dataSource);
         CandleRollupService candleRollupService = new CandleRollupService(assetDao, candleDao, clock);
         SignalStateDetectionService signalStateDetectionService =
-                new SignalStateDetectionService(assetDao, candleDao, signalStateDao);
+                new SignalStateDetectionService(assetDao, candleDao, signalStateDao, dataSource);
         MarketBreadthPulseService marketBreadthPulseService =
                 new MarketBreadthPulseService(assetDao, signalStateDao, marketBreadthSnapshotDao);
         PipelineOrchestrator pipelineOrchestrator = new PipelineOrchestrator(
@@ -100,7 +100,7 @@ public final class Main {
         SignalQueryService signalQueryService = new SignalQueryService(assetDao, signalStateDao, candleDao, assetLiquidityDao);
         TrendAlignmentService trendAlignmentService = new TrendAlignmentService(signalQueryService, clock);
         ScanService scanService = new ScanService(signalQueryService, clock);
-        ProvisionalTrendService provisionalTrendService = new ProvisionalTrendService(assetDao, candleDao, clock);
+        ProvisionalTrendService provisionalTrendService = new ProvisionalTrendService(assetDao, candleDao, clock, dataSource);
 
         Javalin app = ApiServer.create();
         new SignalsHandler(signalQueryService, freshnessService).register(app);

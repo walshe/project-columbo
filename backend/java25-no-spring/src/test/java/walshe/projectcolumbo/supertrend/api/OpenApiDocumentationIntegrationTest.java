@@ -79,7 +79,7 @@ class OpenApiDocumentationIntegrationTest {
         SignalQueryService signalQueryService = new SignalQueryService(assetDao, signalStateDao, candleDao, assetLiquidityDao);
         TrendAlignmentService trendAlignmentService = new TrendAlignmentService(signalQueryService, clock);
         ScanService scanService = new ScanService(signalQueryService, clock);
-        SignalStateDetectionService signalStateDetectionService = new SignalStateDetectionService(assetDao, candleDao, signalStateDao);
+        SignalStateDetectionService signalStateDetectionService = new SignalStateDetectionService(assetDao, candleDao, signalStateDao, dataSource);
         MarketBreadthPulseService marketBreadthPulseService = new MarketBreadthPulseService(assetDao, signalStateDao, marketBreadthSnapshotDao);
         // Real (but never-exercised) candleIngestionService/indicatorComputationService: this test
         // only exercises route registration and spec generation, never IngestionTriggerHandler's
@@ -93,7 +93,7 @@ class OpenApiDocumentationIntegrationTest {
                         AssetVenue.FUTURES, new BinanceMarketDataProvider(httpClient, AssetVenue.FUTURES)),
                 new IngestionConfig(null), clock);
         IndicatorComputationService indicatorComputationService =
-                new IndicatorComputationService(assetDao, candleDao, new SuperTrendIndicatorDao(dataSource));
+                new IndicatorComputationService(assetDao, candleDao, new SuperTrendIndicatorDao(dataSource), dataSource);
         PipelineOrchestrator pipelineOrchestrator = new PipelineOrchestrator(
                 assetDao, ingestionRunDao, candleIngestionService, indicatorComputationService,
                 new CandleRollupService(assetDao, candleDao, clock), signalStateDetectionService, marketBreadthPulseService, clock);

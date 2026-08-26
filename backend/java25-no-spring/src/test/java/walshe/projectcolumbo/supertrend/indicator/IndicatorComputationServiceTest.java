@@ -52,7 +52,7 @@ class IndicatorComputationServiceTest {
         long assetId = seedAsset("IND1USDT");
         seedDailyCandles(assetId, 15); // > atrLength(10), enough to produce results
 
-        new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao)
+        new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao, dataSource)
                 .computeForAllActiveAssets(Timeframe.D1);
 
         assertThat(superTrendIndicatorDao.findLatestCloseTime(assetId, Timeframe.D1)).isPresent();
@@ -62,7 +62,7 @@ class IndicatorComputationServiceTest {
     void producesNoResultForAnAssetWithNoCandlesYet() {
         seedAsset("IND2USDT");
 
-        new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao)
+        new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao, dataSource)
                 .computeForAllActiveAssets(Timeframe.D1);
 
         // No exception, no crash - just nothing to compute. Nothing to assert beyond "didn't throw".
@@ -72,7 +72,7 @@ class IndicatorComputationServiceTest {
     void incrementalRecomputeOnlyAddsNewResultsOnSecondRun() {
         long assetId = seedAsset("IND3USDT");
         seedDailyCandles(assetId, 12);
-        IndicatorComputationService service = new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao);
+        IndicatorComputationService service = new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao, dataSource);
 
         service.computeForAllActiveAssets(Timeframe.D1);
         OffsetDateTime firstLatest = superTrendIndicatorDao.findLatestCloseTime(assetId, Timeframe.D1).orElseThrow();

@@ -26,9 +26,17 @@ public final class SuperTrendIndicatorDao {
     }
 
     public Optional<OffsetDateTime> findLatestCloseTime(long assetId, Timeframe timeframe) {
+        try (Connection connection = dataSource.getConnection()) {
+            return findLatestCloseTime(connection, assetId, timeframe);
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to acquire connection to load latest indicator close time for asset " + assetId + " " + timeframe, e);
+        }
+    }
+
+    /** Reuses a caller-managed connection instead of acquiring its own - see {@link CandleDao#findByAssetAndTimeframe(Connection, long, Timeframe)} for why. */
+    public Optional<OffsetDateTime> findLatestCloseTime(Connection connection, long assetId, Timeframe timeframe) {
         String sql = "SELECT MAX(close_time) AS latest FROM indicator_supertrend WHERE asset_id = ? AND timeframe = ?::timeframe";
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, assetId);
             statement.setString(2, timeframe.name());
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -49,6 +57,15 @@ public final class SuperTrendIndicatorDao {
      * (SELECT then INSERT/UPDATE) shape has under concurrent writes to the same key.
      */
     public UpsertOutcome upsert(long assetId, Timeframe timeframe, SuperTrendResult result) {
+        try (Connection connection = dataSource.getConnection()) {
+            return upsert(connection, assetId, timeframe, result);
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to acquire connection to upsert SuperTrend result for asset " + assetId, e);
+        }
+    }
+
+    /** Reuses a caller-managed connection instead of acquiring its own - see {@link CandleDao#findByAssetAndTimeframe(Connection, long, Timeframe)} for why. */
+    public UpsertOutcome upsert(Connection connection, long assetId, Timeframe timeframe, SuperTrendResult result) {
         String sql = """
                 INSERT INTO indicator_supertrend (asset_id, timeframe, close_time, atr, upper_band, lower_band, supertrend, direction)
                 VALUES (?, ?::timeframe, ?, ?, ?, ?, ?, ?::supertrend_direction)
@@ -62,8 +79,7 @@ public final class SuperTrendIndicatorDao {
                    OR indicator_supertrend.direction IS DISTINCT FROM EXCLUDED.direction
                 RETURNING (xmax = 0) AS inserted
                 """;
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, assetId);
             statement.setString(2, timeframe.name());
             statement.setObject(3, result.closeTime());

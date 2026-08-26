@@ -53,7 +53,7 @@ class SignalStateDetectionServiceIntegrationTest {
         long assetId = seedAsset("SIG1USDT");
         seedDailyCandles(assetId, 3); // well under atrLength(10) - no concrete SuperTrend result yet
 
-        new SignalStateDetectionService(assetDao, candleDao, signalStateDao).computeForAllActiveAssets(Timeframe.D1);
+        new SignalStateDetectionService(assetDao, candleDao, signalStateDao, dataSource).computeForAllActiveAssets(Timeframe.D1);
 
         SignalState latest = latestFor(assetId);
         assertThat(latest.trendState()).isEqualTo(TrendState.UNKNOWN);
@@ -65,7 +65,7 @@ class SignalStateDetectionServiceIntegrationTest {
         long assetId = seedAsset("SIG2USDT");
         seedDailyCandles(assetId, 15); // > atrLength(10)
 
-        new SignalStateDetectionService(assetDao, candleDao, signalStateDao).computeForAllActiveAssets(Timeframe.D1);
+        new SignalStateDetectionService(assetDao, candleDao, signalStateDao, dataSource).computeForAllActiveAssets(Timeframe.D1);
 
         assertThat(latestFor(assetId).trendState()).isIn(TrendState.BULLISH, TrendState.BEARISH);
     }
@@ -74,7 +74,7 @@ class SignalStateDetectionServiceIntegrationTest {
     void producesNoStateForAnAssetWithNoCandlesYet() {
         seedAsset("SIG3USDT");
 
-        new SignalStateDetectionService(assetDao, candleDao, signalStateDao).computeForAllActiveAssets(Timeframe.D1);
+        new SignalStateDetectionService(assetDao, candleDao, signalStateDao, dataSource).computeForAllActiveAssets(Timeframe.D1);
 
         // No exception, no crash - just nothing to detect. Nothing to assert beyond "didn't throw".
     }
@@ -83,7 +83,7 @@ class SignalStateDetectionServiceIntegrationTest {
     void reDetectingIdenticalHistoryIsIdempotent() {
         long assetId = seedAsset("SIG4USDT");
         seedDailyCandles(assetId, 15);
-        SignalStateDetectionService service = new SignalStateDetectionService(assetDao, candleDao, signalStateDao);
+        SignalStateDetectionService service = new SignalStateDetectionService(assetDao, candleDao, signalStateDao, dataSource);
 
         service.computeForAllActiveAssets(Timeframe.D1);
         SignalState firstRun = latestFor(assetId);
@@ -98,7 +98,7 @@ class SignalStateDetectionServiceIntegrationTest {
     void incrementalRunOnlyAdvancesPastTheLastPersistedCloseTime() {
         long assetId = seedAsset("SIG5USDT");
         seedDailyCandles(assetId, 15);
-        SignalStateDetectionService service = new SignalStateDetectionService(assetDao, candleDao, signalStateDao);
+        SignalStateDetectionService service = new SignalStateDetectionService(assetDao, candleDao, signalStateDao, dataSource);
 
         service.computeForAllActiveAssets(Timeframe.D1);
         SignalState afterFirstRun = latestFor(assetId);

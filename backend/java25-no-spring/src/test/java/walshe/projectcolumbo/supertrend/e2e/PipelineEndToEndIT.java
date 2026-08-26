@@ -58,11 +58,15 @@ class PipelineEndToEndIT {
 
     private static final String BEARISH_SYMBOL = "BTCUSDT";
     private static final String INVALID_SYMBOL = "ETHUSDT";
-    // A real FUTURES-venue asset (STOCK class, seeded by V12/V14) - proves candles actually flow
-    // through the /fapi/v1/klines route, not just that the pipeline completes at all. Before the
-    // asset-venue-routing fix, every asset was queried against the SPOT endpoint only; a single
-    // catch-all WireMock stub keyed on symbol (not path) meant that bug never failed this test.
-    private static final String FUTURES_SYMBOL = "AAPLUSDT";
+    // A real FUTURES-venue asset - proves candles actually flow through the /fapi/v1/klines
+    // route, not just that the pipeline completes at all. Before the asset-venue-routing fix,
+    // every asset was queried against the SPOT endpoint only; a single catch-all WireMock stub
+    // keyed on symbol (not path) meant that bug never failed this test. Was AAPLUSDT (a tokenized
+    // STOCK asset) until V22 retired Binance's entire tokenized STOCK/ETF batch in favor of
+    // Tiingo's real equities - HYPEUSDT is one of the handful of CRYPTO-class assets that are
+    // genuinely FUTURES-only (see V14), so it survives V22's crypto cap and still proves the
+    // same thing.
+    private static final String FUTURES_SYMBOL = "HYPEUSDT";
     // A real EXCHANGE-venue Tiingo asset (STOCK class, seeded by V17) - distinct row/symbol from
     // the tokenized Binance FUTURES_SYMBOL above (real "AAPL" vs. tokenized "AAPLUSDT"). Proves
     // candles actually flow through TiingoMarketDataProvider, not just that the pipeline completes.
@@ -184,12 +188,12 @@ class PipelineEndToEndIT {
         assertThat(summary.get("pulse").get("bullishCount").asInt()).isGreaterThan(0);
 
         JsonNode coverage = getJson("/api/v1/candles/coverage");
-        // 200 Binance-seeded - 1 deactivated invalid symbol + 47 Tiingo-seeded (V17), all valid.
-        // Stays 246 (not fewer) with venue routing in place: every FUTURES-venue asset gets real
-        // candles from /fapi/v1/klines and every EXCHANGE-venue asset from the Tiingo stub, so no
-        // extra assets end up erroring/deactivated here.
-        assertThat(coverage.get("D1").get("assetCount").asLong()).isEqualTo(246);
-        assertThat(coverage.get("W1").get("assetCount").asLong()).isEqualTo(246);
+        // 50 Binance crypto-seeded (V22 cap) - 1 deactivated invalid symbol + 47 Tiingo-seeded
+        // (V17), all valid. Stays 96 (not fewer) with venue routing in place: every FUTURES-venue
+        // asset gets real candles from /fapi/v1/klines and every EXCHANGE-venue asset from the
+        // Tiingo stub, so no extra assets end up erroring/deactivated here.
+        assertThat(coverage.get("D1").get("assetCount").asLong()).isEqualTo(96);
+        assertThat(coverage.get("W1").get("assetCount").asLong()).isEqualTo(96);
 
         // Idempotency: a second trigger either starts cleanly or is rejected because the first
         // hasn't finished yet - both are correct, a 5xx would not be.
@@ -199,7 +203,7 @@ class PipelineEndToEndIT {
             awaitPipelineCompletion();
         }
         JsonNode coverageAfterRepeat = getJson("/api/v1/candles/coverage");
-        assertThat(coverageAfterRepeat.get("D1").get("assetCount").asLong()).isEqualTo(246);
+        assertThat(coverageAfterRepeat.get("D1").get("assetCount").asLong()).isEqualTo(96);
     }
 
     private static void awaitPipelineCompletion() throws InterruptedException {

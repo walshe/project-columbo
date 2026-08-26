@@ -9,11 +9,15 @@ import walshe.projectcolumbo.supertrend.indicator.SuperTrendResult;
 import walshe.projectcolumbo.supertrend.persistence.Asset;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
+import walshe.projectcolumbo.supertrend.persistence.PersistenceException;
 import walshe.projectcolumbo.supertrend.pipeline.ParallelAssetExecutor;
 import walshe.projectcolumbo.supertrend.rollup.WeeklyCandleAggregation;
 import walshe.projectcolumbo.supertrend.shared.AssetClass;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.OffsetDateTime;
@@ -49,12 +53,14 @@ public final class ProvisionalTrendService {
     private final AssetDao assetDao;
     private final CandleDao candleDao;
     private final Clock clock;
+    private final DataSource dataSource;
     private final SuperTrendCalculator calculator = new SuperTrendCalculator();
 
-    public ProvisionalTrendService(AssetDao assetDao, CandleDao candleDao, Clock clock) {
+    public ProvisionalTrendService(AssetDao assetDao, CandleDao candleDao, Clock clock, DataSource dataSource) {
         this.assetDao = Objects.requireNonNull(assetDao, "assetDao must not be null");
         this.candleDao = Objects.requireNonNull(candleDao, "candleDao must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
+        this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
     }
 
     /**
@@ -86,15 +92,19 @@ public final class ProvisionalTrendService {
     }
 
     private Map.Entry<String, ProvisionalTrendResult> computeForAsset(Asset asset) {
-        List<Candle> weekToDateD1 = weekToDateD1Candles(asset.id());
-        if (weekToDateD1.isEmpty()) {
-            return null;
-        }
+        try (Connection connection = dataSource.getConnection()) {
+            List<Candle> weekToDateD1 = weekToDateD1Candles(connection, asset.id());
+            if (weekToDateD1.isEmpty()) {
+                return null;
+            }
 
-        List<Candle> committedW1 = candleDao.findByAssetAndTimeframe(asset.id(), Timeframe.W1);
-        return compute(calculator, committedW1, weekToDateD1)
-                .map(result -> Map.entry(asset.symbol(), result))
-                .orElse(null);
+            List<Candle> committedW1 = candleDao.findByAssetAndTimeframe(connection, asset.id(), Timeframe.W1);
+            return compute(calculator, committedW1, weekToDateD1)
+                    .map(result -> Map.entry(asset.symbol(), result))
+                    .orElse(null);
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to acquire connection to compute provisional trend for asset " + asset.symbol(), e);
+        }
     }
 
     /**
@@ -124,8 +134,8 @@ public final class ProvisionalTrendService {
         return Optional.of(new ProvisionalTrendResult(direction, provisional.superTrend()));
     }
 
-    private List<Candle> weekToDateD1Candles(long assetId) {
-        List<Candle> allD1 = candleDao.findByAssetAndTimeframe(assetId, Timeframe.D1);
+    private List<Candle> weekToDateD1Candles(Connection connection, long assetId) {
+        List<Candle> allD1 = candleDao.findByAssetAndTimeframe(connection, assetId, Timeframe.D1);
         OffsetDateTime currentWeekMonday = currentWeekMonday();
         OffsetDateTime nextWeekMonday = currentWeekMonday.plusWeeks(1);
         return allD1.stream()

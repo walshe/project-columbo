@@ -31,6 +31,22 @@ public final class CandleDao {
     }
 
     public List<Candle> findByAssetAndTimeframe(long assetId, Timeframe timeframe) {
+        try (Connection connection = dataSource.getConnection()) {
+            return findByAssetAndTimeframe(connection, assetId, timeframe);
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to acquire connection to load candles for asset " + assetId + " " + timeframe, e);
+        }
+    }
+
+    /**
+     * Reuses a caller-managed connection instead of acquiring its own - for a caller (e.g.
+     * {@code IndicatorComputationService}, {@code SignalStateDetectionService}) doing several DB
+     * calls for the same asset in one unit of work, opening one connection and passing it through
+     * avoids acquiring-and-releasing a pool connection per call, which under this pipeline's
+     * per-asset virtual-thread fan-out was a real contributor to HikariCP pool exhaustion during a
+     * full backfill (many calls per asset, hundreds of assets concurrently).
+     */
+    public List<Candle> findByAssetAndTimeframe(Connection connection, long assetId, Timeframe timeframe) {
         String sql = """
                 SELECT open_time, close_time, open, high, low, close, volume
                 FROM candle
@@ -38,8 +54,7 @@ public final class CandleDao {
                 ORDER BY close_time ASC
                 """;
         List<Candle> candles = new ArrayList<>();
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, assetId);
             statement.setString(2, timeframe.name());
             try (ResultSet resultSet = statement.executeQuery()) {

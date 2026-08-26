@@ -196,9 +196,9 @@ class PipelineOrchestratorTest {
                 Map.of(AssetVenue.SPOT, provider, AssetVenue.FUTURES, provider),
                 ingestionConfig, clock);
         IndicatorComputationService indicatorComputationService =
-                new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao);
+                new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao, dataSource);
         CandleRollupService candleRollupService = new CandleRollupService(assetDao, candleDao, clock);
-        SignalStateDetectionService signalStateDetectionService = new SignalStateDetectionService(assetDao, candleDao, signalStateDao);
+        SignalStateDetectionService signalStateDetectionService = new SignalStateDetectionService(assetDao, candleDao, signalStateDao, dataSource);
         MarketBreadthPulseService marketBreadthPulseService = new MarketBreadthPulseService(assetDao, signalStateDao, marketBreadthSnapshotDao);
         return new PipelineOrchestrator(assetDao, ingestionRunDao, candleIngestionService, indicatorComputationService,
                 candleRollupService, signalStateDetectionService, marketBreadthPulseService, clock);

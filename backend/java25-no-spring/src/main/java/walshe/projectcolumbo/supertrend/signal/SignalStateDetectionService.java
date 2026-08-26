@@ -9,10 +9,14 @@ import walshe.projectcolumbo.supertrend.indicator.SuperTrendResult;
 import walshe.projectcolumbo.supertrend.persistence.Asset;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
+import walshe.projectcolumbo.supertrend.persistence.PersistenceException;
 import walshe.projectcolumbo.supertrend.persistence.SignalStateDao;
 import walshe.projectcolumbo.supertrend.pipeline.ParallelAssetExecutor;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +30,8 @@ import java.util.Optional;
  * signal-state close time — mirroring the incremental pattern in
  * {@link walshe.projectcolumbo.supertrend.indicator.IndicatorComputationService} — so DB writes
  * stay proportional to new candles rather than total history. Per-asset work runs on its own
- * virtual thread (see {@link ParallelAssetExecutor}).
+ * virtual thread (see {@link ParallelAssetExecutor}), sharing a single connection across all of
+ * that asset's DB calls (see {@code IndicatorComputationService}'s Javadoc for why).
  */
 public final class SignalStateDetectionService {
 
@@ -35,12 +40,14 @@ public final class SignalStateDetectionService {
     private final AssetDao assetDao;
     private final CandleDao candleDao;
     private final SignalStateDao signalStateDao;
+    private final DataSource dataSource;
     private final SuperTrendCalculator calculator = new SuperTrendCalculator();
 
-    public SignalStateDetectionService(AssetDao assetDao, CandleDao candleDao, SignalStateDao signalStateDao) {
+    public SignalStateDetectionService(AssetDao assetDao, CandleDao candleDao, SignalStateDao signalStateDao, DataSource dataSource) {
         this.assetDao = Objects.requireNonNull(assetDao, "assetDao must not be null");
         this.candleDao = Objects.requireNonNull(candleDao, "candleDao must not be null");
         this.signalStateDao = Objects.requireNonNull(signalStateDao, "signalStateDao must not be null");
+        this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
     }
 
     public void computeForAllActiveAssets(Timeframe timeframe) {
@@ -61,21 +68,25 @@ public final class SignalStateDetectionService {
     }
 
     void computeForAsset(Asset asset, Timeframe timeframe) {
-        List<Candle> candles = candleDao.findByAssetAndTimeframe(asset.id(), timeframe);
-        if (candles.isEmpty()) {
-            return;
-        }
-
-        List<Optional<SuperTrendResult>> results = calculator.calculate(
-                candles, SuperTrendCalculator.DEFAULT_ATR_LENGTH, SuperTrendCalculator.DEFAULT_MULTIPLIER);
-        List<SignalState> states = detect(asset.id(), timeframe, candles, results);
-
-        Optional<OffsetDateTime> lastStoredCloseTime = signalStateDao.findLatestCloseTime(asset.id(), timeframe);
-        for (SignalState state : states) {
-            if (lastStoredCloseTime.isPresent() && !state.closeTime().isAfter(lastStoredCloseTime.get())) {
-                continue;
+        try (Connection connection = dataSource.getConnection()) {
+            List<Candle> candles = candleDao.findByAssetAndTimeframe(connection, asset.id(), timeframe);
+            if (candles.isEmpty()) {
+                return;
             }
-            signalStateDao.upsert(state);
+
+            List<Optional<SuperTrendResult>> results = calculator.calculate(
+                    candles, SuperTrendCalculator.DEFAULT_ATR_LENGTH, SuperTrendCalculator.DEFAULT_MULTIPLIER);
+            List<SignalState> states = detect(asset.id(), timeframe, candles, results);
+
+            Optional<OffsetDateTime> lastStoredCloseTime = signalStateDao.findLatestCloseTime(connection, asset.id(), timeframe);
+            for (SignalState state : states) {
+                if (lastStoredCloseTime.isPresent() && !state.closeTime().isAfter(lastStoredCloseTime.get())) {
+                    continue;
+                }
+                signalStateDao.upsert(connection, state);
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to acquire connection to detect signal state for asset " + asset.symbol(), e);
         }
     }
 
