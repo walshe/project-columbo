@@ -9,7 +9,7 @@ import java.util.Objects;
  * read now agrees with its committed D1 state - a preview of what might join next week's
  * confirmed confluence list, shown separately from it in {@link WeeklyTrendBriefingFormatter}.
  */
-public record FlipForming(String symbol, ProvisionalTrendResult provisional, String tradingviewUrl) {
+public record FlipForming(String symbol, ProvisionalTrendResult provisional, String tradingviewUrl, String name) {
     public FlipForming {
         Objects.requireNonNull(symbol, "symbol must not be null");
         Objects.requireNonNull(provisional, "provisional must not be null");

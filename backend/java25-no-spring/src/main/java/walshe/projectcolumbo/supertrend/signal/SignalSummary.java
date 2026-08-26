@@ -19,6 +19,8 @@ import java.util.Objects;
  * @param tradingviewUrl        TradingView chart deep link for this asset+timeframe; null if the
  *                              asset's provider/symbol is unavailable
  * @param assetClass            the asset's category (crypto/stock/etf/commodity)
+ * @param name                  optional human-readable display name (e.g. "Apple"), distinct from
+ *                              the tradeable {@code symbol} - null when not known/set
  */
 public record SignalSummary(
         String symbol,
@@ -27,7 +29,8 @@ public record SignalSummary(
         BigDecimal avgVolume7d,
         BigDecimal pctChangeSinceFlip,
         String tradingviewUrl,
-        AssetClass assetClass
+        AssetClass assetClass,
+        String name
 ) {
     public SignalSummary {
         Objects.requireNonNull(symbol, "symbol must not be null");

@@ -98,6 +98,6 @@ class TrendAlignmentServiceTest {
     }
 
     private static SignalSummary summary(String symbol, OffsetDateTime lastFlipTime) {
-        return new SignalSummary(symbol, TrendState.BULLISH, lastFlipTime, BigDecimal.ZERO, null, null, AssetClass.CRYPTO);
+        return new SignalSummary(symbol, TrendState.BULLISH, lastFlipTime, BigDecimal.ZERO, null, null, AssetClass.CRYPTO, null);
     }
 }

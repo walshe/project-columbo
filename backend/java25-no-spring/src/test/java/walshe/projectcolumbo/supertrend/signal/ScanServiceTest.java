@@ -142,7 +142,7 @@ class ScanServiceTest {
                 new ScanCondition(Timeframe.D1, TrendState.BULLISH, null)
         ), null, AssetClass.STOCK, null);
         List<List<SignalSummary>> candidates = List.of(List.of(
-                new SignalSummary("AAAUSDT", TrendState.BULLISH, null, BigDecimal.ZERO, null, null, AssetClass.STOCK)
+                new SignalSummary("AAAUSDT", TrendState.BULLISH, null, BigDecimal.ZERO, null, null, AssetClass.STOCK, null)
         ));
 
         List<ScanResult> results = ScanService.combine(request, candidates, NOW);
@@ -201,10 +201,10 @@ class ScanServiceTest {
     }
 
     private static SignalSummary summary(String symbol, OffsetDateTime lastFlipTime) {
-        return new SignalSummary(symbol, TrendState.BULLISH, lastFlipTime, BigDecimal.ZERO, null, null, AssetClass.CRYPTO);
+        return new SignalSummary(symbol, TrendState.BULLISH, lastFlipTime, BigDecimal.ZERO, null, null, AssetClass.CRYPTO, null);
     }
 
     private static SignalSummary summaryWithVolume(String symbol, BigDecimal avgVolume7d) {
-        return new SignalSummary(symbol, TrendState.BULLISH, null, avgVolume7d, null, null, AssetClass.CRYPTO);
+        return new SignalSummary(symbol, TrendState.BULLISH, null, avgVolume7d, null, null, AssetClass.CRYPTO, null);
     }
 }
