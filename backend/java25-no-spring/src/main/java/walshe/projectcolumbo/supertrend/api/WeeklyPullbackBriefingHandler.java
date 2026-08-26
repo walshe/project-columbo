@@ -106,9 +106,14 @@ public final class WeeklyPullbackBriefingHandler {
     }
 
     private WeeklyPullbackBriefingReport buildReport(PipelineRunResult ingestionResult) {
-        Map<AssetClass, MarketBreadthSnapshot> regimePulses = BRIEFING_ASSET_CLASSES.stream()
-                .collect(Collectors.toMap(assetClass -> assetClass,
-                        assetClass -> marketBreadthSnapshotDao.findLatest(Timeframe.W1, assetClass).orElse(null)));
+        // Collectors.toMap rejects a null value (it's merge()-based under the hood, which
+        // requires non-null) - a plain loop is used here instead of the shorter toMap form
+        // because a class with no active assets (or none with a signal state yet) genuinely has
+        // no snapshot to report, and that's a null value, not a missing/impossible case.
+        Map<AssetClass, MarketBreadthSnapshot> regimePulses = new LinkedHashMap<>();
+        for (AssetClass assetClass : BRIEFING_ASSET_CLASSES) {
+            regimePulses.put(assetClass, marketBreadthSnapshotDao.findLatest(Timeframe.W1, assetClass).orElse(null));
+        }
 
         Map<AssetClass, TrendAlignment> alignments = BRIEFING_ASSET_CLASSES.stream()
                 .collect(Collectors.toMap(assetClass -> assetClass,
