@@ -8,13 +8,17 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Pure, stateless SuperTrend calculator: True Range -&gt; Wilder ATR -&gt; basic/final bands -&gt; direction/flip.
- * All arithmetic uses {@link BigDecimal} at a fixed scale with HALF_UP rounding for determinism.
+ * Pure, stateless SuperTrend calculator: True Range -&gt; Wilder ATR -&gt; up/down bands -&gt; trend
+ * direction. Deliberately matches the widely-used ("KivancOzbilgic") reference Pine Script v4
+ * SuperTrend indicator bar-for-bar, including its specific trend-flip timing (tested against the
+ * <em>previous</em> bar's bands, not the current bar's) - see {@link #computeDirection} for where
+ * that distinction matters. All arithmetic uses {@link BigDecimal} at a fixed scale with HALF_UP
+ * rounding for determinism.
  */
 public final class SuperTrendCalculator {
 
     public static final int DEFAULT_ATR_LENGTH = 10;
-    public static final BigDecimal DEFAULT_MULTIPLIER = new BigDecimal("2.0");
+    public static final BigDecimal DEFAULT_MULTIPLIER = new BigDecimal("3.0");
 
     private static final int SCALE = 10;
     private static final RoundingMode ROUNDING = RoundingMode.HALF_UP;
@@ -35,9 +39,9 @@ public final class SuperTrendCalculator {
         BigDecimal[] trueRanges = computeTrueRanges(candles);
         BigDecimal[] atrValues = computeAtr(trueRanges, atrLength);
 
-        BigDecimal prevFinalUpper = null;
-        BigDecimal prevFinalLower = null;
-        BigDecimal prevSuperTrend = null;
+        BigDecimal prevUp = null;
+        BigDecimal prevDn = null;
+        SuperTrendDirection prevDirection = null;
         BigDecimal prevClose = null;
 
         for (int i = 0; i < candles.size(); i++) {
@@ -51,19 +55,19 @@ public final class SuperTrendCalculator {
             }
 
             BigDecimal middle = candle.high().add(candle.low()).divide(BigDecimal.valueOf(2), SCALE, ROUNDING);
-            BigDecimal basicUpper = middle.add(multiplier.multiply(atr));
-            BigDecimal basicLower = middle.subtract(multiplier.multiply(atr));
+            BigDecimal basicUp = middle.subtract(multiplier.multiply(atr));
+            BigDecimal basicDn = middle.add(multiplier.multiply(atr));
 
-            BigDecimal finalUpper = computeFinalUpperBand(basicUpper, prevFinalUpper, prevClose);
-            BigDecimal finalLower = computeFinalLowerBand(basicLower, prevFinalLower, prevClose);
-            BigDecimal superTrend = computeSuperTrendValue(candle.close(), finalUpper, finalLower, prevSuperTrend, prevFinalUpper);
-            SuperTrendDirection direction = superTrend.equals(finalLower) ? SuperTrendDirection.UP : SuperTrendDirection.DOWN;
+            BigDecimal up = computeUpBand(basicUp, prevUp, prevClose);
+            BigDecimal dn = computeDnBand(basicDn, prevDn, prevClose);
+            SuperTrendDirection direction = computeDirection(candle.close(), up, dn, prevUp, prevDn, prevDirection);
+            BigDecimal superTrend = direction == SuperTrendDirection.UP ? up : dn;
 
-            results.add(Optional.of(new SuperTrendResult(candle.closeTime(), atr, finalUpper, finalLower, superTrend, direction)));
+            results.add(Optional.of(new SuperTrendResult(candle.closeTime(), atr, dn, up, superTrend, direction)));
 
-            prevFinalUpper = finalUpper;
-            prevFinalLower = finalLower;
-            prevSuperTrend = superTrend;
+            prevUp = up;
+            prevDn = dn;
+            prevDirection = direction;
             prevClose = candle.close();
         }
 
@@ -129,37 +133,58 @@ public final class SuperTrendCalculator {
         return out;
     }
 
-    private static BigDecimal computeFinalUpperBand(BigDecimal basicUpper, BigDecimal prevFinalUpper, BigDecimal prevClose) {
-        if (prevFinalUpper == null || basicUpper.compareTo(prevFinalUpper) < 0 || prevClose.compareTo(prevFinalUpper) > 0) {
-            return basicUpper;
+    /**
+     * Support ("up") band - matches the reference Pine script's {@code up := close[1] > up1 ?
+     * max(up, up1) : up}: ratchets up (never drops) while the previous close held above the
+     * previous band, otherwise resets to the freshly computed basic value.
+     */
+    private static BigDecimal computeUpBand(BigDecimal basicUp, BigDecimal prevUp, BigDecimal prevClose) {
+        if (prevUp == null) {
+            return basicUp;
         }
-        return prevFinalUpper;
+        return prevClose.compareTo(prevUp) > 0 ? basicUp.max(prevUp) : basicUp;
     }
 
-    private static BigDecimal computeFinalLowerBand(BigDecimal basicLower, BigDecimal prevFinalLower, BigDecimal prevClose) {
-        if (prevFinalLower == null || basicLower.compareTo(prevFinalLower) > 0 || prevClose.compareTo(prevFinalLower) < 0) {
-            return basicLower;
+    /**
+     * Resistance ("dn") band - matches the reference Pine script's {@code dn := close[1] < dn1 ?
+     * min(dn, dn1) : dn}: ratchets down (never rises) while the previous close held below the
+     * previous band, otherwise resets to the freshly computed basic value.
+     */
+    private static BigDecimal computeDnBand(BigDecimal basicDn, BigDecimal prevDn, BigDecimal prevClose) {
+        if (prevDn == null) {
+            return basicDn;
         }
-        return prevFinalLower;
+        return prevClose.compareTo(prevDn) < 0 ? basicDn.min(prevDn) : basicDn;
     }
 
-    private static BigDecimal computeSuperTrendValue(
+    /**
+     * Matches the reference Pine script's {@code trend := trend == -1 and close > dn1 ? 1 :
+     * trend == 1 and close < up1 ? -1 : trend}. Deliberately tests {@code close} against the
+     * <em>previous</em> bar's bands ({@code up1}/{@code dn1}, Pine's {@code nz(up[1], up)}/
+     * {@code nz(dn[1], dn)}) - not this bar's freshly (re)computed {@code up}/{@code dn} - so a
+     * band reset and a trend flip on the same bar don't get conflated. Falls back to this bar's
+     * own band (self-reference, matching Pine's {@code nz} default) on the very first bar, and to
+     * {@code UP} (Pine's {@code trend = 1} literal init) when there's no prior direction.
+     */
+    private static SuperTrendDirection computeDirection(
             BigDecimal close,
-            BigDecimal finalUpper,
-            BigDecimal finalLower,
-            BigDecimal prevSuperTrend,
-            BigDecimal prevFinalUpper
+            BigDecimal up,
+            BigDecimal dn,
+            BigDecimal prevUp,
+            BigDecimal prevDn,
+            SuperTrendDirection prevDirection
     ) {
-        if (prevSuperTrend == null) {
-            // No prior trend to continue: default to the lower band (uptrend) unless price is
-            // already below it, matching TradingView's default-to-uptrend behavior.
-            return close.compareTo(finalLower) < 0 ? finalUpper : finalLower;
+        BigDecimal up1 = prevUp != null ? prevUp : up;
+        BigDecimal dn1 = prevDn != null ? prevDn : dn;
+        SuperTrendDirection currentDirection = prevDirection != null ? prevDirection : SuperTrendDirection.UP;
+
+        if (currentDirection == SuperTrendDirection.DOWN && close.compareTo(dn1) > 0) {
+            return SuperTrendDirection.UP;
         }
-        if (prevSuperTrend.equals(prevFinalUpper)) {
-            return close.compareTo(finalUpper) <= 0 ? finalUpper : finalLower;
+        if (currentDirection == SuperTrendDirection.UP && close.compareTo(up1) < 0) {
+            return SuperTrendDirection.DOWN;
         }
-        // prevSuperTrend was on the lower band
-        return close.compareTo(finalLower) >= 0 ? finalLower : finalUpper;
+        return currentDirection;
     }
 
     private static BigDecimal[] computeTrueRanges(List<Candle> candles) {

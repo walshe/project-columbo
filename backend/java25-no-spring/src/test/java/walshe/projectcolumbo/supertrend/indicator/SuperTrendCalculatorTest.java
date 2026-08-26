@@ -127,6 +127,41 @@ class SuperTrendCalculatorTest {
         assertThat(fullRecalcResults).hasSize(4); // every candle except the warm-up candle 0
     }
 
+    /**
+     * Regression test for a real bug found comparing this calculator against the reference Pine
+     * Script v4 SuperTrend indicator (the widely-used "KivancOzbilgic" version): the trend-flip
+     * test must compare {@code close} against the <em>previous</em> bar's band (Pine's {@code
+     * up1 = nz(up[1], up)}), not this bar's freshly (re)computed band. The two only disagree when
+     * a band "resets" (ratchets to a new, less favorable value) on the very same bar a flip would
+     * otherwise trigger - an easy case to miss since every band-stickiness test elsewhere in this
+     * suite uses data where that coincidence never happens.
+     * <p>
+     * Uses atrLength=1 (so ATR is just the true range itself, no Wilder-smoothing carry-over to
+     * track) and multiplier=1 for hand-verifiable arithmetic. Candle 0 establishes an UP trend
+     * with lowerBand ("up1") = 106. Candle 1's own basic lower band recomputes to 108 (above its
+     * own close of 107) - comparing close against *this* value would wrongly signal a breakdown
+     * (107 &lt; 108) and flip to DOWN, but close (107) is still above candle 0's carried band
+     * (106), so the correct - and Pine-matching - result is to stay UP.
+     */
+    @Test
+    void trendFlipComparesAgainstThePreviousBarsBandNotTheCurrentlyRecomputedOne() {
+        List<Candle> candles = List.of(
+                candle(0, 112, 108, 110),
+                candle(1, 111, 109, 107)
+        );
+
+        List<Optional<SuperTrendResult>> results = CALCULATOR.calculate(candles, 1, BigDecimal.ONE);
+
+        assertThat(results.get(0)).isPresent();
+        assertThat(results.get(0).get().direction()).isEqualTo(SuperTrendDirection.UP);
+        assertThat(results.get(0).get().lowerBand()).isEqualByComparingTo("106.0");
+
+        assertThat(results.get(1)).isPresent();
+        assertThat(results.get(1).get().lowerBand()).isEqualByComparingTo("108.0"); // this bar's own recomputed band - would wrongly suggest a breakdown if compared directly
+        assertThat(results.get(1).get().direction()).isEqualTo(SuperTrendDirection.UP); // stays UP: close (107) is still above the *previous* bar's band (106)
+        assertThat(results.get(1).get().superTrend()).isEqualByComparingTo("108.0");
+    }
+
     @Test
     void incrementalRecomputeReturnsEmptyWhenAlreadyUpToDate() {
         List<Candle> candles = fiveCandleScenario();
