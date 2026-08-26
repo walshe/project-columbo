@@ -23,7 +23,17 @@ final class SignalTextFormatting {
 
     /** Markdown link target for an entry: its TradingView chart, falling back to plain (unlinked) symbol text if unavailable. */
     static String symbolMarkdown(SignalSummary entry) {
-        return entry.tradingviewUrl() != null ? "[" + entry.symbol() + "](" + entry.tradingviewUrl() + ")" : entry.symbol();
+        return symbolMarkdown(entry.symbol(), entry.name(), entry.tradingviewUrl());
+    }
+
+    /**
+     * Link (or plain) text for a symbol: "Name (SYMBOL)" when a friendly display name is known,
+     * falling back to the bare symbol when it isn't - wrapped in a Markdown link to
+     * {@code tradingviewUrl} when that's available, plain text otherwise.
+     */
+    static String symbolMarkdown(String symbol, String name, String tradingviewUrl) {
+        String label = name != null ? name + " (" + symbol + ")" : symbol;
+        return tradingviewUrl != null ? "[" + label + "](" + tradingviewUrl + ")" : label;
     }
 
     /**

@@ -169,7 +169,7 @@ public final class WeeklyTrendBriefingHandler {
                 boolean alreadyConfluence = committedW1.trendState() == committedD1;
                 boolean provisionalAgreesWithD1 = provisionalResult.direction() == committedD1;
                 if (!alreadyConfluence && provisionalAgreesWithD1) {
-                    forming.add(new FlipForming(symbol, provisionalResult, committedW1.tradingviewUrl()));
+                    forming.add(new FlipForming(symbol, provisionalResult, committedW1.tradingviewUrl(), committedW1.name()));
                 }
             }
             result.put(assetClass, forming);

@@ -55,9 +55,7 @@ public final class WeeklyTrendBriefingFormatter {
             return;
         }
         for (FlipForming entry : forming) {
-            String symbolText = entry.tradingviewUrl() != null
-                    ? "[" + entry.symbol() + "](" + entry.tradingviewUrl() + ")"
-                    : entry.symbol();
+            String symbolText = SignalTextFormatting.symbolMarkdown(entry.symbol(), entry.name(), entry.tradingviewUrl());
             md.append("- ").append(symbolText).append(": ").append(WeeklyBriefingFormatting.formatProvisional(entry.provisional())).append('\n');
         }
         md.append('\n');

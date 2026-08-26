@@ -107,7 +107,7 @@ public final class SignalQueryService {
         OffsetDateTime lastFlipTime = flip != null ? flip.timeframe().openTimeFor(flip.closeTime()) : null;
         BigDecimal pctChangeSinceFlip = pctChangeSinceFlip(flipClose, latestClose);
         String tradingviewUrl = TradingViewUrl.generateUrl(asset.provider(), asset.symbol(), latest.timeframe(), asset.venue(), asset.tradingviewRef());
-        return new SignalSummary(asset.symbol(), latest.trendState(), lastFlipTime, avgVolume7d, pctChangeSinceFlip, tradingviewUrl, asset.assetClass());
+        return new SignalSummary(asset.symbol(), latest.trendState(), lastFlipTime, avgVolume7d, pctChangeSinceFlip, tradingviewUrl, asset.assetClass(), asset.name());
     }
 
     private static BigDecimal pctChangeSinceFlip(BigDecimal flipClose, BigDecimal latestClose) {
