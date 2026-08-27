@@ -33,11 +33,16 @@ public final class WeeklyTrendBriefingFormatter {
         // Confirmed lists are built entirely from committed data - Map.of() keeps provisional
         // annotations out of them entirely, per this report's "only back what's already
         // confirmed" premise. Provisional data only ever appears in "Flips Forming" below.
+        //
+        // Retest is deliberately NOT rendered here even though TrendAlignment computes it
+        // alongside confluence - it's the exact same data as the pullback briefing's headline
+        // (same TrendAlignmentService call, same maxRetestAgeDays), and "W1 intact but D1
+        // currently against it" is a pullback-briefing question, not a "what's already confirmed"
+        // one. See openspec/changes/dedupe-weekly-briefing-retest/ for the full rationale - each
+        // report now owns exactly one thesis instead of both showing the same list.
         WeeklyBriefingFormatting.appendSignalList(md, "Bullish Confluence (W1+D1)", alignment.bullishConfluence(), now, Map.of());
-        WeeklyBriefingFormatting.appendSignalList(md, "Bullish Retest (W1 bullish, D1 recently flipped bearish)", alignment.bullishRetest(), now, Map.of());
         if (showBearish) {
             WeeklyBriefingFormatting.appendSignalList(md, "Bearish Confluence (W1+D1)", alignment.bearishConfluence(), now, Map.of());
-            WeeklyBriefingFormatting.appendSignalList(md, "Bearish Retest (W1 bearish, D1 recently flipped bullish)", alignment.bearishRetest(), now, Map.of());
         }
 
         WeeklyBriefingFormatting.appendScanList(md, "Bullish Scan Candidates (top liquidity, ranked by D1 movement since flip)", report.bullishScanCandidates().getOrDefault(assetClass, List.of()), Map.of());
