@@ -188,7 +188,7 @@ class SuperTrendCalculatorTest {
         List<Candle> full = wave(300);
         int anchorIndex = 200;
         OffsetDateTime anchor = full.get(anchorIndex).closeTime();
-        List<Candle> preBoundedWindow = full.subList(anchorIndex - SuperTrendCalculator.WARMUP_WINDOW_BARS - 1, full.size());
+        List<Candle> preBoundedWindow = full.subList(anchorIndex - SuperTrendCalculator.WARMUP_WINDOW_BARS, full.size());
 
         List<SuperTrendResult> fromFull = CALCULATOR.calculateIncremental(full, 10, new BigDecimal("3.0"), anchor, false);
         List<SuperTrendResult> fromWindow = CALCULATOR.calculateIncremental(preBoundedWindow, 10, new BigDecimal("3.0"), anchor, false);
@@ -210,7 +210,7 @@ class SuperTrendCalculatorTest {
         List<Candle> full = wave(300);
         int anchorIndex = 200;
         OffsetDateTime anchor = full.get(anchorIndex).closeTime();
-        List<Candle> window = full.subList(anchorIndex - SuperTrendCalculator.WARMUP_WINDOW_BARS - 1, full.size());
+        List<Candle> window = full.subList(anchorIndex - SuperTrendCalculator.WARMUP_WINDOW_BARS, full.size());
 
         Map<OffsetDateTime, SuperTrendDirection> fullDirections = directionsByCloseTime(CALCULATOR.calculate(full, 10, new BigDecimal("3.0")));
         Map<OffsetDateTime, SuperTrendDirection> windowDirections = directionsByCloseTime(CALCULATOR.calculate(window, 10, new BigDecimal("3.0")));

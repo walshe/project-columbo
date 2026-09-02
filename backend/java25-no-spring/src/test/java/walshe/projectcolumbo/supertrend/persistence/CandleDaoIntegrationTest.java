@@ -55,9 +55,9 @@ class CandleDaoIntegrationTest {
         try (Connection connection = dataSource.getConnection()) {
             List<Candle> window = candleDao.findWindowForIncremental(connection, assetId, Timeframe.D1, anchor, warmupBars);
 
-            // warm-up window (warmupBars before the anchor) + 1-candle cushion + the anchor + the 50 after it
-            assertThat(window).hasSize(warmupBars + 1 + 1 + 50);
-            assertThat(window.getFirst().closeTime()).isEqualTo(anchor.minusDays(warmupBars + 1));
+            // exactly warmupBars candles before the anchor + the anchor itself + the 50 after it
+            assertThat(window).hasSize(warmupBars + 1 + 50);
+            assertThat(window.getFirst().closeTime()).isEqualTo(anchor.minusDays(warmupBars));
             assertThat(window.getLast().closeTime()).isEqualTo(BASE_TIME.plusDays(300));
             assertThat(window).isSortedAccordingTo((a, b) -> a.closeTime().compareTo(b.closeTime()));
         }

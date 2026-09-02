@@ -94,11 +94,10 @@ public final class CandleDao {
     }
 
     /**
-     * Candles for one asset/timeframe covering an incremental recompute: at least {@code warmupBars}
+     * Candles for one asset/timeframe covering an incremental recompute: exactly {@code warmupBars}
      * candles immediately before {@code anchorCloseTime} (so the SuperTrend recurrence can
      * restabilize - see {@link walshe.projectcolumbo.supertrend.indicator.SuperTrendCalculator#WARMUP_WINDOW_BARS}),
-     * plus every candle from {@code anchorCloseTime} onward, ordered oldest-to-newest. One extra
-     * pre-anchor candle beyond {@code warmupBars} is included as a harmless cushion.
+     * plus every candle from {@code anchorCloseTime} onward, ordered oldest-to-newest.
      * <p>
      * When fewer than {@code warmupBars} candles precede the anchor there isn't enough history to
      * bound, so the full available history is returned - matching what an unbounded load would
@@ -107,7 +106,9 @@ public final class CandleDao {
      * <p>
      * The inner {@code ORDER BY close_time DESC OFFSET ? LIMIT 1} is an index-ordered backward
      * scan on {@code (asset_id, timeframe, close_time)} - the same index the outer range scan
-     * uses - so this stays cheap regardless of total history depth.
+     * uses - so this stays cheap regardless of total history depth. {@code OFFSET warmupBars - 1}
+     * lands on the {@code warmupBars}-th candle before the anchor, whose close time becomes the
+     * inclusive lower bound.
      */
     public List<Candle> findWindowForIncremental(Connection connection, long assetId, Timeframe timeframe,
                                                  OffsetDateTime anchorCloseTime, int warmupBars) {
@@ -130,7 +131,7 @@ public final class CandleDao {
             statement.setLong(3, assetId);
             statement.setString(4, timeframe.name());
             statement.setObject(5, anchorCloseTime);
-            statement.setInt(6, warmupBars);
+            statement.setInt(6, Math.max(0, warmupBars - 1));
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     candles.add(mapRow(resultSet, timeframe));
