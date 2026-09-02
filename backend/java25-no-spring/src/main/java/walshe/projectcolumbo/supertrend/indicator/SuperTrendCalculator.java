@@ -20,6 +20,17 @@ public final class SuperTrendCalculator {
     public static final int DEFAULT_ATR_LENGTH = 10;
     public static final BigDecimal DEFAULT_MULTIPLIER = new BigDecimal("3.0");
 
+    /**
+     * Number of candles before an incremental anchor that must be recomputed so the band and
+     * trend-direction recurrence restabilizes to the same values a full recompute would produce.
+     * (Wilder's ATR is an EMA and only reconverges to within ~1e-4 over this span - a residue far
+     * too small to move a direction, and the ATR magnitude itself is not persisted by signal-state
+     * detection.) The single source of truth for the warm-up size: {@link #calculateIncremental}
+     * slices its internal window by this, and callers that pre-bound the candle load from storage
+     * (so they never read the full history) size their fetch by the same value.
+     */
+    public static final int WARMUP_WINDOW_BARS = DEFAULT_ATR_LENGTH * 10;
+
     private static final int SCALE = 10;
     private static final RoundingMode ROUNDING = RoundingMode.HALF_UP;
 
@@ -79,8 +90,8 @@ public final class SuperTrendCalculator {
      * <p>
      * When {@code fullRecalc} is true, or no {@code lastStoredCloseTime} exists yet, every
      * candle is recomputed. Otherwise, only candles strictly after {@code lastStoredCloseTime}
-     * are returned, computed over a warm-up window of {@code atrLength * 10} preceding candles
-     * so Wilder's ATR has time to restabilize before the first returned value.
+     * are returned, computed over a warm-up window of {@link #WARMUP_WINDOW_BARS} preceding
+     * candles so Wilder's ATR has time to restabilize before the first returned value.
      * <p>
      * Unlike {@link #calculate}, this method never returns a placeholder for a still-warming-up
      * candle — callers here only ever want concrete, persistable results.
@@ -104,7 +115,7 @@ public final class SuperTrendCalculator {
             return List.of();
         }
 
-        int windowStart = Math.max(0, anchorIndex - (atrLength * 10));
+        int windowStart = Math.max(0, anchorIndex - WARMUP_WINDOW_BARS);
         List<Candle> window = candles.subList(windowStart, candles.size());
         return concreteResultsAfter(calculate(window, atrLength, multiplier), lastStoredCloseTime);
     }

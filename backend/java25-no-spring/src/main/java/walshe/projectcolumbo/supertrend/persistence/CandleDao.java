@@ -69,9 +69,17 @@ public final class CandleDao {
     }
 
     public Optional<OffsetDateTime> findLatestCloseTime(long assetId, Timeframe timeframe) {
+        try (Connection connection = dataSource.getConnection()) {
+            return findLatestCloseTime(connection, assetId, timeframe);
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to acquire connection to load latest close time for asset " + assetId + " " + timeframe, e);
+        }
+    }
+
+    /** Reuses a caller-managed connection instead of acquiring its own - see {@link #findByAssetAndTimeframe(Connection, long, Timeframe)} for why. */
+    public Optional<OffsetDateTime> findLatestCloseTime(Connection connection, long assetId, Timeframe timeframe) {
         String sql = "SELECT MAX(close_time) AS latest FROM candle WHERE asset_id = ? AND timeframe = ?::timeframe";
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, assetId);
             statement.setString(2, timeframe.name());
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -83,6 +91,56 @@ public final class CandleDao {
         } catch (SQLException e) {
             throw new PersistenceException("Failed to load latest close time for asset " + assetId + " " + timeframe, e);
         }
+    }
+
+    /**
+     * Candles for one asset/timeframe covering an incremental recompute: exactly {@code warmupBars}
+     * candles immediately before {@code anchorCloseTime} (so the SuperTrend recurrence can
+     * restabilize - see {@link walshe.projectcolumbo.supertrend.indicator.SuperTrendCalculator#WARMUP_WINDOW_BARS}),
+     * plus every candle from {@code anchorCloseTime} onward, ordered oldest-to-newest.
+     * <p>
+     * When fewer than {@code warmupBars} candles precede the anchor there isn't enough history to
+     * bound, so the full available history is returned - matching what an unbounded load would
+     * have produced. Callers pass their last-persisted close time as the anchor; a caller with no
+     * persisted value yet should not call this (it should load the full history directly).
+     * <p>
+     * The inner {@code ORDER BY close_time DESC OFFSET ? LIMIT 1} is an index-ordered backward
+     * scan on {@code (asset_id, timeframe, close_time)} - the same index the outer range scan
+     * uses - so this stays cheap regardless of total history depth. {@code OFFSET warmupBars - 1}
+     * lands on the {@code warmupBars}-th candle before the anchor, whose close time becomes the
+     * inclusive lower bound.
+     */
+    public List<Candle> findWindowForIncremental(Connection connection, long assetId, Timeframe timeframe,
+                                                 OffsetDateTime anchorCloseTime, int warmupBars) {
+        String sql = """
+                SELECT open_time, close_time, open, high, low, close, volume
+                FROM candle
+                WHERE asset_id = ? AND timeframe = ?::timeframe
+                  AND close_time >= COALESCE(
+                        (SELECT close_time FROM candle
+                         WHERE asset_id = ? AND timeframe = ?::timeframe AND close_time < ?
+                         ORDER BY close_time DESC
+                         OFFSET ? LIMIT 1),
+                        '-infinity'::timestamptz)
+                ORDER BY close_time ASC
+                """;
+        List<Candle> candles = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, assetId);
+            statement.setString(2, timeframe.name());
+            statement.setLong(3, assetId);
+            statement.setString(4, timeframe.name());
+            statement.setObject(5, anchorCloseTime);
+            statement.setInt(6, Math.max(0, warmupBars - 1));
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    candles.add(mapRow(resultSet, timeframe));
+                }
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load incremental candle window for asset " + assetId + " " + timeframe, e);
+        }
+        return candles;
     }
 
     /** System-wide latest close time across every asset for a timeframe (not scoped to one asset) - used for freshness checks. */

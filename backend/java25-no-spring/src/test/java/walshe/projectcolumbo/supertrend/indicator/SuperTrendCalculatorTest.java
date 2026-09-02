@@ -6,8 +6,11 @@ import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -170,5 +173,77 @@ class SuperTrendCalculatorTest {
         List<SuperTrendResult> results = CALCULATOR.calculateIncremental(candles, 2, BigDecimal.ONE, lastCandleCloseTime, false);
 
         assertThat(results).isEmpty();
+    }
+
+    /**
+     * The indicator path's guarantee: {@link #calculateIncremental} already slices its own
+     * {@link SuperTrendCalculator#WARMUP_WINDOW_BARS} warm-up window internally, so feeding it a
+     * pre-bounded candle list (what {@code CandleDao.findWindowForIncremental} returns - the
+     * warm-up window plus a one-candle cushion, then everything from the anchor on) produces
+     * byte-identical {@link SuperTrendResult}s to feeding it the entire history. This is what lets
+     * the service stop loading full history without changing a single stored value.
+     */
+    @Test
+    void calculateIncrementalOverAPreBoundedWindowMatchesCalculateIncrementalOverFullHistory() {
+        List<Candle> full = wave(300);
+        int anchorIndex = 200;
+        OffsetDateTime anchor = full.get(anchorIndex).closeTime();
+        List<Candle> preBoundedWindow = full.subList(anchorIndex - SuperTrendCalculator.WARMUP_WINDOW_BARS, full.size());
+
+        List<SuperTrendResult> fromFull = CALCULATOR.calculateIncremental(full, 10, new BigDecimal("3.0"), anchor, false);
+        List<SuperTrendResult> fromWindow = CALCULATOR.calculateIncremental(preBoundedWindow, 10, new BigDecimal("3.0"), anchor, false);
+
+        assertThat(fromFull).hasSizeGreaterThan(50);
+        assertThat(fromWindow).isEqualTo(fromFull);
+    }
+
+    /**
+     * The signal path's guarantee: signal-state detection runs {@link #calculate} directly over
+     * the bounded window (it needs the warm-up results too, to establish the pre-anchor trend).
+     * Wilder ATR is an EMA, so a shorter warm-up leaves a vanishing (~1e-4 after
+     * {@link SuperTrendCalculator#WARMUP_WINDOW_BARS} bars) residue in the ATR and bands vs a full
+     * recompute - but the trend <em>direction</em>, which is all {@code SignalState} records,
+     * is unaffected for every candle at or after the anchor.
+     */
+    @Test
+    void boundedWarmUpWindowPreservesTrendDirectionForEveryCandleAtOrAfterTheAnchor() {
+        List<Candle> full = wave(300);
+        int anchorIndex = 200;
+        OffsetDateTime anchor = full.get(anchorIndex).closeTime();
+        List<Candle> window = full.subList(anchorIndex - SuperTrendCalculator.WARMUP_WINDOW_BARS, full.size());
+
+        Map<OffsetDateTime, SuperTrendDirection> fullDirections = directionsByCloseTime(CALCULATOR.calculate(full, 10, new BigDecimal("3.0")));
+        Map<OffsetDateTime, SuperTrendDirection> windowDirections = directionsByCloseTime(CALCULATOR.calculate(window, 10, new BigDecimal("3.0")));
+
+        List<OffsetDateTime> atOrAfterAnchor = fullDirections.keySet().stream()
+                .filter(t -> !t.isBefore(anchor))
+                .sorted()
+                .toList();
+
+        assertThat(atOrAfterAnchor).hasSizeGreaterThan(50);
+        assertThat(atOrAfterAnchor.stream().map(fullDirections::get).distinct())
+                .as("the compared range must contain at least one trend flip to be meaningful")
+                .hasSize(2);
+        assertThat(atOrAfterAnchor)
+                .allSatisfy(t -> assertThat(windowDirections.get(t)).as("direction at %s", t).isEqualTo(fullDirections.get(t)));
+    }
+
+    private static Map<OffsetDateTime, SuperTrendDirection> directionsByCloseTime(List<Optional<SuperTrendResult>> results) {
+        return results.stream()
+                .flatMap(Optional::stream)
+                .collect(Collectors.toMap(SuperTrendResult::closeTime, SuperTrendResult::direction));
+    }
+
+    /** A deterministic multi-cycle price wave - enough amplitude and period variety to drive real ATR movement and repeated trend flips. */
+    private static List<Candle> wave(int count) {
+        List<Candle> candles = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            double mid = 100 + 30 * Math.sin(i / 11.0) + 12 * Math.sin(i / 3.0);
+            long high = Math.round(mid + 4);
+            long low = Math.round(mid - 4);
+            long close = Math.round(mid + 3 * Math.sin(i / 2.0));
+            candles.add(candle(i, high, low, close));
+        }
+        return candles;
     }
 }

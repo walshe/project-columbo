@@ -12,6 +12,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -31,6 +33,30 @@ public final class SuperTrendIndicatorDao {
         } catch (SQLException e) {
             throw new PersistenceException("Failed to acquire connection to load latest indicator close time for asset " + assetId + " " + timeframe, e);
         }
+    }
+
+    /** Full stored SuperTrend series for one asset/timeframe, ordered oldest-to-newest. */
+    public List<SuperTrendResult> findByAssetAndTimeframe(long assetId, Timeframe timeframe) {
+        String sql = """
+                SELECT close_time, atr, upper_band, lower_band, supertrend, direction
+                FROM indicator_supertrend
+                WHERE asset_id = ? AND timeframe = ?::timeframe
+                ORDER BY close_time ASC
+                """;
+        List<SuperTrendResult> results = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, assetId);
+            statement.setString(2, timeframe.name());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    results.add(mapRow(resultSet));
+                }
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load stored SuperTrend series for asset " + assetId + " " + timeframe, e);
+        }
+        return results;
     }
 
     /** Reuses a caller-managed connection instead of acquiring its own - see {@link CandleDao#findByAssetAndTimeframe(Connection, long, Timeframe)} for why. */

@@ -179,6 +179,29 @@ class PipelineOrchestratorTest {
                 .isInstanceOf(IngestionAlreadyRunningException.class);
     }
 
+    @Test
+    @Order(7)
+    void aSteadyStateRunWithNoNewCandlesLeavesIndicatorAndSignalValuesUntouchedAndStillSucceeds() {
+        deactivateAsset("PIPE4USDT");
+        deactivateAsset("PIPE5USDT");
+        long assetId = seedAsset("PIPE7USDT");
+        FakeMarketDataProvider provider = new FakeMarketDataProvider();
+        provider.onFetch("PIPE7USDT", () -> dailyCandles(70));
+
+        PipelineRunResult first = orchestrator(provider).runDaily(Timeframe.D1);
+        assertThat(first.status()).isEqualTo(IngestionRunStatus.SUCCESS);
+        OffsetDateTime d1IndicatorAfterFirst = superTrendIndicatorDao.findLatestCloseTime(assetId, Timeframe.D1).orElseThrow();
+        OffsetDateTime w1IndicatorAfterFirst = superTrendIndicatorDao.findLatestCloseTime(assetId, Timeframe.W1).orElseThrow();
+
+        // Same candles again: ingestion adds nothing new, so the D1 and W1 indicator and signal
+        // phases skip every active asset - and the run still completes as SUCCESS.
+        PipelineRunResult second = orchestrator(provider).runDaily(Timeframe.D1);
+
+        assertThat(second.status()).isEqualTo(IngestionRunStatus.SUCCESS);
+        assertThat(superTrendIndicatorDao.findLatestCloseTime(assetId, Timeframe.D1)).hasValue(d1IndicatorAfterFirst);
+        assertThat(superTrendIndicatorDao.findLatestCloseTime(assetId, Timeframe.W1)).hasValue(w1IndicatorAfterFirst);
+    }
+
     private static IngestionRun awaitCompletion(long runId) throws InterruptedException {
         for (int i = 0; i < 100; i++) {
             IngestionRun run = ingestionRunDao.findById(runId).orElseThrow();

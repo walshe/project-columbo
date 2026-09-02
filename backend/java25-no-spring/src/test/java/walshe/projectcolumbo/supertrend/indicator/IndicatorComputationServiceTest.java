@@ -7,10 +7,12 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import walshe.projectcolumbo.supertrend.persistence.Asset;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
 import walshe.projectcolumbo.supertrend.persistence.SchemaMigrator;
 import walshe.projectcolumbo.supertrend.persistence.SuperTrendIndicatorDao;
+import walshe.projectcolumbo.supertrend.pipeline.AssetComputationOutcome;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
@@ -18,6 +20,7 @@ import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -82,6 +85,72 @@ class IndicatorComputationServiceTest {
         OffsetDateTime secondLatest = superTrendIndicatorDao.findLatestCloseTime(assetId, Timeframe.D1).orElseThrow();
 
         assertThat(secondLatest).isAfter(firstLatest);
+    }
+
+    @Test
+    void assetWithNoNewCandleSinceItsLastStoredValueIsSkipped() {
+        long assetId = seedAsset("IND4USDT");
+        seedDailyCandles(assetId, 15);
+        IndicatorComputationService service = new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao, dataSource);
+        Asset asset = activeAsset(assetId);
+
+        assertThat(service.computeForAsset(asset, Timeframe.D1)).isEqualTo(AssetComputationOutcome.COMPUTED);
+        assertThat(service.computeForAsset(asset, Timeframe.D1)).isEqualTo(AssetComputationOutcome.SKIPPED);
+    }
+
+    @Test
+    void firstEverComputationIsNeverSkipped() {
+        long assetId = seedAsset("IND5USDT");
+        seedDailyCandles(assetId, 15);
+
+        AssetComputationOutcome outcome = new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao, dataSource)
+                .computeForAsset(activeAsset(assetId), Timeframe.D1);
+
+        assertThat(outcome).isEqualTo(AssetComputationOutcome.COMPUTED);
+    }
+
+    @Test
+    void assetWithNoCandlesReportsNoCandles() {
+        long assetId = seedAsset("IND6USDT");
+
+        AssetComputationOutcome outcome = new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao, dataSource)
+                .computeForAsset(activeAsset(assetId), Timeframe.D1);
+
+        assertThat(outcome).isEqualTo(AssetComputationOutcome.NO_CANDLES);
+    }
+
+    @Test
+    void oneNewCandleOnDeepHistoryIsStoredIdenticallyToTheUnboundedFetchPath() {
+        long assetId = seedAsset("IND7USDT");
+        seedDailyCandles(assetId, 250); // deep enough that findWindowForIncremental is actually bounded
+        IndicatorComputationService service = new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao, dataSource);
+        Asset asset = activeAsset(assetId);
+        service.computeForAsset(asset, Timeframe.D1);
+        OffsetDateTime anchor = superTrendIndicatorDao.findLatestCloseTime(assetId, Timeframe.D1).orElseThrow();
+
+        seedDailyCandles(assetId, 250, 1); // one more day
+        assertThat(service.computeForAsset(asset, Timeframe.D1)).isEqualTo(AssetComputationOutcome.COMPUTED);
+
+        // What the service stored via the bounded window == what it would have stored loading the full
+        // history and letting calculateIncremental slice its own warm-up window (the pre-change path).
+        SuperTrendResult storedLast = superTrendIndicatorDao.findByAssetAndTimeframe(assetId, Timeframe.D1).getLast();
+        SuperTrendResult viaUnboundedFetch = new SuperTrendCalculator()
+                .calculateIncremental(
+                        candleDao.findByAssetAndTimeframe(assetId, Timeframe.D1),
+                        SuperTrendCalculator.DEFAULT_ATR_LENGTH,
+                        SuperTrendCalculator.DEFAULT_MULTIPLIER,
+                        anchor,
+                        false)
+                .getLast();
+
+        assertThat(storedLast).isEqualTo(viaUnboundedFetch);
+    }
+
+    private static Asset activeAsset(long assetId) {
+        return assetDao.findAllActive().stream()
+                .filter(a -> a.id() == assetId)
+                .findFirst()
+                .orElseThrow();
     }
 
     private static long seedAsset(String symbol) {
