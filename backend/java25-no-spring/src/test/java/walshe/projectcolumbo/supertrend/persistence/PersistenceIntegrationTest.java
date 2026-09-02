@@ -16,6 +16,8 @@ import walshe.projectcolumbo.supertrend.indicator.SuperTrendResult;
 import walshe.projectcolumbo.supertrend.pipeline.IngestionRunOutcome;
 import walshe.projectcolumbo.supertrend.pipeline.IngestionRunStatus;
 import walshe.projectcolumbo.supertrend.pulse.MarketBreadthSnapshot;
+import walshe.projectcolumbo.supertrend.shared.AssetClass;
+import walshe.projectcolumbo.supertrend.shared.AssetVenue;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 import walshe.projectcolumbo.supertrend.signal.SignalEvent;
@@ -24,8 +26,13 @@ import walshe.projectcolumbo.supertrend.signal.TrendState;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CyclicBarrier;
@@ -63,8 +70,11 @@ class PersistenceIntegrationTest {
     void assetDaoFindsAllSeededActiveAssets() {
         List<Asset> assets = new AssetDao(dataSource).findAllActive();
 
-        assertThat(assets).hasSize(97); // 50 crypto (V8, capped by V22) + 47 Tiingo real equities (V17) - V22 retired tokenized Binance STOCK/ETF entirely
+        // 118 MEXC assets (V25: 50 crypto + 50 stock + 18 ETF) - V26 deactivated every Binance and
+        // Tiingo row entirely (migrate-to-mexc-provider).
+        assertThat(assets).hasSize(118);
         assertThat(assets).allSatisfy(a -> assertThat(a.active()).isTrue());
+        assertThat(assets).allSatisfy(a -> assertThat(a.provider()).isEqualTo(Provider.MEXC));
     }
 
     @Test
@@ -215,10 +225,11 @@ class PersistenceIntegrationTest {
     void everyTiingoAssetHasAVerifiedTradingviewRef() {
         // Guards against a typo in V19's 47-row VALUES list silently leaving a row's ref null -
         // an UPDATE that matches zero rows for a mistyped symbol fails silently, no other test
-        // would catch it since PersistenceIntegrationTest's other asset assertions only check counts.
-        List<Asset> tiingoAssets = new AssetDao(dataSource).findAllActive().stream()
-                .filter(a -> a.provider() == Provider.TIINGO)
-                .toList();
+        // would catch it since PersistenceIntegrationTest's other asset assertions only check
+        // counts. Queried directly (not via AssetDao.findAllActive()) because migrate-to-mexc-
+        // provider (V26) deactivated every Tiingo row - this guard's target data is dormant, not
+        // gone, and AssetDao has no "regardless of active" query.
+        List<Asset> tiingoAssets = findAllRegardlessOfActive(Provider.TIINGO);
 
         assertThat(tiingoAssets).hasSize(47);
         assertThat(tiingoAssets).allSatisfy(a -> assertThat(a.tradingviewRef()).as("tradingviewRef for %s", a.symbol()).isNotNull());
@@ -227,6 +238,37 @@ class PersistenceIntegrationTest {
         assertThat(tiingoAssets).filteredOn(a -> a.symbol().equals("SSNLF")).extracting(Asset::tradingviewRef).containsExactly("OTC:SSNLF");
         assertThat(tiingoAssets).filteredOn(a -> a.symbol().equals("601398")).extracting(Asset::tradingviewRef).containsExactly("SSE:601398");
         assertThat(tiingoAssets).filteredOn(a -> a.symbol().equals("AAPL")).extracting(Asset::tradingviewRef).containsExactly("NASDAQ:AAPL");
+    }
+
+    /**
+     * Bypasses {@link AssetDao#findAllActive()} (which only ever returns active rows) so
+     * dormant-but-present assets - e.g. Tiingo's rows after migrate-to-mexc-provider (V26)
+     * deactivated them - can still be asserted on directly.
+     */
+    private static List<Asset> findAllRegardlessOfActive(Provider provider) {
+        String sql = "SELECT id, symbol, provider, active, asset_class, venue, name, tradingview_ref "
+                + "FROM asset WHERE provider = ?::provider ORDER BY id";
+        List<Asset> assets = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, provider.name());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    assets.add(new Asset(
+                            resultSet.getLong("id"),
+                            resultSet.getString("symbol"),
+                            Provider.valueOf(resultSet.getString("provider")),
+                            resultSet.getBoolean("active"),
+                            AssetClass.valueOf(resultSet.getString("asset_class")),
+                            AssetVenue.valueOf(resultSet.getString("venue")),
+                            resultSet.getString("name"),
+                            resultSet.getString("tradingview_ref")));
+                }
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load assets for provider " + provider, e);
+        }
+        return assets;
     }
 
     private static Candle candle(int dayOffset, String open, String high, String low, String close) {

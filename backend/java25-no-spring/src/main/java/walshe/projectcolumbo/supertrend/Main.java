@@ -18,6 +18,8 @@ import walshe.projectcolumbo.supertrend.ingestion.BackfillStartValidator;
 import walshe.projectcolumbo.supertrend.ingestion.BinanceMarketDataProvider;
 import walshe.projectcolumbo.supertrend.ingestion.CandleIngestionService;
 import walshe.projectcolumbo.supertrend.ingestion.IngestionConfig;
+import walshe.projectcolumbo.supertrend.ingestion.MarketDataProvider;
+import walshe.projectcolumbo.supertrend.ingestion.MexcMarketDataProvider;
 import walshe.projectcolumbo.supertrend.ingestion.TiingoMarketDataProvider;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.AssetLiquidityDao;
@@ -43,6 +45,7 @@ import walshe.projectcolumbo.supertrend.signal.TrendAlignmentService;
 import javax.sql.DataSource;
 import java.net.http.HttpClient;
 import java.time.Clock;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -77,14 +80,25 @@ public final class Main {
         BinanceMarketDataProvider futuresProvider = binanceFuturesBaseUrl()
                 .map(baseUrl -> new BinanceMarketDataProvider(httpClient, AssetVenue.FUTURES, baseUrl))
                 .orElseGet(() -> new BinanceMarketDataProvider(httpClient, AssetVenue.FUTURES));
-        String tiingoApiKey = requireEnv("TIINGO_API_KEY");
-        TiingoMarketDataProvider exchangeProvider = tiingoBaseUrl()
-                .map(baseUrl -> new TiingoMarketDataProvider(httpClient, tiingoApiKey, baseUrl))
-                .orElseGet(() -> new TiingoMarketDataProvider(httpClient, tiingoApiKey));
+        MexcMarketDataProvider mexcProvider = mexcBaseUrl()
+                .map(baseUrl -> new MexcMarketDataProvider(httpClient, baseUrl))
+                .orElseGet(() -> new MexcMarketDataProvider(httpClient));
+
+        Map<AssetVenue, MarketDataProvider> providersByVenue = new HashMap<>();
+        providersByVenue.put(AssetVenue.SPOT, spotProvider);
+        providersByVenue.put(AssetVenue.FUTURES, futuresProvider);
+        providersByVenue.put(AssetVenue.MEXC, mexcProvider);
+        // Tiingo is disconnected-for-now (no active EXCHANGE-venue assets) - only wired up, and
+        // only required, when a key is actually configured, so the app starts fine without it.
+        envOrEmpty("TIINGO_API_KEY").ifPresent(tiingoApiKey -> {
+            TiingoMarketDataProvider exchangeProvider = tiingoBaseUrl()
+                    .map(baseUrl -> new TiingoMarketDataProvider(httpClient, tiingoApiKey, baseUrl))
+                    .orElseGet(() -> new TiingoMarketDataProvider(httpClient, tiingoApiKey));
+            providersByVenue.put(AssetVenue.EXCHANGE, exchangeProvider);
+        });
+
         CandleIngestionService candleIngestionService = new CandleIngestionService(
-                assetDao, candleDao,
-                Map.of(AssetVenue.SPOT, spotProvider, AssetVenue.FUTURES, futuresProvider, AssetVenue.EXCHANGE, exchangeProvider),
-                ingestionConfig, clock);
+                assetDao, candleDao, providersByVenue, ingestionConfig, clock);
         IndicatorComputationService indicatorComputationService =
                 new IndicatorComputationService(assetDao, candleDao, superTrendIndicatorDao, dataSource);
         CandleRollupService candleRollupService = new CandleRollupService(assetDao, candleDao, clock);
@@ -154,17 +168,13 @@ public final class Main {
         return envOrEmpty("SUPERTREND_TIINGO_BASE_URL");
     }
 
+    /** Overridable so an end-to-end test can point MEXC calls at a stub server instead of the real API. */
+    private static Optional<String> mexcBaseUrl() {
+        return envOrEmpty("SUPERTREND_MEXC_BASE_URL");
+    }
+
     private static Optional<String> envOrEmpty(String name) {
         String value = System.getenv(name);
         return (value == null || value.isBlank()) ? Optional.empty() : Optional.of(value);
-    }
-
-    /** Fails fast at startup rather than constructing a Tiingo client that would 401 on first use. */
-    private static String requireEnv(String name) {
-        String value = System.getenv(name);
-        if (value == null || value.isBlank()) {
-            throw new IllegalStateException(name + " is not configured");
-        }
-        return value;
     }
 }

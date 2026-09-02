@@ -55,7 +55,7 @@ public final class BinanceMarketDataProvider implements MarketDataProvider {
         return switch (venue) {
             case SPOT -> SPOT_DEFAULT_BASE_URL;
             case FUTURES -> FUTURES_DEFAULT_BASE_URL;
-            case EXCHANGE -> throw unsupportedVenue(venue);
+            case EXCHANGE, MEXC -> throw unsupportedVenue(venue);
         };
     }
 
@@ -63,7 +63,7 @@ public final class BinanceMarketDataProvider implements MarketDataProvider {
         return switch (venue) {
             case SPOT -> SPOT_KLINES_PATH;
             case FUTURES -> FUTURES_KLINES_PATH;
-            case EXCHANGE -> throw unsupportedVenue(venue);
+            case EXCHANGE, MEXC -> throw unsupportedVenue(venue);
         };
     }
 
