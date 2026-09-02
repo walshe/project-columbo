@@ -135,6 +135,10 @@ public final class BinanceMarketDataProvider implements MarketDataProvider {
             throw new MarketDataProviderException("Failed to parse Binance klines response", e);
         }
 
+        if (!rows.isArray()) {
+            throw new MarketDataProviderException("Binance klines response was not a JSON array: " + responseBody);
+        }
+
         List<Candle> candles = new ArrayList<>(rows.size());
         for (JsonNode row : rows) {
             candles.add(toCandle(row));

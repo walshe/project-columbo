@@ -12,6 +12,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class BinanceMarketDataProviderTest {
 
@@ -52,6 +53,15 @@ class BinanceMarketDataProviderTest {
         Candle candle = provider.parseKlines(json).get(0);
 
         assertThat(candle.volume()).isEqualByComparingTo("51500000.12");
+    }
+
+    @Test
+    void parseKlinesRejectsANonArrayBodyWithAMarketDataProviderException() {
+        String errorObject = "{\"code\":-1003,\"msg\":\"Too many requests.\"}";
+
+        assertThatThrownBy(() -> provider.parseKlines(errorObject))
+                .isInstanceOf(MarketDataProviderException.class)
+                .hasMessageContaining("not a JSON array");
     }
 
     @Test

@@ -111,6 +111,10 @@ public final class MexcMarketDataProvider implements MarketDataProvider {
             throw new MarketDataProviderException("Failed to parse MEXC klines response", e);
         }
 
+        if (!rows.isArray()) {
+            throw new MarketDataProviderException("MEXC klines response was not a JSON array: " + responseBody);
+        }
+
         List<Candle> candles = new ArrayList<>(rows.size());
         for (JsonNode row : rows) {
             candles.add(toCandle(row));
