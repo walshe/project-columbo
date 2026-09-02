@@ -35,5 +35,5 @@
 ## 6. Verification
 
 - [x] 6.1 Self-review before opening the PR.
-- [ ] 6.2 Check the `pr_agent` review comment before declaring the PR ready.
+- [x] 6.2 Check the `pr_agent` review comment. 3 findings: (1) `findWindowForIncremental` OFFSET off-by-one — real, fixed in 41e435c (`OFFSET warmupBars - 1`). (2)(3) skip-on-equal could hide a partial-failure gap — not reachable (upsert loop writes oldest-first, so a mid-loop failure leaves `MAX < latest` which does *not* skip) and the suggested `isBefore` fix would recompute every asset every steady-state run; replied on the PR, no change.
 - [ ] 6.3 After deploy: confirm run duration for the D1/W1 indicator + signal phases drops materially on a steady-state run (one new candle per asset), and a re-run within the same day is near-instant for those phases.
