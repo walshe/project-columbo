@@ -11,6 +11,7 @@ import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
 import walshe.projectcolumbo.supertrend.persistence.PersistenceException;
 import walshe.projectcolumbo.supertrend.persistence.SignalStateDao;
+import walshe.projectcolumbo.supertrend.pipeline.AssetComputationOutcome;
 import walshe.projectcolumbo.supertrend.pipeline.ParallelAssetExecutor;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
@@ -24,14 +25,17 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Detects trend state and reversal events for every active asset in a timeframe. Recomputes the
- * SuperTrend series from the full candle history in memory on every run (cheap, pure arithmetic,
- * needed for correct trend continuity), but only upserts rows after the asset's last persisted
- * signal-state close time — mirroring the incremental pattern in
- * {@link walshe.projectcolumbo.supertrend.indicator.IndicatorComputationService} — so DB writes
- * stay proportional to new candles rather than total history. Per-asset work runs on its own
- * virtual thread (see {@link ParallelAssetExecutor}), sharing a single connection across all of
- * that asset's DB calls (see {@code IndicatorComputationService}'s Javadoc for why).
+ * Detects trend state and reversal events for every active asset in a timeframe. Mirrors the
+ * bounded incremental pattern in
+ * {@link walshe.projectcolumbo.supertrend.indicator.IndicatorComputationService}: an asset with
+ * no finalized candle newer than its last persisted signal-state row is skipped entirely, and an
+ * asset that does have new candles recomputes SuperTrend over only a warm-up window before its
+ * anchor (see {@link CandleDao#findWindowForIncremental}) rather than its full history. The
+ * warm-up window is large enough that the trend state carried into the first post-anchor candle
+ * is fully established, so a flip landing exactly on that candle is still detected. Only rows
+ * after the last persisted close time are upserted. Per-asset work runs on its own virtual
+ * thread (see {@link ParallelAssetExecutor}), sharing a single connection across all of that
+ * asset's DB calls (see {@code IndicatorComputationService}'s Javadoc for why).
  */
 public final class SignalStateDetectionService {
 
@@ -53,38 +57,53 @@ public final class SignalStateDetectionService {
     public void computeForAllActiveAssets(Timeframe timeframe) {
         List<Asset> activeAssets = assetDao.findAllActive();
         LOG.info("Detecting {} signal state for {} active assets", timeframe, activeAssets.size());
-        ParallelAssetExecutor.runForEachItem(activeAssets, asset -> {
-            computeForAssetSafely(asset, timeframe);
-            return null;
-        });
+        List<AssetComputationOutcome> outcomes = ParallelAssetExecutor.runForEachItem(
+                activeAssets, asset -> computeForAssetSafely(asset, timeframe));
+        long computed = outcomes.stream().filter(o -> o == AssetComputationOutcome.COMPUTED).count();
+        long skipped = outcomes.stream().filter(o -> o == AssetComputationOutcome.SKIPPED).count();
+        LOG.debug("{} signal state: computed {}, skipped {} (unchanged) of {} active assets",
+                timeframe, computed, skipped, activeAssets.size());
     }
 
-    private void computeForAssetSafely(Asset asset, Timeframe timeframe) {
+    private AssetComputationOutcome computeForAssetSafely(Asset asset, Timeframe timeframe) {
         try {
-            computeForAsset(asset, timeframe);
+            return computeForAsset(asset, timeframe);
         } catch (Exception e) {
             LOG.error("Failed to detect {} signal state for asset {}", timeframe, asset.symbol(), e);
+            return AssetComputationOutcome.FAILED;
         }
     }
 
-    void computeForAsset(Asset asset, Timeframe timeframe) {
+    AssetComputationOutcome computeForAsset(Asset asset, Timeframe timeframe) {
         try (Connection connection = dataSource.getConnection()) {
-            List<Candle> candles = candleDao.findByAssetAndTimeframe(connection, asset.id(), timeframe);
+            Optional<OffsetDateTime> lastStoredCloseTime = signalStateDao.findLatestCloseTime(connection, asset.id(), timeframe);
+            Optional<OffsetDateTime> latestCandle = candleDao.findLatestCloseTime(connection, asset.id(), timeframe);
+
+            if (latestCandle.isEmpty()) {
+                return AssetComputationOutcome.NO_CANDLES;
+            }
+            if (lastStoredCloseTime.isPresent() && !latestCandle.get().isAfter(lastStoredCloseTime.get())) {
+                return AssetComputationOutcome.SKIPPED;
+            }
+
+            List<Candle> candles = lastStoredCloseTime.isPresent()
+                    ? candleDao.findWindowForIncremental(connection, asset.id(), timeframe, lastStoredCloseTime.get(), SuperTrendCalculator.WARMUP_WINDOW_BARS)
+                    : candleDao.findByAssetAndTimeframe(connection, asset.id(), timeframe);
             if (candles.isEmpty()) {
-                return;
+                return AssetComputationOutcome.NO_CANDLES;
             }
 
             List<Optional<SuperTrendResult>> results = calculator.calculate(
                     candles, SuperTrendCalculator.DEFAULT_ATR_LENGTH, SuperTrendCalculator.DEFAULT_MULTIPLIER);
             List<SignalState> states = detect(asset.id(), timeframe, candles, results);
 
-            Optional<OffsetDateTime> lastStoredCloseTime = signalStateDao.findLatestCloseTime(connection, asset.id(), timeframe);
             for (SignalState state : states) {
                 if (lastStoredCloseTime.isPresent() && !state.closeTime().isAfter(lastStoredCloseTime.get())) {
                     continue;
                 }
                 signalStateDao.upsert(connection, state);
             }
+            return AssetComputationOutcome.COMPUTED;
         } catch (SQLException e) {
             throw new PersistenceException("Failed to acquire connection to detect signal state for asset " + asset.symbol(), e);
         }

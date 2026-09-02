@@ -3,6 +3,8 @@
 ### Requirement: Signal-state detection recomputes over a bounded warm-up window
 The system SHALL derive signal state and flip events for an asset by recomputing SuperTrend over a bounded candle window — a warm-up window of `atrLength * 10` candles immediately before the asset's last stored signal-state close time, plus every finalized candle after it — rather than over the asset's full candle history. The trend state carried into the first post-anchor candle SHALL be the fully-established state computed from the warm-up window, so a flip landing exactly on the first new candle is still detected. When fewer than `atrLength * 10` candles precede the anchor, or no signal-state row is stored yet, the system SHALL recompute over the entire available history.
 
+The bounded warm-up SHALL leave the derived trend **direction** (and therefore trend state and flip events, which are the only things persisted) unchanged versus a full-history recompute for every candle at or after the anchor. The Wilder-ATR and band magnitudes computed in-memory may carry a negligible smoothing residue versus a full recompute; those magnitudes are not persisted by signal-state detection.
+
 #### Scenario: Bounded window load for incremental detection
 - **WHEN** signal-state detection runs for an asset that has a stored signal-state row with at least `atrLength * 10` candles before it
 - **THEN** the number of candle rows read is bounded to the warm-up window plus the candles after the stored close time, not the asset's full history

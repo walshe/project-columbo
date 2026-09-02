@@ -8,10 +8,14 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import walshe.projectcolumbo.supertrend.indicator.Candle;
+import walshe.projectcolumbo.supertrend.indicator.SuperTrendCalculator;
+import walshe.projectcolumbo.supertrend.indicator.SuperTrendResult;
+import walshe.projectcolumbo.supertrend.persistence.Asset;
 import walshe.projectcolumbo.supertrend.persistence.AssetDao;
 import walshe.projectcolumbo.supertrend.persistence.CandleDao;
 import walshe.projectcolumbo.supertrend.persistence.SchemaMigrator;
 import walshe.projectcolumbo.supertrend.persistence.SignalStateDao;
+import walshe.projectcolumbo.supertrend.pipeline.AssetComputationOutcome;
 import walshe.projectcolumbo.supertrend.shared.Provider;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
@@ -19,6 +23,8 @@ import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -108,6 +114,100 @@ class SignalStateDetectionServiceIntegrationTest {
         SignalState afterSecondRun = latestFor(assetId);
 
         assertThat(afterSecondRun.closeTime()).isAfter(afterFirstRun.closeTime());
+    }
+
+    @Test
+    void assetWithNoNewCandleSinceItsLastStoredRowIsSkipped() {
+        long assetId = seedAsset("SIG6USDT");
+        seedDailyCandles(assetId, 15);
+        SignalStateDetectionService service = new SignalStateDetectionService(assetDao, candleDao, signalStateDao, dataSource);
+        Asset asset = activeAsset(assetId);
+
+        assertThat(service.computeForAsset(asset, Timeframe.D1)).isEqualTo(AssetComputationOutcome.COMPUTED);
+        assertThat(service.computeForAsset(asset, Timeframe.D1)).isEqualTo(AssetComputationOutcome.SKIPPED);
+    }
+
+    @Test
+    void aFlipLandingExactlyOnTheFirstNewCandleIsStillDetectedViaTheBoundedWindow() {
+        long assetId = seedAsset("SIG7USDT");
+        seedRising(assetId, 1, 130); // long uptrend - deep enough that the second run's window is bounded
+        SignalStateDetectionService service = new SignalStateDetectionService(assetDao, candleDao, signalStateDao, dataSource);
+        Asset asset = activeAsset(assetId);
+        service.computeForAsset(asset, Timeframe.D1);
+        assertThat(latestFor(assetId).trendState()).isEqualTo(TrendState.BULLISH);
+
+        seedCandle(assetId, 131, /*high*/ 140, /*low*/ 100, /*close*/ 103); // sharp drop through the support band
+        assertThat(service.computeForAsset(asset, Timeframe.D1)).isEqualTo(AssetComputationOutcome.COMPUTED);
+
+        SignalState firstNewCandle = latestFor(assetId);
+        assertThat(firstNewCandle.closeTime()).isEqualTo(BASE_TIME.plusDays(131));
+        assertThat(firstNewCandle.trendState()).isEqualTo(TrendState.BEARISH);
+        assertThat(firstNewCandle.event()).isEqualTo(SignalEvent.BEARISH_REVERSAL);
+    }
+
+    @Test
+    void boundedIncrementalDetectionAgreesWithAFullHistoryRecomputeForEveryPersistedRow() {
+        long assetId = seedAsset("SIG8USDT");
+        SignalStateDetectionService service = new SignalStateDetectionService(assetDao, candleDao, signalStateDao, dataSource);
+        Asset asset = activeAsset(assetId);
+
+        seedWave(assetId, 1, 200);
+        service.computeForAsset(asset, Timeframe.D1); // first run: full history
+        seedWave(assetId, 201, 60);
+        service.computeForAsset(asset, Timeframe.D1); // second run: bounded window
+
+        List<Candle> allCandles = candleDao.findByAssetAndTimeframe(assetId, Timeframe.D1);
+        List<Optional<SuperTrendResult>> fullResults = new SuperTrendCalculator().calculate(
+                allCandles, SuperTrendCalculator.DEFAULT_ATR_LENGTH, SuperTrendCalculator.DEFAULT_MULTIPLIER);
+        List<SignalState> fromFullHistory = SignalStateDetectionService.detect(assetId, Timeframe.D1, allCandles, fullResults);
+
+        for (SignalState expected : fromFullHistory) {
+            SignalState stored = signalStateDao.findLatestForAllAssets(Timeframe.D1).stream()
+                    .filter(s -> s.assetId() == assetId && s.closeTime().equals(expected.closeTime()))
+                    .findFirst()
+                    .orElse(null);
+            if (stored != null) {
+                assertThat(stored.trendState()).as("trend state at %s", expected.closeTime()).isEqualTo(expected.trendState());
+                assertThat(stored.event()).as("event at %s", expected.closeTime()).isEqualTo(expected.event());
+            }
+        }
+    }
+
+    private static Asset activeAsset(long assetId) {
+        return assetDao.findAllActive().stream()
+                .filter(a -> a.id() == assetId)
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private static void seedRising(long assetId, int startDay, int count) {
+        for (int i = 0; i < count; i++) {
+            int day = startDay + i;
+            double mid = 100 + day * 0.5;
+            seedCandle(assetId, day, mid + 1, mid - 1, mid);
+        }
+    }
+
+    private static void seedWave(long assetId, int startDay, int count) {
+        for (int i = 0; i < count; i++) {
+            int day = startDay + i;
+            double mid = 100 + 30 * Math.sin(day / 11.0) + 12 * Math.sin(day / 3.0);
+            seedCandle(assetId, day, mid + 4, mid - 4, mid + 3 * Math.sin(day / 2.0));
+        }
+    }
+
+    private static void seedCandle(long assetId, int day, double high, double low, double close) {
+        OffsetDateTime closeTime = BASE_TIME.plusDays(day);
+        candleDao.upsert(assetId, new Candle(
+                closeTime.minusDays(1),
+                closeTime,
+                Timeframe.D1,
+                BigDecimal.valueOf((high + low) / 2.0),
+                BigDecimal.valueOf(high),
+                BigDecimal.valueOf(low),
+                BigDecimal.valueOf(close),
+                BigDecimal.valueOf(1000)
+        ));
     }
 
     private static SignalState latestFor(long assetId) {

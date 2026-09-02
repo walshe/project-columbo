@@ -15,9 +15,9 @@ Given a `lastStoredCloseTime` anchor, the system SHALL recompute SuperTrend only
 - **WHEN** an anchor exists but fewer than `atrLength * 10` candles precede it
 - **THEN** the system loads and recomputes over the entire available candle history for that asset and timeframe
 
-#### Scenario: Bounded and full recomputes agree on an append-only history
-- **WHEN** SuperTrend is computed for a candle at or after a mid-series anchor, once via a full-history recompute and once via the bounded warm-up-window incremental path, over the same append-only candle history
-- **THEN** the two `SuperTrendResult` values for that candle are byte-identical
+#### Scenario: Bounding the candle load does not change the stored result
+- **WHEN** an asset's incremental SuperTrend recomputation runs once with the candle load bounded to the warm-up window and once with the full candle history loaded, over the same append-only history
+- **THEN** the persisted `SuperTrendResult` for every candle after the anchor is byte-identical between the two runs (the incremental recomputation already restricts its own working window, so a smaller input list that still covers that window produces the same output)
 
 #### Scenario: Full recalculation ignores any anchor
 - **WHEN** full recalculation mode is requested
