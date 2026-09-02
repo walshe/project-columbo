@@ -1,0 +1,114 @@
+package walshe.projectcolumbo.supertrend.ingestion;
+
+import org.junit.jupiter.api.Test;
+import walshe.projectcolumbo.supertrend.indicator.Candle;
+import walshe.projectcolumbo.supertrend.shared.Timeframe;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class MexcMarketDataProviderTest {
+
+    private final MexcMarketDataProvider provider = new MexcMarketDataProvider(HttpClient.newHttpClient());
+
+    @Test
+    void parsesKlineRowsIntoD1Candles() {
+        // One row: [openTime, open, high, low, close, baseVolume, closeTime, quoteVolume]
+        String json = """
+                [
+                  [1735689600000, "42000.00", "43500.50", "41800.25", "43200.75", "1200.5", 1735775999999, "51500000.12"]
+                ]
+                """;
+
+        List<Candle> candles = provider.parseKlines(json);
+
+        assertThat(candles).hasSize(1);
+        Candle candle = candles.get(0);
+        assertThat(candle.timeframe()).isEqualTo(Timeframe.D1);
+        assertThat(candle.openTime()).isEqualTo(Instant.ofEpochMilli(1735689600000L).atOffset(ZoneOffset.UTC));
+        assertThat(candle.closeTime()).isEqualTo(Instant.ofEpochMilli(1735775999999L).atOffset(ZoneOffset.UTC));
+        assertThat(candle.open()).isEqualByComparingTo("42000.00");
+        assertThat(candle.high()).isEqualByComparingTo("43500.50");
+        assertThat(candle.low()).isEqualByComparingTo("41800.25");
+        assertThat(candle.close()).isEqualByComparingTo("43200.75");
+    }
+
+    @Test
+    void volumeIsReadFromQuoteAssetVolumeNotBaseAssetVolume() {
+        String json = """
+                [
+                  [1735689600000, "42000.00", "43500.50", "41800.25", "43200.75", "1200.5", 1735775999999, "51500000.12"]
+                ]
+                """;
+
+        Candle candle = provider.parseKlines(json).get(0);
+
+        assertThat(candle.volume()).isEqualByComparingTo("51500000.12");
+    }
+
+    @Test
+    void parseKlinesRejectsANonArrayBodyWithAMarketDataProviderException() {
+        String errorObject = "{\"code\":-1003,\"msg\":\"Too many requests.\"}";
+
+        assertThatThrownBy(() -> provider.parseKlines(errorObject))
+                .isInstanceOf(MarketDataProviderException.class)
+                .hasMessageContaining("not a JSON array");
+    }
+
+    @Test
+    void isInvalidSymbolResponseDetectsMexcErrorCode() {
+        String invalidSymbolBody = "{\"msg\":\"Invalid symbol.\",\"code\":-1121,\"_extend\":null}";
+
+        assertThat(provider.isInvalidSymbolResponse(invalidSymbolBody)).isTrue();
+    }
+
+    @Test
+    void isInvalidSymbolResponseFalseForOtherErrors() {
+        String rateLimitBody = "{\"code\":-1003,\"msg\":\"Too many requests.\"}";
+
+        assertThat(provider.isInvalidSymbolResponse(rateLimitBody)).isFalse();
+    }
+
+    @Test
+    void isInvalidSymbolResponseFalseForUnparsableBody() {
+        assertThat(provider.isInvalidSymbolResponse("not json")).isFalse();
+    }
+
+    @Test
+    void klinesUriStripsTrailingSlashFromConfiguredBaseUrlToAvoidADoubleSlash() {
+        MexcMarketDataProvider withTrailingSlash =
+                new MexcMarketDataProvider(HttpClient.newHttpClient(), "http://mexc-stub:8080/");
+
+        URI uri = withTrailingSlash.klinesUri("BTCUSDT", 1000L, 2000L);
+
+        assertThat(uri).isEqualTo(URI.create("http://mexc-stub:8080/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1000&endTime=2000"));
+    }
+
+    @Test
+    void klinesUriStripsMultipleTrailingSlashes() {
+        MexcMarketDataProvider withTrailingSlashes =
+                new MexcMarketDataProvider(HttpClient.newHttpClient(), "http://mexc-stub:8080///");
+
+        URI uri = withTrailingSlashes.klinesUri("BTCUSDT", 1000L, 2000L);
+
+        assertThat(uri).isEqualTo(URI.create("http://mexc-stub:8080/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1000&endTime=2000"));
+    }
+
+    @Test
+    void klinesUriIsUnaffectedWhenBaseUrlHasNoTrailingSlash() {
+        assertThat(provider.klinesUri("AAPLONUSDT", 1000L, 2000L))
+                .isEqualTo(URI.create("https://api.mexc.com/api/v3/klines?symbol=AAPLONUSDT&interval=1d&startTime=1000&endTime=2000"));
+    }
+
+    @Test
+    void defaultBaseUrlIsMexcSpotApi() {
+        assertThat(provider.klinesUri("BTCUSDT", 1000L, 2000L))
+                .isEqualTo(URI.create("https://api.mexc.com/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1000&endTime=2000"));
+    }
+}
