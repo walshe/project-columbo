@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import walshe.projectcolumbo.supertrend.chart.CandleChartService;
 import walshe.projectcolumbo.supertrend.freshness.FreshnessService;
 import walshe.projectcolumbo.supertrend.indicator.IndicatorComputationService;
 import walshe.projectcolumbo.supertrend.ingestion.BinanceMarketDataProvider;
@@ -104,6 +105,7 @@ class OpenApiDocumentationIntegrationTest {
         new SummaryHandler(signalQueryService, marketBreadthSnapshotDao, freshnessService, clock).register(app);
         new ScanHandler(scanService).register(app);
         new CandleCoverageHandler(candleDao, freshnessService).register(app);
+        new CandlesHandler(assetDao, new CandleChartService(dataSource, candleDao, new SuperTrendIndicatorDao(dataSource), signalStateDao), freshnessService).register(app);
         new IngestionTriggerHandler(pipelineOrchestrator).register(app);
         return app;
     }
@@ -121,6 +123,7 @@ class OpenApiDocumentationIntegrationTest {
                     .contains("\"/api/v1/summary/trend-alignment\"")
                     .contains("\"/api/v1/scan\"")
                     .contains("\"/api/v1/candles/coverage\"")
+                    .contains("\"/api/v1/candles\"")
                     .contains("\"/api/v1/internal/ingestion/run\"");
         });
     }
