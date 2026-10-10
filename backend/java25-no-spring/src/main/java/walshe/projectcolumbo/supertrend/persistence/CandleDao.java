@@ -76,6 +76,34 @@ public final class CandleDao {
         }
     }
 
+    /**
+     * Open time of the most recent stored candle for one asset/timeframe - the ingestion resume
+     * anchor. Resuming from an open time (rather than a close time) doesn't depend on any
+     * provider's close-time convention. Ordered by {@code close_time} so it's served by the
+     * {@code (asset_id, timeframe, close_time)} index.
+     */
+    public Optional<OffsetDateTime> findLatestOpenTime(long assetId, Timeframe timeframe) {
+        String sql = """
+                SELECT open_time FROM candle
+                WHERE asset_id = ? AND timeframe = ?::timeframe
+                ORDER BY close_time DESC
+                LIMIT 1
+                """;
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, assetId);
+            statement.setString(2, timeframe.name());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.of(resultSet.getObject("open_time", OffsetDateTime.class));
+                }
+                return Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load latest open time for asset " + assetId + " " + timeframe, e);
+        }
+    }
+
     /** Reuses a caller-managed connection instead of acquiring its own - see {@link #findByAssetAndTimeframe(Connection, long, Timeframe)} for why. */
     public Optional<OffsetDateTime> findLatestCloseTime(Connection connection, long assetId, Timeframe timeframe) {
         String sql = "SELECT MAX(close_time) AS latest FROM candle WHERE asset_id = ? AND timeframe = ?::timeframe";

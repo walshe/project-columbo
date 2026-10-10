@@ -32,9 +32,11 @@ services:
       - 'SUPERTREND_DB_URL=jdbc:postgresql://postgres:5432/supertrend_core'
       - 'SUPERTREND_DB_USER=postgres'
       - 'SUPERTREND_DB_PASSWORD=postgres'
-      # Required - BackfillStartValidator fails fast at startup if unset. ~215 days back, comfortably
-      # past the ~147 days W1 SuperTrend's ATR warm-up needs; move forward periodically.
-      - 'SUPERTREND_BACKFILL_START=2026-01-01T00:00:00Z'
+      # Required - BackfillStartValidator fails fast at startup if unset. 2024-07-01 is the latest
+      # start that reproduces full-history SuperTrend(10, 3) flips (measured on BTC + a 30-asset
+      # sample): with less history the W1 line starts mid-trend and misses earlier flips entirely
+      # (e.g. BTC's late-2025 weekly bearish flip with a 2026-01-01 start).
+      - 'SUPERTREND_BACKFILL_START=2024-07-01T00:00:00Z'
       # Required - Main.requireEnv fails fast at startup if unset. Real value must be supplied via
       # the deploying environment (e.g. a .env file next to this compose file, gitignored) - never
       # commit a real key here.

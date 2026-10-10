@@ -134,6 +134,29 @@ class CandleRollupServiceTest {
         }
     }
 
+    @Test
+    void completeWeekWithNormalizedCloseTimesIsRolledUpOnTheFollowingMonday() {
+        // Close times follow the system convention (open + 1 day - 1ms), as every provider now
+        // stores them. The Sunday bar closes at 23:59:59.999, before Monday's finalized boundary,
+        // so the week is rolled up on Monday - not held back to Tuesday as with MEXC's raw
+        // close == next-open timestamps.
+        long assetId = seedAsset();
+        OffsetDateTime monday = MONDAY_WEEK_1.plusWeeks(10);
+        for (int i = 0; i < 7; i++) {
+            OffsetDateTime open = monday.plusDays(i);
+            candleDao.upsert(assetId, new Candle(open, open.plusDays(1).minusNanos(1_000_000), Timeframe.D1,
+                    dayOpen(i), dayHigh(i), dayLow(i), dayClose(i), dayVolume(i)));
+        }
+        Clock followingMondayEarly = Clock.fixed(monday.plusWeeks(1).plusMinutes(30).toInstant(), ZoneOffset.UTC);
+
+        new CandleRollupService(assetDao, candleDao, followingMondayEarly).rollupForAllActiveAssets();
+
+        List<Candle> weeklyCandles = candleDao.findByAssetAndTimeframe(assetId, Timeframe.W1);
+        assertThat(weeklyCandles).hasSize(1);
+        assertThat(weeklyCandles.getFirst().openTime()).isEqualTo(monday);
+        assertThat(weeklyCandles.getFirst().closeTime()).isEqualTo(monday.plusWeeks(1).minusNanos(1_000_000));
+    }
+
     private static void seedDailyCandles(long assetId, OffsetDateTime weekStart, int dayCount) {
         for (int i = 0; i < dayCount; i++) {
             OffsetDateTime closeTime = weekStart.plusDays(i + 1);

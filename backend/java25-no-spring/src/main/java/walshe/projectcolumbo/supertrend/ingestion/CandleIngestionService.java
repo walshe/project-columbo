@@ -11,6 +11,8 @@ import walshe.projectcolumbo.supertrend.shared.FinalizedBoundary;
 import walshe.projectcolumbo.supertrend.shared.Timeframe;
 
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +36,7 @@ public final class CandleIngestionService {
     // 20 iterations comfortably covers a multi-year backfill at that page size; if it's ever not
     // enough, the remaining history is picked up on the next run anyway.
     static final int MAX_FETCH_ITERATIONS_PER_ASSET = 20;
+    private static final long ONE_DAY_MS = Duration.ofDays(1).toMillis();
 
     private final AssetDao assetDao;
     private final CandleDao candleDao;
@@ -88,11 +91,17 @@ public final class CandleIngestionService {
 
     IngestionStats ingestForAsset(Asset asset) {
         OffsetDateTime finalizedBoundary = FinalizedBoundary.utcMidnightToday(OffsetDateTime.now(clock));
-        Optional<OffsetDateTime> lastClose = candleDao.findLatestCloseTime(asset.id(), Timeframe.D1);
+        Optional<OffsetDateTime> lastOpen = candleDao.findLatestOpenTime(asset.id(), Timeframe.D1);
 
+        // Resume from the last stored bar's OPEN time + 1ms: every provider returns bars with
+        // open >= startTime, so the next bar (opening a full day later) is always included,
+        // whatever the provider's close-time convention. Resuming from closeTime + 1 skipped a day
+        // per run on MEXC, whose raw close time is the next bar's open.
         long startTimeMs;
-        if (lastClose.isPresent()) {
-            startTimeMs = lastClose.get().toInstant().toEpochMilli() + 1;
+        Long previousOpenMs = null;
+        if (lastOpen.isPresent()) {
+            previousOpenMs = lastOpen.get().toInstant().toEpochMilli();
+            startTimeMs = previousOpenMs + 1;
         } else {
             OffsetDateTime backfillStart = ingestionConfig.backfillStart();
             if (backfillStart == null) {
@@ -103,7 +112,8 @@ public final class CandleIngestionService {
         }
         long endTimeMs = finalizedBoundary.toInstant().toEpochMilli();
 
-        if (startTimeMs >= endTimeMs) {
+        // Caught up when the next bar would open at/after the finalized boundary (it isn't closed yet).
+        if (startTimeMs >= endTimeMs || (previousOpenMs != null && previousOpenMs + ONE_DAY_MS >= endTimeMs)) {
             LOG.debug("No new candles required for {}. Skipping.", asset.symbol());
             return IngestionStats.EMPTY;
         }
@@ -113,7 +123,7 @@ public final class CandleIngestionService {
             throw new IllegalStateException("No market data provider configured for venue " + asset.venue());
         }
 
-        return fetchAndUpsertUntilCaughtUp(asset, provider, startTimeMs, endTimeMs);
+        return fetchAndUpsertUntilCaughtUp(asset, provider, startTimeMs, endTimeMs, previousOpenMs);
     }
 
     /**
@@ -124,8 +134,12 @@ public final class CandleIngestionService {
      * exceeds what a single provider call returns (a brand-new asset with years of real history,
      * or one that's fallen behind) would only advance by one page per ingestion run instead of
      * catching all the way up to now in one run.
+     *
+     * @param previousOpenMs open time of the latest already-stored bar, or null on a fresh
+     *                       backfill - seeds gap detection across the stored/fetched boundary
      */
-    private IngestionStats fetchAndUpsertUntilCaughtUp(Asset asset, MarketDataProvider provider, long startTimeMs, long endTimeMs) {
+    private IngestionStats fetchAndUpsertUntilCaughtUp(Asset asset, MarketDataProvider provider, long startTimeMs, long endTimeMs,
+                                                       Long previousOpenMs) {
         int inserted = 0;
         int updated = 0;
         int unchanged = 0;
@@ -149,6 +163,13 @@ public final class CandleIngestionService {
             }
 
             for (Candle candle : candles) {
+                long openMs = candle.openTime().toInstant().toEpochMilli();
+                if (previousOpenMs != null && openMs - previousOpenMs > ONE_DAY_MS) {
+                    // Logged, not failed: genuine gaps exist (halts, delistings) and failing the asset would block all later data.
+                    LOG.warn("Gap in D1 candles for {}: no bar between {} and {}",
+                            asset.symbol(), Instant.ofEpochMilli(previousOpenMs), candle.openTime());
+                }
+                previousOpenMs = openMs;
                 switch (candleDao.upsert(asset.id(), candle)) {
                     case INSERTED -> inserted++;
                     case UPDATED -> updated++;
@@ -156,7 +177,11 @@ public final class CandleIngestionService {
                 }
             }
 
-            long nextWindowStart = candles.get(candles.size() - 1).closeTime().toInstant().toEpochMilli() + 1;
+            long lastOpenMs = candles.get(candles.size() - 1).openTime().toInstant().toEpochMilli();
+            if (lastOpenMs + ONE_DAY_MS >= endTimeMs) {
+                break; // caught up: the next bar wouldn't be finalized yet, so don't spend a call confirming it
+            }
+            long nextWindowStart = lastOpenMs + 1;
             if (nextWindowStart <= windowStart) {
                 // Defensive: a provider response that doesn't advance the window would otherwise loop forever.
                 break;

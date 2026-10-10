@@ -121,6 +121,17 @@ class CandleDaoIntegrationTest {
         }
     }
 
+    @Test
+    void findLatestOpenTimeReturnsTheMostRecentCandlesOpenAndIsEmptyWithoutCandles() {
+        long assetId = seedAsset("CDW7USDT");
+        assertThat(candleDao.findLatestOpenTime(assetId, Timeframe.D1)).isEmpty();
+
+        seedDailyCandles(assetId, 12); // candle i opens at BASE_TIME + i days
+
+        assertThat(candleDao.findLatestOpenTime(assetId, Timeframe.D1)).hasValue(BASE_TIME.plusDays(11));
+        assertThat(candleDao.findLatestOpenTime(assetId, Timeframe.W1)).isEmpty();
+    }
+
     private static long seedAsset(String symbol) {
         try (Connection connection = dataSource.getConnection();
              var statement = connection.prepareStatement(

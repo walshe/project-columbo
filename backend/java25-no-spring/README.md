@@ -35,7 +35,7 @@ docker compose up -d          # starts only postgres
 export SUPERTREND_DB_URL=jdbc:postgresql://localhost:5432/supertrend_core
 export SUPERTREND_DB_USER=postgres
 export SUPERTREND_DB_PASSWORD=postgres
-export SUPERTREND_BACKFILL_START=2026-01-01T00:00:00Z   # see "Environment variables" below
+export SUPERTREND_BACKFILL_START=2024-07-01T00:00:00Z   # see "Environment variables" below
 
 mvn compile exec:java -Dexec.mainClass=walshe.projectcolumbo.supertrend.Main
 ```
@@ -68,7 +68,7 @@ docker compose -f compose.yaml -f compose.prod.yaml --profile prod up -d
 | `SUPERTREND_DB_URL` | no | `jdbc:postgresql://localhost:5432/supertrend_core` | Postgres JDBC URL |
 | `SUPERTREND_DB_USER` | no | `postgres` | Postgres user |
 | `SUPERTREND_DB_PASSWORD` | no | `postgres` | Postgres password |
-| `SUPERTREND_BACKFILL_START` | **yes** | — | ISO-8601 timestamp; how far back to backfill candles. Must be far enough in the past to give W1 SuperTrend's ATR at least ~147 days (~20 weekly candles) to warm up — startup fails fast (`BackfillStartValidator`) if it isn't. |
+| `SUPERTREND_BACKFILL_START` | **yes** | — | ISO-8601 timestamp; how far back to backfill candles. Must be far enough in the past to give W1 SuperTrend's ATR at least ~147 days (~20 weekly candles) to warm up — startup fails fast (`BackfillStartValidator`) if it isn't. For SuperTrend flips that match full-history charts (e.g. TradingView), use `2024-07-01T00:00:00Z` or earlier - a later start makes the W1 line begin mid-trend and miss earlier flips. |
 | `SUPERTREND_HTTP_PORT` | no | `8080` | HTTP port the API listens on |
 | `SUPERTREND_BINANCE_SPOT_BASE_URL` | no | `https://api.binance.com` | Base URL for SPOT-venue assets. Overridable so tests can point the app at a stub server instead of the real Binance API - see the end-to-end test below |
 | `SUPERTREND_BINANCE_FUTURES_BASE_URL` | no | `https://fapi.binance.com` | Base URL for FUTURES-venue assets (e.g. stocks/ETFs traded as Binance perpetual futures). Same override use case as the spot variable above |
