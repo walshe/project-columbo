@@ -13,6 +13,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -34,6 +35,8 @@ public final class MexcMarketDataProvider implements MarketDataProvider {
     private static final String DEFAULT_BASE_URL = "https://api.mexc.com";
     private static final String KLINES_PATH = "/api/v3/klines";
     private static final int MEXC_INVALID_SYMBOL_CODE = -1121;
+    // Widest span one MEXC klines request covers for 1d bars (500 bars x 1 day), regardless of limit.
+    static final long MAX_WINDOW_MS = Duration.ofDays(500).toMillis();
 
     private final HttpClient httpClient;
     private final String baseUrl;
@@ -58,8 +61,28 @@ public final class MexcMarketDataProvider implements MarketDataProvider {
         return url.substring(0, end);
     }
 
+    /**
+     * MEXC only answers for {@code [startTime, startTime + 500 days)} - an explicit higher {@code
+     * limit} doesn't widen it (verified live 2026-10-09) - so a start more than 500 days before a
+     * symbol's listing comes back empty even though later bars exist. Returning that empty page
+     * would read as "no data" to {@code CandleIngestionService}, which stops paging on an empty
+     * page: with a 2024-07-01 backfill start, 24 newer listings (e.g. tokenized stocks listed in
+     * 2026) never got any candles. So an empty window is skipped forward until bars appear or
+     * {@code endTimeMs} is reached, keeping this provider's {@code [start, end)} contract.
+     */
     @Override
     public List<Candle> fetchDailyCandles(String symbol, long startTimeMs, long endTimeMs) {
+        long windowStart = startTimeMs;
+        while (true) {
+            List<Candle> candles = fetchWindow(symbol, windowStart, endTimeMs);
+            if (!candles.isEmpty() || windowStart + MAX_WINDOW_MS >= endTimeMs) {
+                return candles;
+            }
+            windowStart += MAX_WINDOW_MS;
+        }
+    }
+
+    private List<Candle> fetchWindow(String symbol, long startTimeMs, long endTimeMs) {
         URI uri = klinesUri(symbol, startTimeMs, endTimeMs);
 
         LOG.info("Fetching daily candles from MEXC: symbol={}, start={}, end={}", symbol, startTimeMs, endTimeMs);
@@ -123,14 +146,21 @@ public final class MexcMarketDataProvider implements MarketDataProvider {
     }
 
     /**
-     * MEXC kline array indices, confirmed live-identical to Binance's spot klines: [0] open time,
-     * [1] open, [2] high, [3] low, [4] close, [5] base-asset volume, [6] close time, [7]
-     * quote-asset volume. Volume is read from index 7 (quote-asset, i.e. USDT-denominated), same
-     * reasoning as {@code BinanceMarketDataProvider.toCandle}.
+     * MEXC kline array indices match Binance's spot klines: [0] open time, [1] open, [2] high,
+     * [3] low, [4] close, [5] base-asset volume, [6] close time, [7] quote-asset volume. Volume is
+     * read from index 7 (quote-asset, i.e. USDT-denominated), same reasoning as {@code
+     * BinanceMarketDataProvider.toCandle}.
+     * <p>
+     * The close time is derived as {@code open + 1 day - 1ms} rather than read from [6]: unlike
+     * Binance, MEXC reports [6] as the next bar's open ({@code close - open = 86,400,000}). Stored
+     * raw, that broke the system-wide {@code close = open + span - 1ms} invariant ({@link
+     * Timeframe#openTimeFor}, the W1 rollup's finalized check) and made ingestion's resume point
+     * land 1ms after the next bar's open, which MEXC then silently excluded - skipping a day.
+     * Same normalization as {@code TiingoMarketDataProvider.toCandle}.
      */
     Candle toCandle(JsonNode row) {
         Instant openTime = Instant.ofEpochMilli(row.get(0).asLong());
-        Instant closeTime = Instant.ofEpochMilli(row.get(6).asLong());
+        Instant closeTime = openTime.plus(Duration.ofDays(1)).minusMillis(1);
         return new Candle(
                 openTime.atOffset(ZoneOffset.UTC),
                 closeTime.atOffset(ZoneOffset.UTC),
