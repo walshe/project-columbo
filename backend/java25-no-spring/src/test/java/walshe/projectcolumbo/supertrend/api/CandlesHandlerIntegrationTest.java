@@ -184,6 +184,7 @@ class CandlesHandlerIntegrationTest {
                     "symbol=CH5USDT&timeframe=D1&limit=5001",
                     "symbol=CH5USDT&timeframe=D1&limit=abc",
                     "symbol=CH5USDT&timeframe=D1&from=yesterday",
+                    "symbol=CH5USDT&timeframe=D1&from=20261001",
                     "symbol=CH5USDT&timeframe=D1&from=2026-02-01&to=2026-02-01",
                     "symbol=CH5USDT&timeframe=D1&include=ema")) {
                 assertThat(client.get("/api/v1/candles?" + query).code()).as(query).isEqualTo(400);

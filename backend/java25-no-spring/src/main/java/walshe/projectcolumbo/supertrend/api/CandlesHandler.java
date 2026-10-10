@@ -136,6 +136,10 @@ public final class CandlesHandler {
         String value = raw.trim();
         try {
             if (value.chars().allMatch(Character::isDigit)) {
+                if (value.length() == 8) {
+                    // Almost certainly a compact date (yyyyMMdd); as epoch seconds it would silently mean 1970.
+                    throw new BadRequestResponse(name + " looks like a compact date; use yyyy-MM-dd or epoch seconds, was: " + raw);
+                }
                 return Instant.ofEpochSecond(Long.parseLong(value)).atOffset(ZoneOffset.UTC);
             }
             if (value.length() == 10) {

@@ -23,15 +23,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.stream.LongStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -257,6 +260,152 @@ class CandleIngestionServiceTest {
 
         assertThat(stats.insertedCount()).isEqualTo(CandleIngestionService.MAX_FETCH_ITERATIONS_PER_ASSET);
         assertThat(provider.callCount("ING10USDT")).isEqualTo(CandleIngestionService.MAX_FETCH_ITERATIONS_PER_ASSET);
+    }
+
+    @Test
+    @Order(11)
+    void mexcStyleCloseTimesDoNotSkipTheFirstBarOfTheNextPage() {
+        // Regression: MEXC's raw close time is the next bar's open; resuming at closeTime + 1 used
+        // to skip the first bar of every page after the first (e.g. 2025-11-13 in production).
+        deactivateAllAssets(); // ingestDaily() covers every active asset; isolate from earlier tests
+        long assetId = seedAsset("ING11USDT");
+        PagingMarketDataProvider provider = new PagingMarketDataProvider(25, 10, true);
+
+        IngestionStats stats = serviceAt(provider, BACKFILL_START.plusDays(25)).ingestDaily();
+
+        assertThat(stats.insertedCount()).isEqualTo(25);
+        assertThat(storedOpenDayOffsets(assetId)).containsExactlyElementsOf(range(0, 25));
+        assertThat(provider.startTimes()).hasSize(3);
+    }
+
+    @Test
+    @Order(12)
+    void binanceStyleCloseTimesPageWithoutGapsOrRefetching() {
+        deactivateAllAssets(); // ingestDaily() covers every active asset; isolate from earlier tests
+        long assetId = seedAsset("ING12USDT");
+        PagingMarketDataProvider provider = new PagingMarketDataProvider(25, 10, false);
+
+        IngestionStats stats = serviceAt(provider, BACKFILL_START.plusDays(25)).ingestDaily();
+
+        assertThat(stats.insertedCount()).isEqualTo(25);
+        assertThat(stats.unchangedCount()).isZero(); // no bar fetched twice
+        assertThat(storedOpenDayOffsets(assetId)).containsExactlyElementsOf(range(0, 25));
+    }
+
+    @Test
+    @Order(13)
+    void incrementalRunResumesFromTheLatestStoredOpenAndIncludesTheNextDay() {
+        deactivateAllAssets(); // ingestDaily() covers every active asset; isolate from earlier tests
+        long assetId = seedAsset("ING13USDT");
+        PagingMarketDataProvider provider = new PagingMarketDataProvider(30, 500, true);
+        serviceAt(provider, BACKFILL_START.plusDays(10)).ingestDaily(); // stores days 0..9
+        provider.startTimes().clear();
+
+        IngestionStats stats = serviceAt(provider, BACKFILL_START.plusDays(12)).ingestDaily();
+
+        assertThat(provider.startTimes()).containsExactly(BACKFILL_START.plusDays(9).toInstant().toEpochMilli() + 1);
+        assertThat(stats.insertedCount()).isEqualTo(2);
+        assertThat(storedOpenDayOffsets(assetId)).containsExactlyElementsOf(range(0, 12));
+    }
+
+    @Test
+    @Order(14)
+    void caughtUpAssetMakesNoProviderCall() {
+        deactivateAllAssets(); // ingestDaily() covers every active asset; isolate from earlier tests
+        seedAsset("ING14USDT");
+        PagingMarketDataProvider provider = new PagingMarketDataProvider(30, 500, true);
+        serviceAt(provider, BACKFILL_START.plusDays(10)).ingestDaily();
+        provider.startTimes().clear();
+
+        IngestionStats stats = serviceAt(provider, BACKFILL_START.plusDays(10).plusHours(5)).ingestDaily();
+
+        assertThat(provider.startTimes()).isEmpty();
+        assertThat(stats.insertedCount()).isZero();
+    }
+
+    @Test
+    @Order(15)
+    void aMissingDayIsLoggedAsAGapAndTheReturnedBarsAreStillStored() {
+        deactivateAllAssets(); // ingestDaily() covers every active asset; isolate from earlier tests
+        long assetId = seedAsset("ING15USDT");
+        FakeMarketDataProvider provider = new FakeMarketDataProvider();
+        provider.onFetchSequence("ING15USDT", List.of(candle(1), candle(2), candle(4)));
+
+        PrintStream originalErr = System.err;
+        ByteArrayOutputStream captured = new ByteArrayOutputStream();
+        System.setErr(new PrintStream(captured));
+        try {
+            serviceAt(provider, BACKFILL_START.plusDays(4)).ingestDaily();
+        } finally {
+            System.setErr(originalErr);
+        }
+
+        assertThat(captured.toString()).contains("Gap in D1 candles for ING15USDT");
+        assertThat(candleDao.findByAssetAndTimeframe(assetId, Timeframe.D1)).hasSize(3);
+    }
+
+    private static void deactivateAllAssets() {
+        try (var connection = dataSource.getConnection();
+             var statement = connection.createStatement()) {
+            statement.executeUpdate("UPDATE asset SET active = false");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static CandleIngestionService serviceAt(MarketDataProvider provider, OffsetDateTime now) {
+        return new CandleIngestionService(
+                assetDao, candleDao,
+                Map.of(AssetVenue.SPOT, provider, AssetVenue.FUTURES, provider, AssetVenue.EXCHANGE, provider),
+                ingestionConfig, Clock.fixed(now.toInstant(), ZoneOffset.UTC));
+    }
+
+    private static List<Long> storedOpenDayOffsets(long assetId) {
+        return candleDao.findByAssetAndTimeframe(assetId, Timeframe.D1).stream()
+                .map(c -> Duration.between(BACKFILL_START, c.openTime()).toDays())
+                .toList();
+    }
+
+    private static List<Long> range(long fromInclusive, long toExclusive) {
+        return LongStream.range(fromInclusive, toExclusive).boxed().toList();
+    }
+
+    /**
+     * Serves {@code totalDays} consecutive D1 bars from BACKFILL_START the way real klines APIs
+     * do: only bars with {@code startTime <= open < endTime}, at most {@code pageSize} per call.
+     * {@code mexcCloseConvention} selects close = next open (MEXC raw) vs. next open - 1ms (Binance).
+     */
+    private static final class PagingMarketDataProvider implements MarketDataProvider {
+        private final int totalDays;
+        private final int pageSize;
+        private final boolean mexcCloseConvention;
+        private final List<Long> startTimes = new ArrayList<>();
+
+        PagingMarketDataProvider(int totalDays, int pageSize, boolean mexcCloseConvention) {
+            this.totalDays = totalDays;
+            this.pageSize = pageSize;
+            this.mexcCloseConvention = mexcCloseConvention;
+        }
+
+        List<Long> startTimes() {
+            return startTimes;
+        }
+
+        @Override
+        public List<Candle> fetchDailyCandles(String symbol, long startTimeMs, long endTimeMs) {
+            startTimes.add(startTimeMs);
+            List<Candle> page = new ArrayList<>();
+            for (int day = 0; day < totalDays && page.size() < pageSize; day++) {
+                OffsetDateTime open = BACKFILL_START.plusDays(day);
+                long openMs = open.toInstant().toEpochMilli();
+                if (openMs >= startTimeMs && openMs < endTimeMs) {
+                    OffsetDateTime close = mexcCloseConvention ? open.plusDays(1) : open.plusDays(1).minusNanos(1_000_000);
+                    page.add(new Candle(open, close, Timeframe.D1, BigDecimal.valueOf(100), BigDecimal.valueOf(110),
+                            BigDecimal.valueOf(90), BigDecimal.valueOf(105), BigDecimal.valueOf(1000)));
+                }
+            }
+            return page;
+        }
     }
 
     private static Supplier<List<Candle>> sequentialOneDayAtATimeSupplier() {
