@@ -47,6 +47,27 @@ public final class AssetDao {
         return assets;
     }
 
+    /**
+     * Every active asset with exactly this (case-sensitive) symbol. Usually zero or one, but
+     * {@code symbol} is only unique per provider, so callers decide what more than one means.
+     */
+    public List<Asset> findActiveBySymbol(String symbol) {
+        String sql = "SELECT id, symbol, provider, active, asset_class, venue, name, tradingview_ref FROM asset WHERE active = true AND symbol = ? ORDER BY id";
+        List<Asset> assets = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, symbol);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    assets.add(mapRow(resultSet));
+                }
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load active assets for symbol " + symbol, e);
+        }
+        return assets;
+    }
+
     /** Marks an asset inactive so future ingestion runs skip it (e.g. after a provider invalid-symbol error). */
     public void deactivate(long assetId) {
         String sql = "UPDATE asset SET active = false WHERE id = ?";

@@ -143,6 +143,43 @@ public final class CandleDao {
         return candles;
     }
 
+    /**
+     * The most recent {@code limit + 1} candles for one asset/timeframe whose open time falls in
+     * {@code [fromOpenInclusive, toOpenExclusive)}, ordered oldest-to-newest. Either bound may be
+     * null (unbounded). The extra row lets a caller tell whether older candles exist in the window
+     * beyond the {@code limit} it will actually return, without a second COUNT query.
+     */
+    public List<Candle> findLatestInOpenTimeWindow(Connection connection, long assetId, Timeframe timeframe,
+                                                   OffsetDateTime fromOpenInclusive, OffsetDateTime toOpenExclusive, int limit) {
+        String sql = """
+                SELECT open_time, close_time, open, high, low, close, volume
+                FROM candle
+                WHERE asset_id = ? AND timeframe = ?::timeframe
+                  AND (?::timestamptz IS NULL OR open_time >= ?::timestamptz)
+                  AND (?::timestamptz IS NULL OR open_time < ?::timestamptz)
+                ORDER BY close_time DESC
+                LIMIT ?
+                """;
+        List<Candle> candles = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, assetId);
+            statement.setString(2, timeframe.name());
+            statement.setObject(3, fromOpenInclusive);
+            statement.setObject(4, fromOpenInclusive);
+            statement.setObject(5, toOpenExclusive);
+            statement.setObject(6, toOpenExclusive);
+            statement.setInt(7, limit + 1);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    candles.add(mapRow(resultSet, timeframe));
+                }
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load candle window for asset " + assetId + " " + timeframe, e);
+        }
+        return candles.reversed();
+    }
+
     /** System-wide latest close time across every asset for a timeframe (not scoped to one asset) - used for freshness checks. */
     public Optional<OffsetDateTime> findLatestCloseTimeAcrossAllAssets(Timeframe timeframe) {
         String sql = "SELECT MAX(close_time) AS latest FROM candle WHERE timeframe = ?::timeframe";

@@ -121,6 +121,48 @@ class CandleDaoIntegrationTest {
         }
     }
 
+    @Test
+    void latestInOpenTimeWindowReturnsLimitPlusOneMostRecentAscendingWhenUnbounded() throws SQLException {
+        long assetId = seedAsset("CDL1USDT");
+        seedDailyCandles(assetId, 30);
+
+        try (Connection connection = dataSource.getConnection()) {
+            List<Candle> window = candleDao.findLatestInOpenTimeWindow(connection, assetId, Timeframe.D1, null, null, 10);
+
+            assertThat(window).hasSize(11);
+            assertThat(window.getLast().closeTime()).isEqualTo(BASE_TIME.plusDays(30));
+            assertThat(window.getFirst().closeTime()).isEqualTo(BASE_TIME.plusDays(20));
+            assertThat(window).isSortedAccordingTo((a, b) -> a.closeTime().compareTo(b.closeTime()));
+        }
+    }
+
+    @Test
+    void latestInOpenTimeWindowTreatsFromAsInclusiveAndToAsExclusiveOnOpenTime() throws SQLException {
+        long assetId = seedAsset("CDL2USDT");
+        seedDailyCandles(assetId, 30); // candle i opens at BASE_TIME + i days
+
+        try (Connection connection = dataSource.getConnection()) {
+            List<Candle> window = candleDao.findLatestInOpenTimeWindow(connection, assetId, Timeframe.D1,
+                    BASE_TIME.plusDays(5), BASE_TIME.plusDays(10), 100);
+
+            assertThat(window).extracting(Candle::openTime)
+                    .containsExactly(BASE_TIME.plusDays(5), BASE_TIME.plusDays(6), BASE_TIME.plusDays(7),
+                            BASE_TIME.plusDays(8), BASE_TIME.plusDays(9));
+        }
+    }
+
+    @Test
+    void latestInOpenTimeWindowIsScopedToAssetAndTimeframe() throws SQLException {
+        long assetId = seedAsset("CDL3USDT");
+        long otherAssetId = seedAsset("CDL4USDT");
+        seedDailyCandles(otherAssetId, 5);
+
+        try (Connection connection = dataSource.getConnection()) {
+            assertThat(candleDao.findLatestInOpenTimeWindow(connection, assetId, Timeframe.D1, null, null, 10)).isEmpty();
+            assertThat(candleDao.findLatestInOpenTimeWindow(connection, otherAssetId, Timeframe.W1, null, null, 10)).isEmpty();
+        }
+    }
+
     private static long seedAsset(String symbol) {
         try (Connection connection = dataSource.getConnection();
              var statement = connection.prepareStatement(

@@ -59,6 +59,32 @@ public final class SuperTrendIndicatorDao {
         return results;
     }
 
+    /** Stored SuperTrend rows for one asset/timeframe with close time in {@code [closeFrom, closeTo]}, ordered oldest-to-newest. */
+    public List<SuperTrendResult> findBetween(Connection connection, long assetId, Timeframe timeframe,
+                                              OffsetDateTime closeFrom, OffsetDateTime closeTo) {
+        String sql = """
+                SELECT close_time, atr, upper_band, lower_band, supertrend, direction
+                FROM indicator_supertrend
+                WHERE asset_id = ? AND timeframe = ?::timeframe AND close_time BETWEEN ? AND ?
+                ORDER BY close_time ASC
+                """;
+        List<SuperTrendResult> results = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, assetId);
+            statement.setString(2, timeframe.name());
+            statement.setObject(3, closeFrom);
+            statement.setObject(4, closeTo);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    results.add(mapRow(resultSet));
+                }
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load SuperTrend range for asset " + assetId + " " + timeframe, e);
+        }
+        return results;
+    }
+
     /** Reuses a caller-managed connection instead of acquiring its own - see {@link CandleDao#findByAssetAndTimeframe(Connection, long, Timeframe)} for why. */
     public Optional<OffsetDateTime> findLatestCloseTime(Connection connection, long assetId, Timeframe timeframe) {
         String sql = "SELECT MAX(close_time) AS latest FROM indicator_supertrend WHERE asset_id = ? AND timeframe = ?::timeframe";

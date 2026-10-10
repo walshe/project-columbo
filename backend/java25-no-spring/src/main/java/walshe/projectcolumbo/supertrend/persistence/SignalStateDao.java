@@ -152,6 +152,32 @@ public final class SignalStateDao {
         }
     }
 
+    /** Flips (event != NONE) for one asset/timeframe with close time in {@code [closeFrom, closeTo]}, ordered oldest-to-newest. */
+    public List<SignalState> findFlipsBetween(Connection connection, long assetId, Timeframe timeframe,
+                                              OffsetDateTime closeFrom, OffsetDateTime closeTo) {
+        String sql = """
+                SELECT asset_id, timeframe, close_time, trend_state, event
+                FROM signal_state
+                WHERE asset_id = ? AND timeframe = ?::timeframe AND event != 'NONE' AND close_time BETWEEN ? AND ?
+                ORDER BY close_time ASC
+                """;
+        List<SignalState> states = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, assetId);
+            statement.setString(2, timeframe.name());
+            statement.setObject(3, closeFrom);
+            statement.setObject(4, closeTo);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    states.add(mapRow(resultSet, timeframe));
+                }
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to load flips for asset " + assetId + " " + timeframe, e);
+        }
+        return states;
+    }
+
     private static SignalState mapRow(ResultSet resultSet, Timeframe timeframe) throws SQLException {
         return new SignalState(
                 resultSet.getLong("asset_id"),
