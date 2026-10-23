@@ -101,6 +101,32 @@ class FreshnessServiceIntegrationTest {
         assertThat(metadata.latestCandleDate()).isEqualTo(EXPECTED_D1_BOUNDARY_DAY);
     }
 
+    @Test
+    void w1MetadataUsesTheLatestSuccessfulPipelineRunEvenThoughRunsAreRecordedAsD1() {
+        OffsetDateTime finishedAt = NOW.plusMinutes(5);
+        long runId = ingestionRunDao.start(Timeframe.D1, 1, NOW);
+        try {
+            ingestionRunDao.complete(runId, new IngestionRunOutcome(IngestionRunStatus.SUCCESS, finishedAt, 300_000, 1, 0, 0, 0, null));
+
+            FreshnessMetadata metadata = new FreshnessService(candleDao, ingestionRunDao, clock).metadataFor(Timeframe.W1);
+
+            assertThat(metadata.lastSuccessfulIngestionAt()).isEqualTo(finishedAt);
+        } finally {
+            // The container is shared across this class's tests; a lingering run would leak into their run lookups.
+            deleteIngestionRun(runId);
+        }
+    }
+
+    private static void deleteIngestionRun(long runId) {
+        try (var connection = dataSource.getConnection();
+             var statement = connection.prepareStatement("DELETE FROM ingestion_run WHERE id = ?")) {
+            statement.setLong(1, runId);
+            statement.executeUpdate();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private static long seedAsset(String symbol) {
         try (var connection = dataSource.getConnection();
              var statement = connection.prepareStatement(
