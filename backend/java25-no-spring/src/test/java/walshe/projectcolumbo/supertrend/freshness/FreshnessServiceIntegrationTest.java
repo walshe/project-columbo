@@ -117,6 +117,21 @@ class FreshnessServiceIntegrationTest {
         }
     }
 
+    @Test
+    void d1MetadataCountsARunTriggeredAsW1() {
+        OffsetDateTime finishedAt = NOW.plusMinutes(7);
+        long runId = ingestionRunDao.start(Timeframe.W1, 1, NOW);
+        try {
+            ingestionRunDao.complete(runId, new IngestionRunOutcome(IngestionRunStatus.SUCCESS, finishedAt, 420_000, 1, 0, 0, 0, null));
+
+            FreshnessMetadata metadata = new FreshnessService(candleDao, ingestionRunDao, clock).metadataFor(Timeframe.D1);
+
+            assertThat(metadata.lastSuccessfulIngestionAt()).isEqualTo(finishedAt);
+        } finally {
+            deleteIngestionRun(runId);
+        }
+    }
+
     private static void deleteIngestionRun(long runId) {
         try (var connection = dataSource.getConnection();
              var statement = connection.prepareStatement("DELETE FROM ingestion_run WHERE id = ?")) {

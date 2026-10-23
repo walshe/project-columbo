@@ -49,10 +49,8 @@ public final class FreshnessService {
 
     /** Reuses an already-computed status's candle lookup instead of re-querying it - see {@link #metadataFor(Timeframe)}. */
     public FreshnessMetadata metadataFor(FreshnessStatus status) {
-        // Every pipeline run rolls up and recomputes W1 but is recorded under its trigger timeframe (D1 in practice),
-        // so no ingestion_run row ever has timeframe W1: any successful run is the last W1 update.
-        Timeframe runTimeframe = status.timeframe() == Timeframe.W1 ? null : status.timeframe();
-        OffsetDateTime lastSuccessfulIngestionAt = ingestionRunDao.findLatestSuccessfulFinishedAt(runTimeframe).orElse(null);
+        // Any timeframe: a run updates both D1 and W1 but is recorded only under the timeframe that triggered it.
+        OffsetDateTime lastSuccessfulIngestionAt = ingestionRunDao.findLatestSuccessfulFinishedAt().orElse(null);
         return new FreshnessMetadata(lastSuccessfulIngestionAt, status.actualLatestCloseTime());
     }
 
