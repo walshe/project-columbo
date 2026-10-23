@@ -22,8 +22,8 @@ import java.util.Objects;
  * @param pulse            latest market-breadth snapshot for the requested timeframe; null if none yet
  * @param bullishSignals   bullish assets, ordered by last-flip descending
  * @param bearishSignals   bearish assets, ordered by last-flip descending
- * @param lastIngestionAt  finished-at of the last successful BINANCE ingestion run for this
- *                         timeframe; null before any SUCCESS/PARTIAL run has ever completed
+ * @param lastIngestionAt  finished-at of the last successful ingestion run (each run updates
+ *                         both D1 and W1); null before any SUCCESS/PARTIAL run has ever completed
  * @param candlesThrough   close time of the most recent stored candle for this timeframe; null if none
  * @param stale            true if this timeframe hasn't reached its expected latest close time
  */

@@ -102,19 +102,16 @@ public final class IngestionRunDao {
 
     /**
      * Finished-at of the most recent non-FAILED run (SUCCESS or PARTIAL both count as "some data was ingested") - used for freshness metadata.
-     * A null timeframe matches runs of any timeframe.
+     * Not filtered by timeframe: every run ingests D1 and rolls up/recomputes W1, whichever timeframe triggered it.
      */
-    public Optional<OffsetDateTime> findLatestSuccessfulFinishedAt(Timeframe timeframe) {
+    public Optional<OffsetDateTime> findLatestSuccessfulFinishedAt() {
         String sql = """
                 SELECT MAX(finished_at) AS latest
                 FROM ingestion_run
-                WHERE (?::timeframe IS NULL OR timeframe = ?::timeframe) AND status IN ('SUCCESS', 'PARTIAL')
+                WHERE status IN ('SUCCESS', 'PARTIAL')
                 """;
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            String timeframeName = timeframe == null ? null : timeframe.name();
-            statement.setString(1, timeframeName);
-            statement.setString(2, timeframeName);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
                     return Optional.ofNullable(resultSet.getObject("latest", OffsetDateTime.class));
@@ -122,7 +119,7 @@ public final class IngestionRunDao {
                 return Optional.empty();
             }
         } catch (SQLException e) {
-            throw new PersistenceException("Failed to load latest successful ingestion time for " + timeframe, e);
+            throw new PersistenceException("Failed to load latest successful ingestion time", e);
         }
     }
 

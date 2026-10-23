@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * @param lastIngestionAt finished-at of the last successful BINANCE ingestion run for the
- *                         requested timeframe; null if none has ever completed
+ * @param lastIngestionAt finished-at of the last successful ingestion run (each run updates
+ *                         both D1 and W1); null if none has ever completed
  * @param candlesThrough   close time of the most recent stored candle for the requested timeframe; null if none
  * @param stale            true if the requested timeframe's candle data hasn't reached its
  *                         expected latest close time (not grace-adjusted - see FreshnessService)

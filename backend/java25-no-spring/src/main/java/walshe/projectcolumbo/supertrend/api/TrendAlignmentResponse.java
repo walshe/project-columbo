@@ -19,7 +19,7 @@ import java.util.Objects;
  *                         than requiring the reader to already know what request produced it
  * @param assetClass       the requested asset-class filter, if any; null means every class was
  *                         included, same self-describing rationale as {@code maxRetestAgeDays}
- * @param lastIngestionAt finished-at of the last successful BINANCE D1 ingestion run - D1 is the
+ * @param lastIngestionAt finished-at of the last successful ingestion run - D1 is the
  *                         driving timeframe for this cross-timeframe report (W1 is rolled up from
  *                         D1), so freshness is evaluated against D1 only, never W1. Null before any
  *                         SUCCESS/PARTIAL ingestion run has ever completed
