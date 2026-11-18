@@ -16,6 +16,8 @@ import java.util.Objects;
  *                              position/label the same candle
  * @param avgVolume7d           rolling 7-day average D1 volume; zero if unavailable
  * @param pctChangeSinceFlip    signed, 2dp; null if there's no flip or no matching candle close
+ * @param latestClose           most recent candle close for this asset on the requested timeframe;
+ *                              null if no candles exist
  * @param tradingviewUrl        TradingView chart deep link for this asset+timeframe; null if the
  *                              asset's provider/symbol is unavailable
  * @param assetClass            the asset's category (crypto/stock/etf/commodity)
@@ -28,6 +30,7 @@ public record SignalSummary(
         OffsetDateTime lastFlipTime,
         BigDecimal avgVolume7d,
         BigDecimal pctChangeSinceFlip,
+        BigDecimal latestClose,
         String tradingviewUrl,
         AssetClass assetClass,
         String name

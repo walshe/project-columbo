@@ -152,6 +152,27 @@ class SignalQueryServiceTest {
     }
 
     @Test
+    void latestCloseIsPopulatedWhenCandleExists() {
+        List<SignalState> latest = List.of(state(1, TrendState.BULLISH));
+        Map<Long, BigDecimal> latestClose = Map.of(1L, new BigDecimal("84097.41"));
+
+        List<SignalSummary> result = SignalQueryService.summarize(
+                latest, enrichment(Map.of(), Map.of(), latestClose, Map.of()), null, null, null);
+
+        assertThat(result.get(0).latestClose()).isEqualByComparingTo(new BigDecimal("84097.41"));
+    }
+
+    @Test
+    void latestCloseIsNullWhenNoCandleExists() {
+        List<SignalState> latest = List.of(state(1, TrendState.BULLISH));
+
+        List<SignalSummary> result = SignalQueryService.summarize(
+                latest, enrichment(Map.of(), Map.of(), Map.of(), Map.of()), null, null, null);
+
+        assertThat(result.get(0).latestClose()).isNull();
+    }
+
+    @Test
     void symbolFilterNarrowsToExactMatches() {
         List<SignalState> latest = List.of(state(1, TrendState.BULLISH), state(2, TrendState.BULLISH), state(3, TrendState.BULLISH));
 

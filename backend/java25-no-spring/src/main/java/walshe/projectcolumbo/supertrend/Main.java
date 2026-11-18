@@ -10,6 +10,7 @@ import walshe.projectcolumbo.supertrend.api.IngestionTriggerHandler;
 import walshe.projectcolumbo.supertrend.api.ScanHandler;
 import walshe.projectcolumbo.supertrend.api.SignalsHandler;
 import walshe.projectcolumbo.supertrend.api.SummaryHandler;
+import walshe.projectcolumbo.supertrend.api.SymbolsHandler;
 import walshe.projectcolumbo.supertrend.api.TrendAlignmentHandler;
 import walshe.projectcolumbo.supertrend.api.WeeklyPullbackBriefingHandler;
 import walshe.projectcolumbo.supertrend.api.WeeklyTrendBriefingHandler;
@@ -119,6 +120,7 @@ public final class Main {
         ProvisionalTrendService provisionalTrendService = new ProvisionalTrendService(assetDao, candleDao, clock, dataSource);
 
         Javalin app = ApiServer.create();
+        new SymbolsHandler(assetDao).register(app);
         new SignalsHandler(signalQueryService, freshnessService).register(app);
         new TrendAlignmentHandler(trendAlignmentService, freshnessService, clock).register(app);
         new SummaryHandler(signalQueryService, marketBreadthSnapshotDao, freshnessService, clock).register(app);

@@ -86,7 +86,7 @@ public final class WeeklyPullbackBriefingHandler {
             path = "/api/v1/weekly-pullback-briefing",
             methods = HttpMethod.POST,
             summary = "Runs D1 ingestion to completion, then composes a mean-reversion weekly briefing (retest/pullback candidates, not confluence) into one Markdown report",
-            description = "SYNCHRONOUS and expensive: this call blocks until a full BINANCE/D1 ingestion pipeline run (ingest, "
+            description = "SYNCHRONOUS and expensive: this call blocks until a full MEXC/D1 ingestion pipeline run (ingest, "
                     + "indicators, signals, breadth pulse) finishes, then composes the report. Callers should use a generous "
                     + "timeout, not the default expected for a simple read. No request body. Response is always text/markdown, "
                     + "never JSON. Mean-reversion sibling of /api/v1/weekly-trend-briefing: headlines retest candidates (W1 trend "

@@ -175,4 +175,5 @@ class ApiServerIntegrationTest {
             assertThat(response.body().string().toLowerCase()).contains("swagger");
         });
     }
+
 }

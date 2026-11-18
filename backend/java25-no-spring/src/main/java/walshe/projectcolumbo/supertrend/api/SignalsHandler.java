@@ -44,10 +44,11 @@ public final class SignalsHandler {
             path = "/api/v1/signals",
             methods = HttpMethod.GET,
             summary = "List the latest SuperTrend signal state for every active asset on a timeframe, or narrow it to one or more specific assets",
-            description = "Returns one entry per matching active asset: its current SuperTrend trend state, when it last flipped, "
-                    + "7-day average volume, percent change since that flip, and a ready-to-open TradingView chart link. "
+            description = "Returns one entry per matching active asset: its current trend state, when it last flipped, "
+                    + "7-day average volume, percent change since that flip, the most recent candle close price, and a "
+                    + "ready-to-open TradingView chart link. "
                     + "Filters compose: pass any combination of state/assetClass/symbols together. To look up a specific asset's "
-                    + "current trend (the common case for a single-symbol query), use symbols=BTCUSDT rather than fetching the "
+                    + "current trend or price (the common case for a single-symbol query), use symbols=BTCUSDT rather than fetching the "
                     + "full list and searching client-side.",
             queryParams = {
                     @OpenApiParam(name = "timeframe", type = Timeframe.class, required = true,
