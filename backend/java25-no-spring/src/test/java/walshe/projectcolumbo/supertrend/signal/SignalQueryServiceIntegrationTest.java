@@ -84,6 +84,7 @@ class SignalQueryServiceIntegrationTest {
         // convention means the exact open time is FLIP_CLOSE minus a day plus that 1ms back.
         assertThat(summary.lastFlipTime()).isEqualTo(FLIP_CLOSE.minusDays(1).plusNanos(1_000_000));
         assertThat(summary.pctChangeSinceFlip()).isEqualByComparingTo(new BigDecimal("15.00"));
+        assertThat(summary.latestClose()).isEqualByComparingTo(new BigDecimal("115.00"));
         assertThat(summary.tradingviewUrl()).isEqualTo("https://www.tradingview.com/chart/?symbol=BINANCE%3ASQ1USDT&interval=1D");
     }
 
