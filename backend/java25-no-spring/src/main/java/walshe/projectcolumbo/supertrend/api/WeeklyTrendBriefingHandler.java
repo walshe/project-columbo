@@ -88,7 +88,7 @@ public final class WeeklyTrendBriefingHandler {
             path = "/api/v1/weekly-trend-briefing",
             methods = HttpMethod.POST,
             summary = "Runs D1 ingestion to completion, then composes the weekly regime/BTC-alignment/trend-alignment/scan routine into one Markdown report",
-            description = "SYNCHRONOUS and expensive: this call blocks until a full BINANCE/D1 ingestion pipeline run (ingest, "
+            description = "SYNCHRONOUS and expensive: this call blocks until a full MEXC/D1 ingestion pipeline run (ingest, "
                     + "indicators, signals, breadth pulse - both D1 and the W1 rollup) finishes, then composes the report on top "
                     + "of that freshly-ingested data. Expect this to take noticeably longer than any other endpoint in this API - "
                     + "callers should use a generous timeout, not the default expected for a simple read. No request body. "

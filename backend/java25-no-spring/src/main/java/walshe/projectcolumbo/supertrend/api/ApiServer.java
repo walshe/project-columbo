@@ -22,12 +22,10 @@ import java.util.Map;
  * Builds a configured, not-yet-started Javalin app: JSON mapping (shared Jackson
  * {@link JsonSupport#OBJECT_MAPPER}), an OpenAPI spec + Swagger UI, case-insensitive enum
  * query-param converters (registered per enum type - Javalin doesn't auto-convert arbitrary
- * enums), and exception-to-status-code mapping for the domain
- * exceptions Javalin doesn't already know about. Javalin's own {@code HttpResponseException}
- * subclasses ({@code BadRequestResponse}, {@code NotFoundResponse}, {@code ConflictResponse}, ...)
- * are mapped to the right status automatically - no registration needed for those.
- * <p>
- * Not started or wired into {@code Main} yet; real routes land with openspec tasks.md groups 10+.
+ * enums), and exception-to-status-code mapping for the domain exceptions Javalin doesn't already
+ * know about. Javalin's own {@code HttpResponseException} subclasses ({@code BadRequestResponse},
+ * {@code NotFoundResponse}, {@code ConflictResponse}, ...) are mapped to the right status
+ * automatically - no registration needed for those.
  */
 public final class ApiServer {
 
