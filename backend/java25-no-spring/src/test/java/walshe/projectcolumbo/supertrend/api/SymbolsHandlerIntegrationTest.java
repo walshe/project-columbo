@@ -41,10 +41,10 @@ class SymbolsHandlerIntegrationTest {
     }
 
     @BeforeEach
-    void deactivateSeededAssets() throws Exception {
+    void clearAssets() throws Exception {
         try (var connection = dataSource.getConnection();
              var statement = connection.createStatement()) {
-            statement.executeUpdate("UPDATE asset SET active = false");
+            statement.executeUpdate("DELETE FROM asset");
         }
     }
 
@@ -71,7 +71,6 @@ class SymbolsHandlerIntegrationTest {
     @Test
     void excludesInactiveAssets() throws Exception {
         seedAsset("ACTIVEUSDT");
-        // deactivateSeededAssets already deactivated all from previous tests; seed one inactive explicitly
         try (var connection = dataSource.getConnection();
              var statement = connection.prepareStatement(
                      "INSERT INTO asset (symbol, provider, active) VALUES (?, ?::provider, false)")) {
